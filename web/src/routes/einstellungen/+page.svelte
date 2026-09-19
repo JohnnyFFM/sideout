@@ -2,7 +2,13 @@
   // Team settings, members & roles, join code, logout.
   import { goto } from '$app/navigation';
   import { api } from '$lib/api.js';
-  import { me, showToast, refreshMe, meCache, switchTeam, reconnectSSE } from '$lib/stores.js';
+  import { me, showToast, refreshMe, meCache, switchTeam, reconnectSSE, sseConnected, sseRole, online, readDiag, DIAG_KEY } from '$lib/stores.js';
+  import { version } from '$app/environment';
+  let diag = $state([]);
+  $effect(() => { diag = readDiag(); });
+  const diagText = $derived(JSON.stringify({ version, ua: navigator.userAgent, online: $online, stream: $sseConnected, role: $sseRole, path: location.pathname, errors: diag }, null, 1));
+  async function copyDiag() { try { await navigator.clipboard.writeText(diagText); showToast('Diagnose kopiert'); } catch { showToast('Kopieren nicht möglich, Text markieren', true); } }
+  function clearDiag() { try { localStorage.removeItem(DIAG_KEY); } catch {} diag = []; }
   let newTeam = $state('');
   let joinCode = $state('');
   async function createTeam(e) {
@@ -104,6 +110,14 @@
         <p class="small" style="margin:0">Alles zum Scouten, zur Bewertungsskala und zur Auswertung: <a href="/hilfe/">Anleitung öffnen</a>.</p>
       </section>
       <section class="panel">
+        <div class="panel-head"><h2>Diagnose</h2><span class="small muted">bei Problemen kopieren und schicken</span></div>
+        <p class="small" style="margin:0 0 8px">Version {version} · {$online ? 'online' : 'offline'} · Live-Stream {$sseConnected ? 'verbunden' : 'getrennt'} ({$sseRole === 'leader' ? 'dieser Tab hält den Stream' : $sseRole === 'follower' ? 'ein anderer Tab hält den Stream' : 'kein Stream'})</p>
+        {#if diag.length}
+          <ul class="diag">{#each diag as e}<li><span class="muted">{e.t.slice(11, 19)}</span> <b>{e.kind}</b> {e.msg} <span class="muted">{e.path}</span></li>{/each}</ul>
+        {:else}<p class="small muted" style="margin:0 0 8px">Keine Fehler aufgezeichnet.</p>{/if}
+        <div class="row"><button class="btn" onclick={copyDiag}>Diagnose kopieren</button>{#if diag.length}<button class="btn ghost" onclick={clearDiag}>Leeren</button>{/if}</div>
+      </section>
+      <section class="panel">
         <div class="panel-head"><h2>Als App installieren</h2></div>
         <p class="small" style="margin:0">{installHint()} Danach läuft Sideout im Vollbild, auch ohne Empfang in der Halle: Aktionen werden lokal gespeichert und später gesendet.</p>
       </section>
@@ -134,6 +148,8 @@
   .members li { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line-soft); }
   .members li:last-child { border-bottom: 0; }
   .members select { width: auto; }
+  .diag { list-style: none; margin: 0 0 10px; padding: 0; font-size: 12px; }
+  .diag li { padding: 4px 0; border-bottom: 1px solid var(--line-soft); word-break: break-word; }
   .teams { list-style: none; margin: 0; padding: 0; }
   .teams li { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line-soft); }
   .teams li:last-child { border-bottom: 0; }

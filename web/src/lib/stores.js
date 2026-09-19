@@ -1,7 +1,7 @@
 import { writable } from 'svelte/store';
 import { invalidateAll } from '$app/navigation';
 
-/** me-shape from /api/me: { user, team, members } */
+/** me-shape from /api/me: { user, team, teams, members } */
 export const me = writable(null);
 /** module cache so the layout load does not refetch /me on every navigation */
 export const meCache = { value: null };
@@ -11,9 +11,10 @@ export async function refreshMe() {
 }
 
 /** last committed mutation seen on the SSE stream (notification, not data).
- *  {entity:'resync'} is synthetic: the stream reconnected, pages refetch. */
+ *  {entity:'resync'} is synthetic: the stream (re)connected, pages refetch. */
 export const mutations = writable(null);
 export const sseConnected = writable(false);
+export const sseRole = writable('–'); // 'leader' | 'follower' | '–'
 export const online = writable(typeof navigator === 'undefined' ? true : navigator.onLine);
 
 export const toast = writable(null);
@@ -21,40 +22,87 @@ let toastTimer;
 export function showToast(text, isErr = false) {
   toast.set({ text, isErr });
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.set(null), 2200);
+  toastTimer = setTimeout(() => toast.set(null), isErr ? 4000 : 2200);
 }
 
-/* One EventSource per tab, held only while the tab is visible. Browsers
-   allow ~6 HTTP/1.1 connections per host and a stream keeps one open for
-   good, so a handful of background tabs would otherwise starve every
-   fetch and the app looks frozen. Hidden tabs drop the stream and
-   resync when they come back. */
+/* ---------------------------------------------------------------- live stream
+   Exactly ONE tab per browser holds the EventSource (Web Locks decide who)
+   and relays every event to the other tabs over a BroadcastChannel.
+   Browsers allow ~6 HTTP/1.1 connections per host and a stream keeps one
+   open for good, so one stream per tab starved every fetch once a handful
+   of tabs were open and the app looked frozen. Now the count is one. */
 let source = null;
 let wanted = false;
 let everConnected = false;
+let leader = false;
+let lockRequested = false;
+const bc = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('so-sse') : null;
+
+function publish(d) {
+  mutations.set(d);
+  if (d.entity === 'resync') refreshMe().catch(() => {});
+}
 
 function open() {
   if (source) return;
   source = new EventSource('/api/events');
   source.addEventListener('mutation', (ev) => {
-    mutations.set(JSON.parse(ev.data));
+    const d = JSON.parse(ev.data);
+    publish(d);
+    bc?.postMessage({ type: 'mutation', data: d });
   });
   source.onopen = () => {
     sseConnected.set(true);
-    if (everConnected) mutations.set({ entity: 'resync', id: 0, version: 0, action: 'resync', actor: '' });
+    bc?.postMessage({ type: 'state', connected: true });
+    if (everConnected) {
+      const r = { entity: 'resync', id: 0, version: 0, action: 'resync', actor: '' };
+      publish(r);
+      bc?.postMessage({ type: 'mutation', data: r });
+    }
     everConnected = true;
   };
-  source.onerror = () => sseConnected.set(false); // EventSource auto-reconnects
+  source.onerror = () => {
+    sseConnected.set(false);
+    bc?.postMessage({ type: 'state', connected: false });
+  };
 }
 function close() {
   source?.close();
   source = null;
   sseConnected.set(false);
+  if (leader) bc?.postMessage({ type: 'state', connected: false });
 }
+
+function becomeLeader() {
+  leader = true;
+  sseRole.set('leader');
+  if (wanted) open();
+}
+function requestLeadership() {
+  if (lockRequested) return;
+  lockRequested = true;
+  if (typeof navigator !== 'undefined' && navigator.locks) {
+    sseRole.set('follower');
+    bc?.postMessage({ type: 'hello' });
+    // granted when no other tab holds it; held until this tab goes away
+    navigator.locks.request('so-sse-leader', () => new Promise(() => becomeLeader())).catch(() => becomeLeader());
+  } else {
+    becomeLeader();
+  }
+}
+
+bc?.addEventListener('message', (ev) => {
+  const m = ev.data;
+  if (m.type === 'mutation') publish(m.data);
+  else if (m.type === 'state') { if (!leader) sseConnected.set(m.connected); }
+  else if (m.type === 'hello') { if (leader) bc.postMessage({ type: 'state', connected: !!source && source.readyState === 1 }); }
+  else if (m.type === 'reconnect') { if (leader) { close(); if (wanted) open(); } }
+});
 
 export function connectSSE() {
   wanted = true;
-  if (typeof document === 'undefined' || document.visibilityState === 'visible') open();
+  requestLeadership();
+  if (leader) open();
 }
 
 export function disconnectSSE() {
@@ -64,8 +112,8 @@ export function disconnectSSE() {
 
 /** after switching teams: the stream is scoped to the team at connect time */
 export function reconnectSSE() {
-  close();
-  if (wanted) connectSSE();
+  if (leader) { close(); if (wanted) open(); }
+  else bc?.postMessage({ type: 'reconnect' });
 }
 
 /** switch the active team, refresh the session and the live stream */
@@ -76,13 +124,23 @@ export async function switchTeam(teamId) {
   reconnectSSE();
 }
 
+/* ---------------------------------------------------------------- diagnostics
+   Any uncaught error is shown as a toast and kept (last 10) for the
+   Diagnose panel in Einstellungen. */
+export const DIAG_KEY = 'so_errors';
+export function readDiag() {
+  try { return JSON.parse(localStorage.getItem(DIAG_KEY) || '[]'); } catch { return []; }
+}
+function logError(kind, msg) {
+  const e = { t: new Date().toISOString(), kind, msg: String(msg || '').slice(0, 300), path: location.pathname };
+  try { localStorage.setItem(DIAG_KEY, JSON.stringify(readDiag().concat([e]).slice(-10))); } catch { /* ignore */ }
+  showToast('Fehler: ' + e.msg, true);
+}
+
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => online.set(true));
   window.addEventListener('offline', () => online.set(false));
-  document.addEventListener('visibilitychange', () => {
-    if (!wanted) return;
-    if (document.visibilityState === 'visible') open();
-    else close();
-  });
   window.addEventListener('pagehide', close);
+  window.addEventListener('error', (ev) => logError('error', ev.message));
+  window.addEventListener('unhandledrejection', (ev) => logError('promise', ev.reason?.message || ev.reason));
 }
