@@ -111,15 +111,24 @@ export function replay(cfg, actions) {
   return st;
 }
 
-/** court slots I..VI; the libero stands in for the back-row middle on V/VI
- *  (on I the middle serves), or for `liberoFor` when the coach set one explicitly */
-export function courtView(lineup, libero, byId, liberoFor = null, liberoOff = false) {
+/** court slots I..VI; the libero stands in for the back-row middle, or for
+ *  `liberoFor` when the coach set one explicitly. Back row is V, VI and,
+ *  while the opponent serves, I: the libero never serves, so on I she
+ *  steps out the moment we win the serve. */
+export function courtView(lineup, libero, byId, liberoFor = null, liberoOff = false, serving = false) {
+  const isBack = (pos) => pos === 5 || pos === 6 || (pos === 1 && !serving);
+  // exactly one card gets the libero: the explicit player, or in automatic
+  // mode one back-row middle (VI before V before I, in case a lineup has
+  // both middles in the back row at once)
+  let target = null;
+  if (libero && !liberoOff) {
+    if (liberoFor) { const k = lineup.indexOf(liberoFor); if (k >= 0 && isBack(k + 1)) target = liberoFor; }
+    else for (const pos of [6, 5, 1]) { const id = lineup[pos - 1]; if (isBack(pos) && byId[id]?.position === 'M') { target = id; break; } }
+  }
   return lineup.map((id, idx) => {
     const pos = idx + 1;
-    const p = byId[id];
-    const back = pos === 5 || pos === 6;
-    const lib = libero && !liberoOff && back && (liberoFor ? id === liberoFor : p && p.position === 'M');
-    return { pos, id: lib ? libero : id, replaced: lib ? id : null, libero: !!lib };
+    const lib = target != null && id === target;
+    return { pos, id: lib ? libero : id, replaced: lib ? id : null, libero: lib };
   });
 }
 

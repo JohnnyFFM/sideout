@@ -73,7 +73,7 @@ docker exec sideout-live /app/server user-list
   A team has a join code; whoever joins becomes an assistant.
 - **Court**: own half from behind the baseline, front row IV III II at the
   net, back row V VI I. The libero stands in for the back-row middle on
-  V and VI; on I the middle serves.
+  V and VI, and on I while the opponent serves; she never serves herself.
 - **Pad**: rows are the skills Aufschlag, Annahme, Zuspiel, Angriff, Block,
   Abwehr; columns the grades `#` `+` `!` `-` `/` `=`. Point and error grades
   end the rally, everything else follows: score, rotation on a won
@@ -89,8 +89,8 @@ docker exec sideout-live /app/server user-list
   someone, that player is the first chip. Drag a chip onto a court slot
   (pointer events, works with touch) or tap the chip and then the slot. A
   bench player replaces the slot's player (substitution); the libero
-  dropped on V or VI stands in for that player as long as she is in the
-  back row (a `lib` action in the log; without one she automatically covers
+  dropped on a back-row slot (V, VI, or I while receiving) stands in for
+  that player as long as she is in the back row and not serving (a `lib` action in the log; without one she automatically covers
   the back-row middle); dropping the replaced player back on her own card
   sends the libero out.
 - **Offline**: the live page keeps the match and an op queue in

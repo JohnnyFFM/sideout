@@ -24,7 +24,7 @@
   const actionsAll = $derived(match ? applyOps(match.actions, ops) : []);
   const st = $derived(cfg ? replay(cfg, actionsAll) : null);
   const hasLineup = $derived(!!match && Object.keys(match.lineups || {}).length > 0);
-  const court = $derived(st ? courtView(st.lineup, st.libero, byId, st.libero_for, st.libero_off) : []);
+  const court = $derived(st ? courtView(st.lineup, st.libero, byId, st.libero_for, st.libero_off, st.serving) : []);
   const expected = $derived(st ? expectedSkills(st) : []);
   // who the next action most likely belongs to: the server on I, the setter for a set
   const setters = $derived(court.filter((c) => byId[c.id]?.position === 'Z' && !c.libero).map((c) => c.id));
@@ -193,7 +193,8 @@
     const slot = court[pos - 1];
     const target = slot.replaced || slot.id;   // the player who actually holds the position
     if (chipId === st.libero) {
-      if (pos !== 5 && pos !== 6) { showToast('Die Libera kann nur auf V oder VI stehen'); return; }
+      if (pos === 1 && st.serving) { showToast('Auf I schlägt gerade unsere Spielerin auf, die Libera kann dort erst bei gegnerischem Aufschlag stehen'); return; }
+      if (pos !== 1 && pos !== 5 && pos !== 6) { showToast('Die Libera kann nur hinten stehen: I, V oder VI'); return; }
       queue({ skill: 'lib', sub_out: target, sub_in: st.libero });
       showToast(`Libera für ${byId[target]?.number} ${firstName(byId[target])}`);
       return;
@@ -274,7 +275,7 @@
           {/if}
           <div class="court-foot">
             {#if armed}
-              <span class="chip pos-{byId[armed]?.position}">{byId[armed]?.number} {firstName(byId[armed])}</span><span>{armed === st.libero ? 'auf V oder VI tippen' : liberoCard?.replaced === armed ? 'auf ihre Karte tippen, dann geht die Libera raus' : 'Position tippen, die sie übernimmt'}</span><span class="spacer"></span><button class="btn ghost sm" onclick={() => (armed = null)}>Abbrechen</button>
+              <span class="chip pos-{byId[armed]?.position}">{byId[armed]?.number} {firstName(byId[armed])}</span><span>{armed === st.libero ? 'auf eine Hinterzonen-Karte tippen (I, V, VI)' : liberoCard?.replaced === armed ? 'auf ihre Karte tippen, dann geht die Libera raus' : 'Position tippen, die sie übernimmt'}</span><span class="spacer"></span><button class="btn ghost sm" onclick={() => (armed = null)}>Abbrechen</button>
             {:else if selected}
               <span class="chip pos-{byId[selected]?.position}">{byId[selected]?.number} {firstName(byId[selected])}</span><span>ausgewählt, jetzt Aktion tippen</span>
             {:else}
