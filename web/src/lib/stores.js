@@ -141,6 +141,11 @@ if (typeof window !== 'undefined') {
   window.addEventListener('online', () => online.set(true));
   window.addEventListener('offline', () => online.set(false));
   window.addEventListener('pagehide', close);
+  // safety net independent of the stream: a tab that comes back into view
+  // refetches what it shows (a phone that slept, a laptop lid, a stale tab)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && wanted) publish({ entity: 'resync', id: 0, version: 0, action: 'visible', actor: '' });
+  });
   window.addEventListener('error', (ev) => logError('error', ev.message));
   window.addEventListener('unhandledrejection', (ev) => logError('promise', ev.reason?.message || ev.reason));
 }
