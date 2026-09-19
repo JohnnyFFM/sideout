@@ -116,7 +116,8 @@ pub async fn delete_member(State(state): State<AppState>, user: CurrentUser, Pat
     if res.rows_affected() == 0 {
         return Err(ApiError::NotFound);
     }
-    // the removed member's selected team moves to another membership, if any
+    // the removed member's devices move to another membership, if any (validate_session also self-heals)
+    sqlx::query("UPDATE sessions SET team_id = NULL WHERE user_id = ? AND team_id = ?").bind(id).bind(user.team_id).execute(&state.dbw).await?;
     sqlx::query(
         "UPDATE users SET team_id = COALESCE((SELECT team_id FROM memberships WHERE user_id = ? ORDER BY created_at LIMIT 1), team_id)
          WHERE id = ?",
@@ -153,7 +154,7 @@ pub async fn create_team(State(state): State<AppState>, user: CurrentUser, Json(
         return Err(ApiError::Internal("join code generation failed".into()));
     }
     sqlx::query("INSERT INTO memberships (user_id, team_id, role) VALUES (?, ?, 'coach')").bind(user.id).bind(team_id).execute(&state.dbw).await?;
-    sqlx::query("UPDATE users SET team_id = ? WHERE id = ?").bind(team_id).bind(user.id).execute(&state.dbw).await?;
+    sqlx::query("UPDATE sessions SET team_id = ? WHERE id = ?").bind(team_id).bind(user.session_id).execute(&state.dbw).await?;
     audit(&state, team_id, "team", team_id, "created", "Team angelegt", Some(user.id)).await?;
     let switched = CurrentUser { team_id, role: Role::Coach, ..user };
     Ok(Json(me_payload(&state, &switched).await?))
@@ -176,7 +177,7 @@ pub async fn join_team(State(state): State<AppState>, user: CurrentUser, Json(bo
         .ok_or_else(|| ApiError::BadRequest("Team-Code nicht gefunden".into()))?;
     let team_id: i64 = team.get("id");
     sqlx::query("INSERT OR IGNORE INTO memberships (user_id, team_id, role) VALUES (?, ?, 'assistant')").bind(user.id).bind(team_id).execute(&state.dbw).await?;
-    sqlx::query("UPDATE users SET team_id = ? WHERE id = ?").bind(team_id).bind(user.id).execute(&state.dbw).await?;
+    sqlx::query("UPDATE sessions SET team_id = ? WHERE id = ?").bind(team_id).bind(user.session_id).execute(&state.dbw).await?;
     audit(&state, team_id, "team", team_id, "member_joined", &user.display_name, Some(user.id)).await?;
     state.events.publish(EventMsg { team_id, entity: "team".into(), id: team_id, version: 0, action: "member_joined".into(), actor: user.display_name.clone() });
     let role: String = sqlx::query("SELECT role FROM memberships WHERE user_id = ? AND team_id = ?").bind(user.id).bind(team_id).fetch_one(&state.db).await?.get("role");
@@ -193,6 +194,8 @@ pub async fn switch_team(State(state): State<AppState>, user: CurrentUser, Json(
     let m = sqlx::query("SELECT role FROM memberships WHERE user_id = ? AND team_id = ?")
         .bind(user.id).bind(body.team_id).fetch_optional(&state.db).await?
         .ok_or(ApiError::Forbidden)?;
+    // this device only; the account default follows so a fresh login lands here too
+    sqlx::query("UPDATE sessions SET team_id = ? WHERE id = ?").bind(body.team_id).bind(user.session_id).execute(&state.dbw).await?;
     sqlx::query("UPDATE users SET team_id = ? WHERE id = ?").bind(body.team_id).bind(user.id).execute(&state.dbw).await?;
     let switched = CurrentUser { team_id: body.team_id, role: Role::parse(&m.get::<String, _>("role")), ..user };
     Ok(Json(me_payload(&state, &switched).await?))

@@ -47,6 +47,8 @@ impl Role {
 #[derive(Debug, Clone)]
 pub struct CurrentUser {
     pub id: i64,
+    /// this device's session row; the active team lives on it
+    pub session_id: i64,
     pub team_id: i64,
     pub username: String,
     pub display_name: String,
@@ -118,9 +120,9 @@ pub fn clear_cookie() -> String {
 pub async fn validate_session(db: &SqlitePool, dbw: &SqlitePool, token: &str) -> ApiResult<CurrentUser> {
     let th = token_hash(token);
     let row = sqlx::query(
-        "SELECT s.id AS sid, s.last_seen, u.id, u.team_id, u.username, u.display_name, m.role
+        "SELECT s.id AS sid, s.last_seen, u.id, COALESCE(s.team_id, u.team_id) AS team_id, u.username, u.display_name, m.role
          FROM sessions s JOIN users u ON u.id = s.user_id
-         LEFT JOIN memberships m ON m.user_id = u.id AND m.team_id = u.team_id
+         LEFT JOIN memberships m ON m.user_id = u.id AND m.team_id = COALESCE(s.team_id, u.team_id)
          WHERE s.token_hash = ? AND s.last_seen > datetime('now', ?)",
     )
     .bind(&th)
@@ -129,6 +131,7 @@ pub async fn validate_session(db: &SqlitePool, dbw: &SqlitePool, token: &str) ->
     .await?
     .ok_or(ApiError::Unauthorized)?;
 
+    let sid: i64 = row.get("sid");
     // the selected team is no longer one of ours (removed by a coach):
     // fall back to any remaining membership, or refuse the session
     let mut team_id: i64 = row.get("team_id");
@@ -142,11 +145,10 @@ pub async fn validate_session(db: &SqlitePool, dbw: &SqlitePool, token: &str) ->
             .ok_or(ApiError::Unauthorized)?;
         team_id = alt.get("team_id");
         role = Some(alt.get("role"));
-        sqlx::query("UPDATE users SET team_id = ? WHERE id = ?").bind(team_id).bind(uid).execute(dbw).await.ok();
+        sqlx::query("UPDATE sessions SET team_id = ? WHERE id = ?").bind(team_id).bind(sid).execute(dbw).await.ok();
     }
 
     // rolling session: refresh last_seen, throttled to ~hourly
-    let sid: i64 = row.get("sid");
     let last_seen: String = row.get("last_seen");
     let stale = sqlx::query("SELECT datetime('now', '-1 hour') > ? AS stale")
         .bind(&last_seen)
@@ -164,6 +166,7 @@ pub async fn validate_session(db: &SqlitePool, dbw: &SqlitePool, token: &str) ->
 
     Ok(CurrentUser {
         id: row.get("id"),
+        session_id: sid,
         team_id,
         username: row.get("username"),
         display_name: row.get("display_name"),
