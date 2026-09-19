@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0F131B" />
+  <title>SIDEOUT — Spiel anlegen</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow+Semi+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="theme.js"></script>
+  <style>
+    .setup { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+    @media (max-width: 900px) { .setup { grid-template-columns: 1fr; } }
+    .setup .panel + .panel { margin-top: 14px; }
+    .seg { display: flex; border: 1px solid var(--line); border-radius: var(--r-m); overflow: hidden; }
+    .seg button { flex: 1; height: 40px; border: 0; background: var(--raised); color: var(--ink-2); font-weight: 600; cursor: pointer; }
+    .seg button.on { background: var(--accent); color: #fff; }
+    /* lineup court: same geometry as live, slots are selects */
+    .court {
+      position: relative; background: var(--court-soft); border: 2px solid var(--court-line); border-top: 6px solid var(--ink-2);
+      border-radius: 4px; padding: 8px; display: grid; grid-template-rows: 1fr 1fr; gap: 8px; margin-top: 18px;
+    }
+    .court::before { content: "Netz"; position: absolute; top: -20px; left: 50%; transform: translateX(-50%); font-size: 11px; color: var(--ink-3); }
+    .court .rowp { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .lslot { background: var(--panel); border-radius: var(--r-m); padding: 6px; display: grid; gap: 4px; }
+    .lslot .posn { font-size: 10px; color: var(--ink-3); }
+    .lslot select { height: 36px; font-size: 14px; }
+    .roster { display: grid; gap: 4px; }
+    .roster label { display: grid; grid-template-columns: 24px 40px 1fr 90px; align-items: center; gap: 8px; padding: 6px 4px; border-radius: 8px; font-size: 14px; }
+    .roster label:hover { background: var(--raised); }
+    .roster .jersey { font-family: var(--disp); font-weight: 700; font-size: 18px; text-align: center; }
+    .roster input[type=checkbox] { width: 18px; height: 18px; }
+    .roster .chip { justify-self: end; }
+    .warn { color: var(--g-neg); font-size: 13px; }
+    .ok { color: var(--g-win); font-size: 13px; }
+    .addrow { display: grid; grid-template-columns: 70px 1fr 110px auto; gap: 8px; align-items: end; margin-top: 12px; }
+    @media (max-width: 480px) { .addrow { grid-template-columns: 70px 1fr; } }
+  </style>
+</head>
+<body class="has-tabbar">
+  <header class="topbar">
+    <a class="brand" href="index.html"><span class="tick">▲</span>SIDEOUT</a>
+    <nav class="nav">
+      <a href="index.html">Team</a>
+      <a href="live.html">Live</a>
+      <a href="auswertung.html">Auswertung</a>
+      <a class="active" href="spiel.html">Spiel</a>
+    </nav>
+    <span class="spacer"></span>
+    <button class="icon-btn" data-theme-btn title="Theme wechseln">☀</button>
+  </header>
+
+  <main class="page">
+    <div class="toolbar"><h1>Spiel anlegen</h1><span class="spacer"></span><a class="btn primary big" href="live.html">Spiel starten</a></div>
+
+    <div class="setup">
+      <div>
+        <section class="panel">
+          <div class="panel-head"><h2>Gegner &amp; Rahmen</h2></div>
+          <div class="row">
+            <label class="f" style="flex:2">Gegner<input type="text" value="VfL Bad Vilbel" /></label>
+            <label class="f">Datum<input type="date" value="2026-09-19" /></label>
+            <label class="f">Anpfiff<input type="time" value="19:30" /></label>
+          </div>
+          <div class="row" style="margin-top:10px">
+            <label class="f">Halle<input type="text" value="Sporthalle Nord" /></label>
+            <label class="f">Heim / Auswärts<div class="seg"><button class="on">Heim</button><button>Auswärts</button></div></label>
+            <label class="f">Erster Aufschlag<div class="seg"><button class="on">Wir</button><button>Gegner</button></div></label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><h2>Startaufstellung Satz 1</h2><span class="small muted">Position I schlägt auf</span></div>
+          <div class="court" id="lineup"></div>
+          <div class="row" style="margin-top:12px; align-items:end">
+            <label class="f">Libero<select id="libero"></select></label>
+            <div id="lineupCheck" style="flex:2; align-self:center"></div>
+          </div>
+          <p class="small muted" style="margin:10px 0 0">Die Libera wird im Live-Feld automatisch für die Mittelblockerin in der Hinterzone (V, VI) angezeigt. Für die Sätze 2–5 fragt die App die Aufstellung beim Satzwechsel ab, Vorgabe ist die letzte.</p>
+        </section>
+      </div>
+
+      <div>
+        <section class="panel">
+          <div class="panel-head"><h2>Kader</h2><span class="small muted" id="kaderCount"></span></div>
+          <div class="roster" id="roster"></div>
+          <div class="addrow">
+            <label class="f">Nr.<input type="number" placeholder="16" /></label>
+            <label class="f">Name<input type="text" placeholder="Vorname Nachname" /></label>
+            <label class="f">Position<select><option>Außen</option><option>Mitte</option><option>Diagonal</option><option>Zuspiel</option><option>Libero</option></select></label>
+            <button class="btn">Hinzufügen</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><h2>Was gezählt wird</h2></div>
+          <p class="small" style="margin:0 0 8px">Sechs Aktionen, jede mit bis zu sechs Bewertungen nach der Data-Volley-Konvention. Punkt- und Fehlerbewertungen beenden den Ballwechsel automatisch, Rotation und Aufschlagrecht folgen daraus.</p>
+          <table class="mini" style="width:100%; font-size:13px; border-collapse:collapse" id="codes"></table>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <nav class="tabbar">
+    <a href="index.html"><span class="ico">⌂</span>Team</a>
+    <a href="live.html"><span class="ico">●</span>Live</a>
+    <a href="auswertung.html"><span class="ico">≡</span>Auswertung</a>
+    <a class="active" href="spiel.html"><span class="ico">⚙</span>Spiel</a>
+  </nav>
+
+  <script src="data.js"></script>
+  <script>
+  (function () {
+    const $ = id => document.getElementById(id);
+    const M = SO.MATCH; const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI'];
+    const lineup = M.lineup.slice();
+    const opts = sel => SO.ROSTER.filter(p => p.pos !== 'L').map(p => `<option value="${p.no}" ${p.no === sel ? 'selected' : ''}>${p.no} ${p.name} (${p.pos})</option>`).join('');
+    function drawLineup() {
+      const slot = i => `<div class="lslot"><span class="posn">${ROMAN[i]}${i === 0 ? ' · Aufschlag' : ''}</span><select data-pos="${i}">${opts(lineup[i])}</select></div>`;
+      $('lineup').innerHTML = `<div class="rowp">${[3, 2, 1].map(slot).join('')}</div><div class="rowp">${[4, 5, 0].map(slot).join('')}</div>`;
+      $('lineup').querySelectorAll('select').forEach(s => s.onchange = () => { lineup[+s.dataset.pos] = +s.value; check(); });
+      check();
+    }
+    function check() {
+      const dup = new Set(lineup).size !== 6;
+      const setters = lineup.filter(n => SO.player(n).pos === 'Z').length;
+      const mids = lineup.filter(n => SO.player(n).pos === 'M');
+      const midsOpp = mids.length === 2 && Math.abs(lineup.indexOf(mids[0]) - lineup.indexOf(mids[1])) === 3;
+      $('lineupCheck').innerHTML = dup ? '<span class="warn">Eine Spielerin steht doppelt auf dem Feld.</span>'
+        : setters !== 1 ? '<span class="warn">Kein oder mehr als ein Zuspiel in der Aufstellung.</span>'
+        : !midsOpp ? '<span class="warn">Die Mittelblockerinnen stehen nicht gegenüber, Libera-Anzeige wird ungenau.</span>'
+        : '<span class="ok">Aufstellung ist plausibel: 1 Zuspiel, Mitten gegenüber.</span>';
+    }
+    $('libero').innerHTML = SO.ROSTER.map(p => `<option value="${p.no}" ${p.no === M.libero ? 'selected' : ''}>${p.no} ${p.name}</option>`).join('');
+    $('roster').innerHTML = SO.ROSTER.map(p => `<label><input type="checkbox" checked /><span class="jersey">${p.no}</span><span>${p.name}</span><span class="chip pos-${p.pos}">${SO.POS_NAME[p.pos]}</span></label>`).join('');
+    $('kaderCount').textContent = SO.ROSTER.length + ' im Kader';
+    $('codes').innerHTML = `<tr><th class="l">Aktion</th>${SO.GRADES.map(g => `<th><span class="gdot ${SO.GRADE_CLASS[g]}"></span> ${g}</th>`).join('')}</tr>` +
+      SO.SKILLS.map(s => `<tr><td class="l">${s.name}</td>${SO.GRADES.map(g => { const l = SO.PAD[s.key][g]; const o = SO.outcome(s.key, g); return `<td style="text-align:center">${l ? l + (o ? (o === 'us' ? ' <span class="ok">▲</span>' : ' <span class="warn">▼</span>') : '') : '<span class="muted">–</span>'}</td>`; }).join('')}</tr>`).join('') +
+      `<tr><td colspan="7" class="small muted" style="padding-top:8px">▲ beendet den Ballwechsel mit Punkt für uns · ▼ Punkt für den Gegner · Skala: # Punkt/Perfekt · + Positiv · ! Neutral · − Negativ · / Halb (geblockt, Overpass) · = Fehler</td></tr>`;
+    drawLineup();
+    document.querySelectorAll('.seg').forEach(seg => seg.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; seg.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); }));
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0F131B" />
+  <title>SIDEOUT — Team</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow+Semi+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="theme.js"></script>
+  <style>
+    .hero { display: grid; grid-template-columns: 1.2fr 1fr; gap: 14px; margin-bottom: 14px; }
+    @media (max-width: 900px) { .hero { grid-template-columns: 1fr; } }
+    .hero .panel + .panel { margin-top: 0; }
+    .livecard { border-color: var(--accent); background: linear-gradient(180deg, var(--accent-soft), transparent 70%), var(--panel); }
+    .livecard .sc { font-family: var(--disp); font-size: 56px; font-weight: 700; line-height: 1; display: flex; align-items: baseline; gap: 10px; }
+    .livecard .sc small { font-size: 18px; color: var(--ink-2); font-weight: 600; }
+    .livecard .opp { font-size: 18px; font-weight: 600; margin-top: 4px; }
+    .livecard .pulse { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--accent-text); font-weight: 600; }
+    .livecard .pulse i { width: 8px; height: 8px; border-radius: 50%; background: var(--g-err); }
+    .matches { list-style: none; margin: 0; padding: 0; }
+    .matches li { display: grid; grid-template-columns: 52px minmax(0,1fr) auto auto; gap: 10px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line-soft); font-size: 14px; }
+    .matches li:last-child { border-bottom: 0; }
+    .matches .d { color: var(--ink-3); font-size: 12px; }
+    .matches .res { font-family: var(--disp); font-size: 22px; font-weight: 700; min-width: 40px; text-align: right; }
+    .matches .res.w { color: var(--g-win); } .matches .res.l { color: var(--g-err); }
+    .matches .sets { color: var(--ink-3); font-size: 11px; text-align: right; max-width: 110px; }
+    .matches .ha { font-size: 11px; color: var(--ink-3); }
+    .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    @media (max-width: 1000px) { .grid3 { grid-template-columns: 1fr; } }
+    .grid3 .panel + .panel { margin-top: 0; }
+    .top { list-style: none; margin: 0; padding: 0; }
+    .top li { display: grid; grid-template-columns: 36px 1fr auto; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line-soft); font-size: 14px; }
+    .top li:last-child { border-bottom: 0; }
+    .top .jersey { font-family: var(--disp); font-weight: 700; font-size: 18px; color: var(--ink-2); }
+    .top .v { font-weight: 700; font-variant-numeric: tabular-nums; }
+    .top .sub { color: var(--ink-3); font-size: 12px; }
+    .trend { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .trend .m { background: var(--raised); border-radius: 8px; padding: 8px; }
+    .trend .m .o { font-size: 12px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .trend .m .v { font-family: var(--disp); font-size: 24px; font-weight: 700; }
+    .trend .m .v small { font-size: 12px; color: var(--ink-3); }
+  </style>
+</head>
+<body class="has-tabbar">
+  <header class="topbar">
+    <a class="brand" href="index.html"><span class="tick">▲</span>SIDEOUT</a>
+    <nav class="nav">
+      <a class="active" href="index.html">Team</a>
+      <a href="live.html">Live</a>
+      <a href="auswertung.html">Auswertung</a>
+      <a href="spiel.html">Spiel</a>
+    </nav>
+    <span class="spacer"></span>
+    <button class="icon-btn" data-theme-btn title="Theme wechseln">☀</button>
+    <span class="icon-btn" title="Trainer">JS</span>
+  </header>
+
+  <main class="page">
+    <div class="toolbar"><div><h1 id="teamName"></h1><div class="small muted" id="teamSub"></div></div><span class="spacer"></span><a class="btn primary" href="spiel.html">+ Spiel anlegen</a></div>
+
+    <div class="hero">
+      <section class="panel livecard" id="livecard"></section>
+      <section class="panel">
+        <div class="panel-head"><h2>Saison</h2><span class="small muted">3 Spiele gescoutet</span></div>
+        <div class="tiles" id="seasonTiles" style="grid-template-columns: repeat(2, 1fr);"></div>
+      </section>
+    </div>
+
+    <div class="grid3">
+      <section class="panel">
+        <div class="panel-head"><h2>Spiele</h2><a class="small" href="spiel.html">Anlegen</a></div>
+        <ul class="matches" id="matches"></ul>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2>Beste Werte der Saison</h2><span class="small muted">alle gescouteten Spiele</span></div>
+        <h3 style="margin:6px 0 4px">Punkte</h3><ul class="top" id="topPts"></ul>
+        <h3 style="margin:12px 0 4px">Angriff-Effizienz <span class="muted">(≥ 20 Versuche)</span></h3><ul class="top" id="topEff"></ul>
+        <h3 style="margin:12px 0 4px">Annahme Ø <span class="muted">(≥ 15 Annahmen)</span></h3><ul class="top" id="topRec"></ul>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2>Sideout-Trend</h2><span class="small muted">je Spiel</span></div>
+        <div class="trend" id="trendSo"></div>
+        <div class="panel-head" style="margin-top:14px"><h2>Angriff-Effizienz</h2><span class="small muted">je Spiel</span></div>
+        <div class="trend" id="trendEff"></div>
+        <p class="small muted" style="margin:12px 0 0">Alle Kennzahlen werden aus den Aktionsprotokollen berechnet, keine Handeingaben.</p>
+      </section>
+    </div>
+  </main>
+
+  <nav class="tabbar">
+    <a class="active" href="index.html"><span class="ico">⌂</span>Team</a>
+    <a href="live.html"><span class="ico">●</span>Live</a>
+    <a href="auswertung.html"><span class="ico">≡</span>Auswertung</a>
+    <a href="spiel.html"><span class="ico">⚙</span>Spiel</a>
+  </nav>
+
+  <script src="data.js"></script>
+  <script>
+  (function () {
+    const $ = id => document.getElementById(id);
+    $('teamName').textContent = SO.TEAM.name;
+    $('teamSub').textContent = SO.TEAM.league + ' · Saison ' + SO.TEAM.season;
+
+    // every match = its own log; season = concat of per-match stats
+    const games = SO.PAST.map(m => ({ m, log: SO.pastLog(m) })).concat([{ m: SO.MATCH, log: SO.load() }]);
+    const per = games.map(g => ({ g, st: SO.replay(g.log, g.m), s: SO.stats(g.log, { match: g.m }) }));
+    const fmtDate = d => { const [y, mo, da] = d.split('-'); return da + '.' + mo + '.'; };
+
+    // live card
+    const cur = per[per.length - 1];
+    $('livecard').innerHTML = cur.st.finished
+      ? `<span class="pulse">Letztes Spiel</span><div class="sc">${cur.st.setsWon}:${cur.st.setsLost}</div><div class="opp">gegen ${cur.g.m.opponent}</div><div class="small muted">${cur.st.sets.map(s => s.us + ':' + s.them).join('  ')}</div><div class="row" style="margin-top:12px"><a class="btn primary" href="auswertung.html">Auswertung</a><a class="btn" href="spiel.html">Nächstes Spiel anlegen</a></div>`
+      : `<span class="pulse"><i></i> Läuft gerade · Satz ${cur.st.set}</span><div class="sc">${cur.st.us}:${cur.st.them}<small>Sätze ${cur.st.setsWon}:${cur.st.setsLost}</small></div><div class="opp">gegen ${cur.g.m.opponent}</div><div class="small muted">${cur.st.sets.map(s => s.us + ':' + s.them).join('  ')} · ${cur.g.m.hall}</div><div class="row" style="margin-top:12px"><a class="btn primary big" href="live.html">Weiter scouten</a><a class="btn big" href="auswertung.html">Zwischenstand</a></div>`;
+
+    // season tiles
+    const won = per.filter(p => p.st.finished && p.st.setsWon > p.st.setsLost).length, lost = per.filter(p => p.st.finished && p.st.setsWon < p.st.setsLost).length;
+    const setsW = per.reduce((a, p) => a + p.st.setsWon, 0), setsL = per.reduce((a, p) => a + p.st.setsLost, 0);
+    const agg = per.reduce((a, p) => { a.so.w += p.s.team.sideout.won; a.so.n += p.s.team.sideout.n; a.br.w += p.s.team.brk.won; a.br.n += p.s.team.brk.n;
+      p.s.players.forEach(x => { a.A.k += x.A.k; a.A.e += x.A.e + x.A.blk; a.A.n += x.A.n; a.R.sum += x.R.sum; a.R.n += x.R.n; }); return a; },
+      { so: { w: 0, n: 0 }, br: { w: 0, n: 0 }, A: { k: 0, e: 0, n: 0 }, R: { sum: 0, n: 0 } });
+    $('seasonTiles').innerHTML = `
+      <div class="tile"><div class="v">${won}<small>:${lost}</small></div><div class="k">Bilanz</div><div class="d">Sätze ${setsW}:${setsL}</div></div>
+      <div class="tile"><div class="v">${Math.round(agg.so.w / agg.so.n * 100)}<small>%</small></div><div class="k">Sideout</div><div class="d">Break ${Math.round(agg.br.w / agg.br.n * 100)} %</div></div>
+      <div class="tile"><div class="v">${SO.eff((agg.A.k - agg.A.e) / agg.A.n)}</div><div class="k">Angriff Eff.</div><div class="d">${agg.A.k} Punkte aus ${agg.A.n} Versuchen</div></div>
+      <div class="tile"><div class="v">${(agg.R.sum / agg.R.n).toFixed(2)}</div><div class="k">Annahme Ø</div><div class="d">Skala 0–3</div></div>`;
+
+    // matches list (upcoming first)
+    $('matches').innerHTML = SO.UPCOMING.slice().reverse().map(u => `<li><span class="d">${fmtDate(u.date)}</span><span>${u.opponent}<div class="ha">${u.home ? 'Heim' : 'Auswärts'} · ${u.hall}</div></span><span class="sets">geplant</span><span class="res muted">–</span></li>`).join('') +
+      per.slice().reverse().map(p => `<li><span class="d">${fmtDate(p.g.m.date)}</span><span>${p.g.m.opponent}<div class="ha">${p.g.m.home ? 'Heim' : 'Auswärts'}${p.st.finished ? '' : ' · läuft'}</div></span><span class="sets">${p.st.sets.map(s => s.us + ':' + s.them).join(' ')}</span><span class="res ${p.st.finished ? (p.st.setsWon > p.st.setsLost ? 'w' : 'l') : ''}">${p.st.setsWon}:${p.st.setsLost}</span></li>`).join('');
+
+    // top lists across the season
+    const S = {};
+    per.forEach(p => p.s.players.forEach(x => { const a = S[x.no] = S[x.no] || { no: x.no, pts: 0, k: 0, e: 0, n: 0, rs: 0, rn: 0 }; a.pts += x.pts; a.k += x.A.k; a.e += x.A.e + x.A.blk; a.n += x.A.n; a.rs += x.R.sum; a.rn += x.R.n; }));
+    const L = Object.values(S);
+    const li = (x, v, sub) => `<li><span class="jersey">${x.no}</span><span>${SO.player(x.no).name}<div class="sub">${sub}</div></span><span class="v">${v}</span></li>`;
+    $('topPts').innerHTML = L.slice().sort((a, b) => b.pts - a.pts).slice(0, 4).map(x => li(x, x.pts, `${x.k} Angriff`)).join('');
+    $('topEff').innerHTML = L.filter(x => x.n >= 20).sort((a, b) => (b.k - b.e) / b.n - (a.k - a.e) / a.n).slice(0, 3).map(x => li(x, SO.eff((x.k - x.e) / x.n), `${x.k} Pkt · ${x.e} Fehler · ${x.n} Versuche`)).join('');
+    $('topRec').innerHTML = L.filter(x => x.rn >= 15).sort((a, b) => b.rs / b.rn - a.rs / a.rn).slice(0, 3).map(x => li(x, (x.rs / x.rn).toFixed(2), `${x.rn} Annahmen`)).join('');
+
+    // trends
+    $('trendSo').innerHTML = per.map(p => `<div class="m"><div class="o">${p.g.m.opponent}</div><div class="v">${Math.round(p.s.team.sideout.won / p.s.team.sideout.n * 100)}<small>%</small></div></div>`).join('');
+    $('trendEff').innerHTML = per.map(p => { const A = p.s.players.reduce((a, x) => { a.k += x.A.k; a.e += x.A.e + x.A.blk; a.n += x.A.n; return a; }, { k: 0, e: 0, n: 0 }); return `<div class="m"><div class="o">${p.g.m.opponent}</div><div class="v">${SO.eff((A.k - A.e) / A.n)}</div></div>`; }).join('');
+  })();
+  </script>
+</body>
+</html>

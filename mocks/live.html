@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0F131B" />
+  <title>SIDEOUT — Live</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow+Semi+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="theme.js"></script>
+  <style>
+    /* phone: one column, tap targets first. ≥760: court+score left, pad right.
+       ≥1100: third column with live evaluation. */
+    .live { display: grid; gap: 12px; grid-template-columns: 1fr; }
+    @media (min-width: 760px)  { .live { grid-template-columns: 340px 1fr; align-items: start; } }
+    @media (min-width: 1100px) { .live { grid-template-columns: 340px 1fr 360px; } }
+    .col { display: grid; gap: 12px; align-content: start; }
+
+    /* ----- court ----- */
+    .court-wrap { background: var(--panel); border: 1px solid var(--line-soft); border-radius: var(--r-l); padding: 10px; }
+    .court {
+      position: relative; background: var(--court-soft);
+      border: 2px solid var(--court-line); border-top: 6px solid var(--ink-2);
+      border-radius: 4px; padding: 8px; display: grid; grid-template-rows: 1fr 1fr; gap: 8px;
+    }
+    .court::before { content: "Netz"; position: absolute; top: -20px; left: 50%; transform: translateX(-50%); font-size: 11px; color: var(--ink-3); letter-spacing: 0.04em; }
+    .court .rowp { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .slot {
+      min-height: 76px; border-radius: var(--r-m); border: 2px solid transparent;
+      background: var(--panel); cursor: pointer; padding: 6px 6px 5px; text-align: left; position: relative;
+      display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto; align-content: space-between;
+    }
+    .slot .posn { font-size: 10px; color: var(--ink-3); grid-column: 1; }
+    .slot .role { font-size: 10px; font-weight: 700; color: var(--ink-3); grid-column: 2; text-align: right; }
+    .slot .jersey { font-family: var(--disp); font-size: 30px; font-weight: 700; line-height: 1; grid-column: 1; }
+    .slot .nm { font-size: 12px; color: var(--ink-2); grid-column: 1 / -1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .slot.sel { border-color: var(--accent); background: var(--accent-soft); }
+    .slot.srv::after { content: ""; position: absolute; right: 6px; bottom: 22px; width: 12px; height: 12px; border-radius: 50%; background: var(--g-neg); box-shadow: inset -2px -2px 0 #0003; }
+    .slot.lib { border-style: dashed; border-color: var(--court-line); }
+    .slot.lib .role { color: var(--court-line); }
+    .court-foot { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--ink-2); min-height: 22px; }
+    .court-foot b { color: var(--ink); }
+
+    /* ----- pad: rows = skills, cols = grades ----- */
+    .pad { background: var(--panel); border: 1px solid var(--line-soft); border-radius: var(--r-l); padding: 10px; display: grid; gap: 5px; }
+    .pad-head, .prow { display: grid; grid-template-columns: 62px repeat(6, 1fr); gap: 5px; align-items: stretch; }
+    .pad-head span { font-size: 10px; color: var(--ink-3); text-align: center; align-self: end; }
+    .prow .lbl { display: flex; flex-direction: column; justify-content: center; font-size: 13px; font-weight: 600; color: var(--ink-2); padding-left: 2px; }
+    .prow .lbl small { font-size: 10px; font-weight: 500; color: var(--ink-3); }
+    .prow.expect .lbl { color: var(--accent-text); }
+    .prow.expect .lbl small { color: var(--accent-text); }
+    .cell {
+      min-height: var(--tap); border: 0; border-radius: var(--r-m); cursor: pointer;
+      display: grid; align-content: center; justify-items: center; gap: 1px; padding: 2px;
+    }
+    .cell b { font-family: var(--disp); font-size: 20px; line-height: 1; font-weight: 700; }
+    .cell span { font-size: 10px; line-height: 1; letter-spacing: -0.01em; }
+    .cell.none { background: var(--raised); cursor: default; opacity: 0.35; }
+    .cell:active { transform: scale(0.96); }
+    .pad.idle .cell:not(.none) { opacity: 0.6; }
+    .pad.idle .prow.expect .cell:not(.none) { opacity: 1; }
+    @media (max-width: 400px) { .pad-head, .prow { grid-template-columns: 52px repeat(6, 1fr); } .prow .lbl { font-size: 12px; } .cell span { font-size: 9px; } }
+    .pad-foot { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+    .pad-foot .btn { justify-content: center; }
+    .pad-foot .btn.us { border-color: var(--g-win); color: var(--g-win); }
+    .pad-foot .btn.them { border-color: var(--g-err); color: var(--g-err); }
+
+    /* ----- last actions / undo ----- */
+    .last { display: flex; align-items: center; gap: 10px; }
+    .last .txt { flex: 1; font-size: 13px; color: var(--ink-2); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .last .txt b { color: var(--ink); }
+    .log { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 13px; }
+    .log li { display: grid; grid-template-columns: 40px 1fr auto; gap: 8px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--line-soft); }
+    .log li .sc { color: var(--ink-3); font-variant-numeric: tabular-nums; font-size: 12px; }
+    .log li .g { width: 22px; height: 22px; border-radius: 5px; display: grid; place-items: center; font-family: var(--disp); font-weight: 700; font-size: 14px; }
+    .log li .who { display: flex; gap: 6px; align-items: center; }
+    .log li .who small { color: var(--ink-3); }
+    .log li.pt-us .sc { color: var(--g-win); font-weight: 700; }
+    .log li.pt-them .sc { color: var(--g-err); font-weight: 700; }
+    .mini { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .mini th, .mini td { padding: 5px 4px; text-align: right; white-space: nowrap; }
+    .mini th { color: var(--ink-3); font-weight: 600; font-size: 11px; border-bottom: 1px solid var(--line-soft); }
+    .mini td.l, .mini th.l { text-align: left; }
+    .mini td.l { font-weight: 600; }
+    .mini td.l small { color: var(--ink-3); font-weight: 500; margin-left: 4px; }
+    .sheet-bg { position: fixed; inset: 0; background: #0009; display: none; z-index: 30; align-items: end; justify-content: center; }
+    .sheet-bg.show { display: flex; }
+    .sheet { background: var(--panel); border: 1px solid var(--line); border-radius: 14px 14px 0 0; padding: 16px; width: 100%; max-width: 520px; }
+    @media (min-width: 760px) { .sheet-bg { align-items: center; } .sheet { border-radius: 14px; } }
+    .pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 6px; margin: 8px 0 14px; }
+    .pick button { height: 44px; border-radius: 8px; border: 1px solid var(--line); background: var(--raised); cursor: pointer; font-weight: 600; }
+    .pick button.on { border-color: var(--accent); background: var(--accent-soft); }
+    .over { position: fixed; inset: 0; background: #000A; z-index: 35; display: none; place-items: center; padding: 16px; }
+    .over.show { display: grid; }
+    .over .panel { max-width: 420px; text-align: center; }
+    .over .big { font-family: var(--disp); font-size: 64px; font-weight: 700; line-height: 1; margin: 8px 0; }
+
+    /* phone: the whole capture loop (score → court → pad → undo) fits one 390×844 screen;
+       the undo bar floats just above the tab bar. */
+    @media (max-width: 759px) {
+      body.has-tabbar { padding-bottom: 130px; }
+      .live { gap: 8px; } .col { gap: 8px; }
+      .score { padding: 4px 12px; } .score .pts { font-size: 40px; } .score .colon { font-size: 28px; }
+      .score .meta { gap: 10px; font-size: 11px; }
+      .court-wrap { padding: 8px; }
+      .court { padding: 6px; gap: 6px; } .court .rowp { gap: 6px; }
+      .slot { min-height: 58px; padding: 4px 6px; } .slot .jersey { font-size: 24px; } .slot .nm { font-size: 11px; }
+      .court-foot { margin-top: 6px; }
+      .pad { padding: 8px; gap: 4px; } .cell { min-height: 46px; } .cell b { font-size: 18px; }
+      #lastBox { position: fixed; left: 8px; right: 8px; bottom: calc(66px + env(safe-area-inset-bottom)); z-index: 20; box-shadow: 0 6px 20px #0009; padding: 8px 10px; }
+      .pad-foot .btn.big { height: 48px; }
+    }
+  </style>
+</head>
+<body class="has-tabbar">
+  <header class="topbar">
+    <a class="brand" href="index.html"><span class="tick">▲</span>SIDEOUT</a>
+    <nav class="nav">
+      <a href="index.html">Team</a>
+      <a class="active" href="live.html">Live</a>
+      <a href="auswertung.html">Auswertung</a>
+      <a href="spiel.html">Spiel</a>
+    </nav>
+    <span class="spacer"></span>
+    <span class="sync-chip"><span class="dot"></span> gespeichert</span>
+    <button class="icon-btn" data-theme-btn title="Theme wechseln">☀</button>
+    <button class="icon-btn" id="menuBtn" title="Mehr">⋯</button>
+  </header>
+
+  <main class="page">
+    <div class="live">
+      <!-- ── left: score + court ── -->
+      <div class="col">
+        <section class="score" id="score"></section>
+        <section class="court-wrap">
+          <div class="court" id="court"></div>
+          <div class="court-foot" id="courtFoot"></div>
+        </section>
+        <section class="panel last" id="lastBox">
+          <div class="txt" id="lastTxt">Noch keine Aktion.</div>
+          <button class="btn" id="undoBtn">↶ Rückgängig</button>
+        </section>
+      </div>
+
+      <!-- ── middle: the pad ── -->
+      <div class="col">
+        <section class="pad idle" id="pad"></section>
+        <div class="pad-foot">
+          <button class="btn big us" id="oppErr">Fehler Gegner<span class="muted">+1 wir</span></button>
+          <button class="btn big them" id="oppPt">Punkt Gegner</button>
+        </div>
+      </div>
+
+      <!-- ── right: live evaluation (≥1100px), stacked below on smaller screens ── -->
+      <div class="col">
+        <section class="panel">
+          <div class="panel-head"><h2>Dieser Satz</h2><span class="tabs" id="evalTabs"><button class="active" data-scope="set">Satz</button><button data-scope="match">Spiel</button></span></div>
+          <div class="tiles" id="teamTiles" style="grid-template-columns: repeat(3, 1fr);"></div>
+          <table class="mini" id="miniTbl" style="margin-top: 12px;"></table>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><h2>Verlauf</h2><a class="small" href="auswertung.html">Auswertung →</a></div>
+          <ul class="log" id="log"></ul>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <nav class="tabbar">
+    <a href="index.html"><span class="ico">⌂</span>Team</a>
+    <a class="active" href="live.html"><span class="ico">●</span>Live</a>
+    <a href="auswertung.html"><span class="ico">≡</span>Auswertung</a>
+    <a href="spiel.html"><span class="ico">⚙</span>Spiel</a>
+  </nav>
+
+  <!-- substitution / menu sheet -->
+  <div class="sheet-bg" id="sheet">
+    <div class="sheet">
+      <div class="panel-head"><h2 id="sheetTitle">Wechsel</h2><button class="btn ghost" id="sheetClose">Schließen</button></div>
+      <div id="sheetBody"></div>
+    </div>
+  </div>
+
+  <div class="over" id="over"><div class="panel">
+    <h2>Spiel beendet</h2>
+    <div class="big" id="overScore">3:1</div>
+    <p class="muted" id="overSets"></p>
+    <div class="row"><a class="btn primary" href="auswertung.html">Zur Auswertung</a><button class="btn" id="overReset">Demo neu laden</button></div>
+  </div></div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="data.js"></script>
+  <script>
+  (function () {
+    const M = SO.MATCH;
+    let actions = SO.load();
+    let selected = null;
+    let scope = 'set';
+    const $ = id => document.getElementById(id);
+    const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI'];
+    let toastT;
+    function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 1800); }
+
+    function expected(st) {
+      const cur = st.rows.filter(r => r.set === st.set && r.rally === st.rally && r.skill !== 'sub');
+      if (!cur.length) return st.serving ? ['S'] : ['R'];
+      const last = cur[cur.length - 1].skill;
+      return { S: ['B', 'D'], R: ['E'], E: ['A'], A: ['B', 'D'], B: ['D'], D: ['E'] }[last] || [];
+    }
+
+    function render() {
+      const st = SO.replay(actions, M);
+      if (st.finished) { showOver(st); }
+      const court = SO.courtView(st.lineup, M.libero);
+      const exp = expected(st);
+
+      // score
+      const setsTxt = st.sets.map(s => s.us + ':' + s.them).join('  ');
+      $('score').innerHTML = `
+        <div class="side us"><span class="serve ${st.serving ? 'on' : ''}"></span><span class="team">${SO.TEAM.short}</span><span class="pts">${st.us}</span></div>
+        <div class="colon">:</div>
+        <div class="side them"><span class="pts">${st.them}</span><span class="team">${M.opponent.split(' ')[0]}</span><span class="serve ${st.serving ? '' : 'on'}"></span></div>
+        <div class="meta"><span>Satz <b>${st.set}</b></span><span>Sätze <b>${st.setsWon}:${st.setsLost}</b></span><span>${setsTxt ? '<b>' + setsTxt + '</b>' : ''}</span><span>${st.serving ? 'Aufschlag' : 'Annahme'} · Rally <b>${st.rally}</b></span></div>`;
+
+      // court: front row IV III II, back row V VI I
+      const slot = c => {
+        const p = SO.player(c.no);
+        const cls = ['slot', selected === c.no ? 'sel' : '', c.libero ? 'lib' : '', (c.pos === 1 && st.serving) ? 'srv' : ''].join(' ');
+        return `<button class="${cls}" data-no="${c.no}"><span class="posn">${ROMAN[c.pos - 1]}</span><span class="role">${p.pos}</span><span class="jersey">${c.no}</span><span class="nm">${SO.firstName(c.no)}${c.libero ? ' <small>für ' + c.replaced + '</small>' : ''}</span></button>`;
+      };
+      const byPos = Object.fromEntries(court.map(c => [c.pos, c]));
+      $('court').innerHTML = `<div class="rowp">${[4, 3, 2].map(p => slot(byPos[p])).join('')}</div><div class="rowp">${[5, 6, 1].map(p => slot(byPos[p])).join('')}</div>`;
+      $('courtFoot').innerHTML = selected
+        ? `<span class="chip pos-${SO.player(selected).pos}">${selected} ${SO.firstName(selected)}</span> <span>ausgewählt — jetzt Aktion tippen</span>`
+        : `<span>Spielerin tippen, dann Aktion.</span><span class="spacer"></span><button class="btn ghost" id="subBtn" style="height:28px;padding:0 10px;font-size:12px;">⇄ Wechsel</button>`;
+      const sb = $('subBtn'); if (sb) sb.onclick = openSub;
+
+      // pad
+      const pad = $('pad');
+      pad.classList.toggle('idle', !selected);
+      pad.innerHTML = `<div class="pad-head"><span></span>${SO.GRADES.map(g => `<span>${SO.GRADE_NAME[g].split('/')[0]}</span>`).join('')}</div>` +
+        SO.SKILLS.map(s => `<div class="prow ${exp.includes(s.key) ? 'expect' : ''}"><div class="lbl">${s.name}${exp.includes(s.key) ? '<small>erwartet</small>' : ''}</div>` +
+          SO.GRADES.map(g => {
+            const l = SO.PAD[s.key][g];
+            return l ? `<button class="cell ${SO.GRADE_CLASS[g]}" data-skill="${s.key}" data-grade="${g}"><b>${g}</b><span>${l}</span></button>` : `<div class="cell none"></div>`;
+          }).join('') + '</div>').join('');
+
+      // last + undo
+      const last = actions[actions.length - 1];
+      $('lastTxt').innerHTML = last ? 'Zuletzt: ' + describe(last, st) : 'Noch keine Aktion.';
+      $('undoBtn').disabled = !last;
+
+      renderEval(st);
+      renderLog(st);
+    }
+
+    function describe(a) {
+      if (a.skill === 'sub') return `<b>Wechsel</b> ${a.out} → ${a.in}`;
+      if (a.skill === 'opp') return a.grade === '=' ? '<b>Fehler Gegner</b>' : '<b>Punkt Gegner</b>';
+      return `<b>${a.player} ${SO.firstName(a.player)}</b> ${SO.SKILL[a.skill].name} <b>${a.grade}</b> ${SO.PAD[a.skill][a.grade] || ''}`;
+    }
+
+    function renderEval(st) {
+      const s = SO.stats(actions, { match: M, set: scope === 'set' ? st.set : 0 });
+      const t = s.team;
+      const so = t.sideout.n ? t.sideout.won / t.sideout.n : null, br = t.brk.n ? t.brk.won / t.brk.n : null;
+      const A = s.players.reduce((acc, p) => { acc.k += p.A.k; acc.e += p.A.e + p.A.blk; acc.n += p.A.n; return acc; }, { k: 0, e: 0, n: 0 });
+      document.querySelector('#evalTabs').parentElement.querySelector('h2').textContent = scope === 'set' ? 'Dieser Satz' : 'Ganzes Spiel';
+      $('teamTiles').innerHTML = `
+        <div class="tile"><div class="v">${so == null ? '–' : Math.round(so * 100)}<small>%</small></div><div class="k">Sideout</div><div class="d">${t.sideout.won}/${t.sideout.n} Annahme-Rallys</div></div>
+        <div class="tile"><div class="v">${br == null ? '–' : Math.round(br * 100)}<small>%</small></div><div class="k">Break</div><div class="d">${t.brk.won}/${t.brk.n} Aufschlag-Rallys</div></div>
+        <div class="tile"><div class="v">${A.n ? SO.eff((A.k - A.e) / A.n) : '–'}</div><div class="k">Angriff Eff.</div><div class="d">${A.k} Punkte · ${A.e} Fehler · ${A.n} Vers.</div></div>`;
+      $('miniTbl').innerHTML = `<tr><th class="l">Spielerin</th><th>Pkt</th><th>Ang</th><th>Eff</th><th>Ann Ø</th><th>Blo</th><th>Abw</th></tr>` +
+        s.players.map(p => `<tr><td class="l">${p.no}<small>${SO.firstName(p.no)}</small></td><td>${p.pts}</td><td>${p.A.k}/${p.A.n}</td><td>${SO.eff(p.A.pct)}</td><td>${SO.fix(p.R.avg)}</td><td>${p.B.pts}</td><td>${p.D.good}/${p.D.n}</td></tr>`).join('');
+    }
+
+    function renderLog(st) {
+      const rows = st.rows.filter(r => r.set === st.set).slice(-14).reverse();
+      $('log').innerHTML = rows.length ? rows.map(r => {
+        const cls = r.outcome === 'us' ? 'pt-us' : r.outcome === 'them' ? 'pt-them' : '';
+        const sc = r.outcome ? (r.outcome === 'us' ? r.us + 1 : r.us) + ':' + (r.outcome === 'them' ? r.them + 1 : r.them) : '';
+        if (r.skill === 'sub') return `<li><span class="sc"></span><span class="who">Wechsel ${r.out} → ${r.in}</span><span></span></li>`;
+        if (r.skill === 'opp') return `<li class="${cls}"><span class="sc">${sc}</span><span class="who"><small>Gegner</small> ${r.grade === '=' ? 'Fehler' : 'Punkt'}</span><span></span></li>`;
+        return `<li class="${cls}"><span class="sc">${sc}</span><span class="who"><b>${r.player}</b> ${SO.firstName(r.player)} <small>${SO.SKILL[r.skill].name}</small></span><span class="g ${SO.GRADE_CLASS[r.grade]}">${r.grade}</span></li>`;
+      }).join('') : '<li class="muted">Satz beginnt.</li>';
+    }
+
+    function push(a) {
+      const before = SO.replay(actions, M);
+      actions.push(a); SO.save(actions);
+      const after = SO.replay(actions, M);
+      if (after.set !== before.set) { const s = after.sets[after.sets.length - 1]; toast(`Satz ${before.set} beendet ${s.us}:${s.them}`); }
+      selected = null; render();
+    }
+
+    function showOver(st) {
+      $('overScore').textContent = st.setsWon + ':' + st.setsLost;
+      $('overSets').textContent = st.sets.map(s => s.us + ':' + s.them).join('   ');
+      $('over').classList.add('show');
+    }
+
+    function openSub() {
+      const st = SO.replay(actions, M);
+      const onCourt = st.lineup.slice(); let out = null, inn = null;
+      const bench = SO.ROSTER.filter(p => !onCourt.includes(p.no) && p.no !== M.libero);
+      const body = $('sheetBody');
+      const draw = () => {
+        body.innerHTML = `<h3>Raus</h3><div class="pick">${onCourt.map(n => `<button data-out="${n}" class="${out === n ? 'on' : ''}">${n} ${SO.firstName(n)}</button>`).join('')}</div>
+          <h3>Rein</h3><div class="pick">${bench.map(p => `<button data-in="${p.no}" class="${inn === p.no ? 'on' : ''}">${p.no} ${p.name.split(' ')[0]} <small class="muted">${p.pos}</small></button>`).join('')}</div>
+          <button class="btn primary big" id="subOk" ${out && inn ? '' : 'disabled'} style="width:100%;justify-content:center">Wechsel eintragen</button>`;
+        body.querySelectorAll('[data-out]').forEach(b => b.onclick = () => { out = +b.dataset.out; draw(); });
+        body.querySelectorAll('[data-in]').forEach(b => b.onclick = () => { inn = +b.dataset.in; draw(); });
+        const ok = $('subOk'); if (ok) ok.onclick = () => { push({ set: st.set, skill: 'sub', out, in: inn }); closeSheet(); toast(`Wechsel ${out} → ${inn}`); };
+      };
+      $('sheetTitle').textContent = 'Wechsel'; draw(); $('sheet').classList.add('show');
+    }
+    function openMenu() {
+      $('sheetTitle').textContent = 'Mehr';
+      $('sheetBody').innerHTML = `<div class="col">
+        <button class="btn big" id="mSub">⇄ Wechsel</button>
+        <a class="btn big" href="auswertung.html">≡ Auswertung öffnen</a>
+        <a class="btn big" href="spiel.html">⚙ Aufstellung / Spiel</a>
+        <button class="btn big danger" id="mReset">Demo-Daten neu laden</button>
+        <p class="small muted">Alle Werte werden aus dem Aktionsprotokoll berechnet. Rückgängig entfernt die letzte Aktion; Punkte, Rotation und Aufschlagrecht folgen automatisch.</p></div>`;
+      $('mSub').onclick = () => { openSub(); };
+      $('mReset').onclick = () => { actions = SO.reset(); selected = null; closeSheet(); $('over').classList.remove('show'); render(); toast('Demo neu geladen'); };
+      $('sheet').classList.add('show');
+    }
+    function closeSheet() { $('sheet').classList.remove('show'); }
+
+    // ----- events (delegated: the DOM is re-rendered after every action) -----
+    document.addEventListener('click', e => {
+      const slot = e.target.closest('.slot');
+      if (slot) { const no = +slot.dataset.no; selected = selected === no ? null : no; render(); return; }
+      const cell = e.target.closest('.cell[data-skill]');
+      if (cell) {
+        const st = SO.replay(actions, M);
+        let who = selected;
+        if (!who && cell.dataset.skill === 'S' && st.serving) who = st.lineup[0];   // the server is always position I
+        if (!who) { toast('Erst Spielerin auf dem Feld tippen'); return; }
+        push({ set: st.set, skill: cell.dataset.skill, grade: cell.dataset.grade, player: who });
+      }
+    });
+    $('undoBtn').onclick = () => { if (!actions.length) return; const a = actions.pop(); SO.save(actions); $('over').classList.remove('show'); selected = null; render(); toast('Rückgängig: ' + describe(a).replace(/<[^>]+>/g, '')); };
+    $('oppErr').onclick = () => { const st = SO.replay(actions, M); push({ set: st.set, skill: 'opp', grade: '=' }); };
+    $('oppPt').onclick  = () => { const st = SO.replay(actions, M); push({ set: st.set, skill: 'opp', grade: '#' }); };
+    $('menuBtn').onclick = openMenu;
+    $('sheetClose').onclick = closeSheet;
+    $('sheet').addEventListener('click', e => { if (e.target === $('sheet')) closeSheet(); });
+    $('overReset').onclick = () => { actions = SO.reset(); $('over').classList.remove('show'); render(); };
+    $('evalTabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; scope = b.dataset.scope; $('evalTabs').querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b)); render(); });
+    // keyboard for desktop scouting: 1-6 select position, then h j k l ; ' for grades? keep simple: digits select court slot by position
+    document.addEventListener('keydown', e => {
+      if (e.key >= '1' && e.key <= '6') { const st = SO.replay(actions, M); const c = SO.courtView(st.lineup, M.libero)[+e.key - 1]; selected = c.no; render(); }
+      if (e.key === 'z' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); $('undoBtn').click(); }
+    });
+
+    render();
+  })();
+  </script>
+</body>
+</html>

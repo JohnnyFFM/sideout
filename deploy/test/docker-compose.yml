@@ -1,0 +1,20 @@
+# test stack — /srv/sideout/test on the VPS
+# .env: SO_IMAGE=ghcr.io/<owner>/sideout:test
+name: sideout-test
+
+services:
+  app:
+    image: ${SO_IMAGE:?set SO_IMAGE in .env, e.g. ghcr.io/<owner>/sideout:test}
+    container_name: sideout-test
+    restart: unless-stopped
+    environment:
+      - SO_SIGNUP=open
+      - RUST_LOG=sideout_server=debug
+    volumes:
+      - ./data:/data
+    networks:
+      - web
+
+networks:
+  web:
+    external: true

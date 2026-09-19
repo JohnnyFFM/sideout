@@ -1,0 +1,16 @@
+# Sideout ingress. Replace sideout.example.com with your domain.
+# No `encode` here: the app gzips its own responses (tower-http, which
+# correctly exempts text/event-stream). Caddy's encoder buffers SSE streams
+# while sniffing compressibility, so EventSource would never receive headers.
+
+sideout.example.com {
+	reverse_proxy sideout-live:8080
+}
+
+www.sideout.example.com {
+	redir https://sideout.example.com{uri} permanent
+}
+
+test.sideout.example.com {
+	reverse_proxy sideout-test:8080
+}

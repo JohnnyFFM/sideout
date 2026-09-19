@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0F131B" />
+  <title>SIDEOUT — Auswertung</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow+Semi+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="theme.js"></script>
+  <style>
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
+    .grid2 .panel + .panel { margin-top: 0; }
+    .head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; margin-bottom: 12px; }
+    .head h1 { font-size: 24px; }
+    .head .res { font-family: var(--disp); font-size: 30px; font-weight: 700; }
+    .head .sets { color: var(--ink-2); }
+    /* categorical series (dataviz reference palette, fixed order) */
+    :root { --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; }
+    :root[data-theme="light"] { --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; }
+    .s1 { background: var(--s1); } .s2 { background: var(--s2); } .s3 { background: var(--s3); } .s4 { background: var(--s4); }
+    .bar-row.p { grid-template-columns: 120px 1fr 44px; }
+    .bar-row.p .lbl b { color: var(--ink); }
+    .stackrow { display: grid; grid-template-columns: 120px 1fr 36px; gap: 8px; align-items: center; font-size: 13px; margin-bottom: 6px; }
+    .stackrow .lbl { color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .stackrow .lbl b { color: var(--ink); }
+    .stackrow .n { color: var(--ink-3); text-align: right; font-size: 12px; }
+    .stack span { position: relative; }
+    .stack span[title]:hover::after { content: attr(title); position: absolute; top: -26px; left: 0; background: var(--overlay); border: 1px solid var(--line); border-radius: 6px; padding: 2px 6px; font-size: 11px; color: var(--ink); white-space: nowrap; z-index: 5; }
+    svg.flow { width: 100%; height: 150px; display: block; }
+    .flow .grid { stroke: var(--line-soft); stroke-width: 1; }
+    .flow .zero { stroke: var(--ink-3); stroke-width: 1; }
+    .flow .ln { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+    .flow .ar-us { fill: var(--g-win); opacity: .18; } .flow .ar-them { fill: var(--g-err); opacity: .18; }
+    .flow text { font-size: 10px; fill: var(--ink-3); font-family: var(--ui); }
+    .rot { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+    .rot .r { background: var(--raised); border-radius: 8px; padding: 8px 6px; text-align: center; }
+    .rot .r .t { font-size: 11px; color: var(--ink-3); }
+    .rot .r .v { font-family: var(--disp); font-size: 22px; font-weight: 700; line-height: 1.1; }
+    .rot .r .v small { font-size: 11px; color: var(--ink-3); font-weight: 600; }
+    .rot .r .w { font-size: 11px; color: var(--ink-2); }
+    @media (max-width: 600px) { .rot { grid-template-columns: repeat(3, 1fr); } }
+    .tbl th.sub { font-size: 11px; color: var(--ink-3); font-weight: 500; }
+  </style>
+</head>
+<body class="has-tabbar">
+  <header class="topbar">
+    <a class="brand" href="index.html"><span class="tick">▲</span>SIDEOUT</a>
+    <nav class="nav">
+      <a href="index.html">Team</a>
+      <a href="live.html">Live</a>
+      <a class="active" href="auswertung.html">Auswertung</a>
+      <a href="spiel.html">Spiel</a>
+    </nav>
+    <span class="spacer"></span>
+    <button class="icon-btn" data-theme-btn title="Theme wechseln">☀</button>
+    <a class="icon-btn" href="live.html" title="Zurück zum Live-Scouting">●</a>
+  </header>
+
+  <main class="page">
+    <div class="head" id="head"></div>
+    <div class="toolbar">
+      <div class="tabs" id="setTabs"></div>
+      <span class="spacer"></span>
+      <button class="btn" id="exportBtn">Export CSV</button>
+    </div>
+
+    <section class="tiles" id="tiles" style="margin-bottom:14px;"></section>
+
+    <section class="tbl-wrap" style="margin-bottom:14px;">
+      <table class="tbl" id="box"></table>
+    </section>
+    <p class="small muted" style="margin:-6px 0 14px 4px;">Eff. = (Punkte − Fehler − geblockt) / Versuche · Ann Ø auf der 0–3-Skala (Perfekt 3 · Gut 2 · OK 1 · Schwach/Overpass/Fehler 0) · Pos% = Anteil Perfekt + Gut</p>
+
+    <div class="grid2">
+      <section class="panel">
+        <div class="panel-head"><h2>Spielverlauf</h2><span class="small muted" id="flowSub"></span></div>
+        <svg class="flow" id="flow" viewBox="0 0 600 150" preserveAspectRatio="none"></svg>
+        <div class="legend"><span><i class="gdot g-win"></i> Wir führen</span><span><i class="gdot g-err"></i> Gegner führt</span></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2>Sideout nach Rotation</h2><span class="small muted">Rotation = wer auf Position I steht</span></div>
+        <div class="rot" id="rot"></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2>Woher die Punkte kommen</h2></div>
+        <div id="ptsBy"></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2>Wie Punkte verloren gehen</h2></div>
+        <div id="lostBy"></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2>Punkte pro Spielerin</h2></div>
+        <div class="bars" id="ptsPlayer"></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2>Annahme-Qualität</h2><span class="small muted">Anteil je Bewertung</span></div>
+        <div id="recStack"></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2>Angriff-Qualität</h2><span class="small muted">Anteil je Bewertung</span></div>
+        <div id="attStack"></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2>Aufschlag-Qualität</h2><span class="small muted">Anteil je Bewertung</span></div>
+        <div id="srvStack"></div>
+      </section>
+    </div>
+  </main>
+
+  <nav class="tabbar">
+    <a href="index.html"><span class="ico">⌂</span>Team</a>
+    <a href="live.html"><span class="ico">●</span>Live</a>
+    <a class="active" href="auswertung.html"><span class="ico">≡</span>Auswertung</a>
+    <a href="spiel.html"><span class="ico">⚙</span>Spiel</a>
+  </nav>
+
+  <script src="data.js"></script>
+  <script>
+  (function () {
+    const $ = id => document.getElementById(id);
+    const M = SO.MATCH;
+    const actions = SO.load();
+    const full = SO.replay(actions, M);
+    let set = 0; // 0 = whole match
+
+    function gradeLegend() { return `<div class="legend">${SO.GRADES.map(g => `<span><i class="gdot ${SO.GRADE_CLASS[g]}"></i> ${g} ${SO.GRADE_NAME[g]}</span>`).join('')}</div>`; }
+    function gradeStack(rows, key, min) {
+      const list = rows.filter(p => Object.values(p.grades[key]).reduce((a, b) => a + b, 0) >= (min || 1));
+      if (!list.length) return '<div class="empty">Keine Daten.</div>';
+      return list.map(p => {
+        const g = p.grades[key]; const n = Object.values(g).reduce((a, b) => a + b, 0);
+        return `<div class="stackrow"><div class="lbl"><b>${p.no}</b> ${SO.firstName(p.no)}</div><div class="stack">${SO.GRADES.filter(x => g[x]).map(x => `<span class="${SO.GRADE_CLASS[x]}" style="width:${g[x] / n * 100}%" title="${x} ${SO.PAD[key][x] || SO.GRADE_NAME[x]}: ${g[x]} (${Math.round(g[x] / n * 100)} %)"></span>`).join('')}</div><div class="n">${n}</div></div>`;
+      }).join('') + gradeLegend();
+    }
+    function catStack(items) { // [{label, n, cls}]
+      const tot = items.reduce((a, b) => a + b.n, 0);
+      if (!tot) return '<div class="empty">Keine Daten.</div>';
+      return `<div class="stack" style="height:22px">${items.filter(i => i.n).map(i => `<span class="${i.cls}" style="width:${i.n / tot * 100}%" title="${i.label}: ${i.n}"></span>`).join('')}</div>
+        <div class="legend">${items.map(i => `<span><i class="gdot ${i.cls}"></i> ${i.label} <b>${i.n}</b> (${Math.round(i.n / tot * 100)} %)</span>`).join('')}</div>`;
+    }
+
+    function render() {
+      const s = SO.stats(actions, { match: M, set });
+      const t = s.team, P = s.players;
+      // header
+      $('head').innerHTML = `<h1>${SO.TEAM.name} – ${M.opponent}</h1><span class="res">${full.setsWon}:${full.setsLost}</span><span class="sets">${full.sets.map(x => x.us + ':' + x.them).join('  ')}${full.finished ? '' : '  <em>(Satz ' + full.set + ' läuft: ' + full.us + ':' + full.them + ')</em>'}</span><span class="muted small">${M.date} · ${M.hall} · ${M.home ? 'Heim' : 'Auswärts'}</span>`;
+      // tabs
+      const nSets = full.sets.length + (full.finished ? 0 : 1);
+      $('setTabs').innerHTML = `<button class="${set === 0 ? 'active' : ''}" data-set="0">Gesamt</button>` + Array.from({ length: nSets }, (_, i) => `<button class="${set === i + 1 ? 'active' : ''}" data-set="${i + 1}">Satz ${i + 1}</button>`).join('');
+      // tiles
+      const so = t.sideout.n ? t.sideout.won / t.sideout.n : null, br = t.brk.n ? t.brk.won / t.brk.n : null;
+      const A = P.reduce((a, p) => { a.k += p.A.k; a.e += p.A.e + p.A.blk; a.n += p.A.n; return a; }, { k: 0, e: 0, n: 0 });
+      const R = P.reduce((a, p) => { a.sum += p.R.sum; a.n += p.R.n; return a; }, { sum: 0, n: 0 });
+      const errs = Object.values(t.errBy).reduce((a, b) => a + b, 0) + P.reduce((a, p) => a + p.A.blk, 0);
+      $('tiles').innerHTML = `
+        <div class="tile"><div class="v">${t.us}<small>:${t.them}</small></div><div class="k">Punkte</div><div class="d">${set ? 'Satz ' + set : 'alle Sätze'}</div></div>
+        <div class="tile"><div class="v">${so == null ? '–' : Math.round(so * 100)}<small>%</small></div><div class="k">Sideout</div><div class="d">${t.sideout.won} von ${t.sideout.n} Annahme-Rallys gewonnen</div></div>
+        <div class="tile"><div class="v">${br == null ? '–' : Math.round(br * 100)}<small>%</small></div><div class="k">Break</div><div class="d">${t.brk.won} von ${t.brk.n} eigenen Aufschlägen gewonnen</div></div>
+        <div class="tile"><div class="v">${A.n ? SO.eff((A.k - A.e) / A.n) : '–'}</div><div class="k">Angriff Eff.</div><div class="d">${A.k} Pkt · ${A.e} Fehler · ${A.n} Versuche</div></div>
+        <div class="tile"><div class="v">${R.n ? (R.sum / R.n).toFixed(2) : '–'}</div><div class="k">Annahme Ø</div><div class="d">${R.n} Annahmen, Skala 0–3</div></div>
+        <div class="tile"><div class="v">${errs}</div><div class="k">Eigene Fehler</div><div class="d">von ${t.them} Gegnerpunkten</div></div>`;
+
+      // box score
+      const tot = { pts: 0, A: { n: 0, k: 0, e: 0, blk: 0 }, S: { n: 0, ace: 0, err: 0 }, R: { n: 0, sum: 0, pos: 0, err: 0 }, B: { pts: 0, touch: 0, err: 0 }, D: { good: 0, n: 0, err: 0 }, E: { n: 0, ast: 0, err: 0 } };
+      const cls = (v, good, bad) => v == null ? '' : v >= good ? 'good' : v <= bad ? 'bad' : '';
+      const row = p => {
+        tot.pts += p.pts; ['n', 'k', 'e', 'blk'].forEach(k => tot.A[k] += p.A[k]); ['n', 'ace', 'err'].forEach(k => tot.S[k] += p.S[k]);
+        ['n', 'sum', 'pos', 'err'].forEach(k => tot.R[k] += p.R[k]); ['pts', 'touch', 'err'].forEach(k => tot.B[k] += p.B[k]); ['good', 'n', 'err'].forEach(k => tot.D[k] += p.D[k]); ['n', 'ast', 'err'].forEach(k => tot.E[k] += p.E[k]);
+        return `<tr><td class="l name"><span class="jersey">${p.no}</span>${p.name} <span class="muted small">${p.pos}</span></td><td><b>${p.pts}</b></td>
+          <td class="sep">${p.A.n}</td><td>${p.A.k}</td><td>${p.A.e}</td><td>${p.A.blk}</td><td class="${cls(p.A.pct, .3, .1)}">${SO.eff(p.A.pct)}</td><td>${SO.pct(p.A.kpct)}</td>
+          <td class="sep">${p.S.n}</td><td>${p.S.ace}</td><td>${p.S.err}</td>
+          <td class="sep">${p.R.n}</td><td class="${cls(p.R.avg, 2.2, 1.5)}">${SO.fix(p.R.avg)}</td><td>${SO.pct(p.R.pospct)}</td><td>${p.R.err}</td>
+          <td class="sep">${p.B.pts}</td><td>${p.B.touch}</td><td>${p.B.err}</td>
+          <td class="sep">${p.D.good}</td><td>${p.D.n}</td><td>${p.D.err}</td>
+          <td class="sep">${p.E.n}</td><td>${p.E.ast}</td><td>${p.E.err}</td></tr>`;
+      };
+      const body = P.map(row).join('');
+      const tA = tot.A.n ? (tot.A.k - tot.A.e - tot.A.blk) / tot.A.n : null;
+      $('box').innerHTML = `<thead>
+        <tr><th class="l name" rowspan="2">Spielerin</th><th rowspan="2">Pkt</th><th class="grp sep" colspan="6">Angriff</th><th class="grp sep" colspan="3">Aufschlag</th><th class="grp sep" colspan="4">Annahme</th><th class="grp sep" colspan="3">Block</th><th class="grp sep" colspan="3">Abwehr</th><th class="grp sep" colspan="3">Zuspiel</th></tr>
+        <tr><th class="sub sep">Vers</th><th class="sub">Pkt</th><th class="sub">Feh</th><th class="sub">Blk</th><th class="sub">Eff</th><th class="sub">Quote</th>
+            <th class="sub sep">Vers</th><th class="sub">Ass</th><th class="sub">Feh</th>
+            <th class="sub sep">Vers</th><th class="sub">Ø</th><th class="sub">Pos%</th><th class="sub">Feh</th>
+            <th class="sub sep">Pkt</th><th class="sub">Touch</th><th class="sub">Feh</th>
+            <th class="sub sep">Abw</th><th class="sub">Vers</th><th class="sub">Feh</th>
+            <th class="sub sep">Vers</th><th class="sub">Vorl</th><th class="sub">Feh</th></tr></thead>
+        <tbody>${body || '<tr><td colspan="24" class="empty">Noch keine Aktionen.</td></tr>'}
+        <tr class="total"><td class="l name">Team</td><td>${tot.pts}</td>
+          <td class="sep">${tot.A.n}</td><td>${tot.A.k}</td><td>${tot.A.e}</td><td>${tot.A.blk}</td><td>${SO.eff(tA)}</td><td>${SO.pct(tot.A.n ? tot.A.k / tot.A.n : null)}</td>
+          <td class="sep">${tot.S.n}</td><td>${tot.S.ace}</td><td>${tot.S.err}</td>
+          <td class="sep">${tot.R.n}</td><td>${tot.R.n ? (tot.R.sum / tot.R.n).toFixed(2) : '–'}</td><td>${SO.pct(tot.R.n ? tot.R.pos / tot.R.n : null)}</td><td>${tot.R.err}</td>
+          <td class="sep">${tot.B.pts}</td><td>${tot.B.touch}</td><td>${tot.B.err}</td>
+          <td class="sep">${tot.D.good}</td><td>${tot.D.n}</td><td>${tot.D.err}</td>
+          <td class="sep">${tot.E.n}</td><td>${tot.E.ast}</td><td>${tot.E.err}</td></tr></tbody>`;
+
+      // flow: score difference over rallies
+      const fset = set || full.set;
+      const rl = full.rallyLog.filter(r => r.set === fset);
+      $('flowSub').textContent = `Satz ${fset} · Vorsprung nach jedem Ballwechsel`;
+      const pts = [[0, 0]]; let d = 0;
+      rl.forEach((r, i) => { d += r.won ? 1 : -1; pts.push([i + 1, d]); });
+      const maxX = Math.max(pts.length - 1, 10), maxD = Math.max(4, ...pts.map(p => Math.abs(p[1])));
+      const X = x => 20 + x / maxX * 570, Y = y => 75 - y / maxD * 60;
+      const path = pts.map((p, i) => (i ? 'L' : 'M') + X(p[0]).toFixed(1) + ' ' + Y(p[1]).toFixed(1)).join(' ');
+      const areaUs = 'M' + X(0) + ' ' + Y(0) + ' ' + pts.map(p => 'L' + X(p[0]).toFixed(1) + ' ' + Y(Math.max(0, p[1])).toFixed(1)).join(' ') + ' L' + X(pts[pts.length - 1][0]) + ' ' + Y(0) + ' Z';
+      const areaThem = 'M' + X(0) + ' ' + Y(0) + ' ' + pts.map(p => 'L' + X(p[0]).toFixed(1) + ' ' + Y(Math.min(0, p[1])).toFixed(1)).join(' ') + ' L' + X(pts[pts.length - 1][0]) + ' ' + Y(0) + ' Z';
+      $('flow').innerHTML = `<line class="grid" x1="20" x2="590" y1="${Y(maxD)}" y2="${Y(maxD)}"/><line class="grid" x1="20" x2="590" y1="${Y(-maxD)}" y2="${Y(-maxD)}"/><line class="zero" x1="20" x2="590" y1="${Y(0)}" y2="${Y(0)}"/>
+        <path class="ar-us" d="${areaUs}"/><path class="ar-them" d="${areaThem}"/><path class="ln" d="${path}"/>
+        <text x="2" y="${Y(maxD) + 4}">+${maxD}</text><text x="2" y="${Y(-maxD) + 4}">−${maxD}</text><text x="2" y="${Y(0) + 4}">0</text><text x="560" y="146">${rl.length} Rallys</text>`;
+
+      // rotation
+      const lu = M.lineup; const setterNo = lu.find(n => SO.player(n).pos === 'Z');
+      $('rot').innerHTML = lu.map((no, i) => {
+        const r = t.byRot[no] || { so: { won: 0, n: 0 }, brk: { won: 0, n: 0 } };
+        const sop = r.so.n ? Math.round(r.so.won / r.so.n * 100) : null;
+        const setterPos = ((lu.indexOf(setterNo) - i + 6) % 6) + 1;
+        return `<div class="r"><div class="t">Zuspiel auf ${['I', 'II', 'III', 'IV', 'V', 'VI'][setterPos - 1]}</div><div class="v">${sop == null ? '–' : sop}<small>%</small></div><div class="w">${r.so.won}/${r.so.n} SO · ${r.brk.won}/${r.brk.n} Break</div><div class="t">${no} ${SO.firstName(no)} auf I</div></div>`;
+      }).join('');
+
+      // points by source / lost by
+      $('ptsBy').innerHTML = catStack([{ label: 'Angriff', n: t.ptsBy.A, cls: 's1' }, { label: 'Aufschlag', n: t.ptsBy.S, cls: 's2' }, { label: 'Block', n: t.ptsBy.B, cls: 's3' }, { label: 'Gegnerfehler', n: t.ptsBy.opp, cls: 's4' }]);
+      const blk = P.reduce((a, p) => a + p.A.blk, 0);
+      $('lostBy').innerHTML = catStack([
+        { label: 'Gegner-Punkt', n: t.lostBy.oppKill, cls: 's1' }, { label: 'Angriffsfehler', n: t.errBy.A + blk, cls: 's2' },
+        { label: 'Aufschlagfehler', n: t.errBy.S, cls: 's3' }, { label: 'Andere Fehler', n: t.errBy.R + t.errBy.E + t.errBy.B + t.errBy.D, cls: 's4' }]);
+      // points per player (single series)
+      const mx = Math.max(1, ...P.map(p => p.pts));
+      $('ptsPlayer').innerHTML = P.filter(p => p.pts || p.A.n).map(p => `<div class="bar-row p"><div class="lbl"><b>${p.no}</b> ${SO.firstName(p.no)} <span class="muted small">${p.A.k} Ang · ${p.S.ace} Ass · ${p.B.pts} Blk</span></div><div class="trk"><div class="fill" style="width:${p.pts / mx * 100}%"></div></div><div class="val">${p.pts}</div></div>`).join('') || '<div class="empty">Keine Daten.</div>';
+      $('recStack').innerHTML = gradeStack(P, 'R', 2);
+      $('attStack').innerHTML = gradeStack(P, 'A', 2);
+      $('srvStack').innerHTML = gradeStack(P, 'S', 1);
+    }
+
+    $('setTabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; set = +b.dataset.set; render(); });
+    $('exportBtn').onclick = () => {
+      const rows = SO.replay(actions, M).rows.filter(r => r.skill !== 'sub');
+      const csv = ['set,rally,score_us,score_them,serving,rotation_pos1,player,skill,grade,outcome'].concat(rows.map(r => [r.set, r.rally, r.us, r.them, r.serving ? 1 : 0, r.rot, r.player || '', r.skill, r.grade, r.outcome || ''].join(','))).join('\n');
+      const a = document.createElement('a'); a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv); a.download = 'sideout-' + M.date + '.csv'; a.click();
+    };
+    render();
+  })();
+  </script>
+</body>
+</html>

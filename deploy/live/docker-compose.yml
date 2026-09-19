@@ -1,0 +1,23 @@
+# live stack — /srv/sideout/live on the VPS
+# .env (next to this file, created once by hand):
+#   SO_IMAGE=ghcr.io/<owner>/sideout:live
+name: sideout-live
+
+services:
+  app:
+    image: ${SO_IMAGE:?set SO_IMAGE in .env, e.g. ghcr.io/<owner>/sideout:live}
+    container_name: sideout-live
+    restart: unless-stopped
+    environment:
+      # open signup lets any coach found a team; set to `closed` for a
+      # private instance and seed accounts with the CLI (see README)
+      - SO_SIGNUP=open
+      - RUST_LOG=sideout_server=info
+    volumes:
+      - ./data:/data
+    networks:
+      - web
+
+networks:
+  web:
+    external: true
