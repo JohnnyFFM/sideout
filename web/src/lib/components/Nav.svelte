@@ -1,6 +1,13 @@
 <script>
   import { page } from '$app/stores';
-  import { me, sseConnected, online } from '$lib/stores.js';
+  import { goto } from '$app/navigation';
+  import { me, sseConnected, online, switchTeam, showToast } from '$lib/stores.js';
+  const teams = $derived($me?.teams || []);
+  async function onSwitch(e) {
+    const id = Number(e.target.value);
+    if (!id || id === $me?.team?.id) return;
+    try { await switchTeam(id); goto('/team'); } catch (err) { showToast(err.message, true); }
+  }
 
   let theme = $state(typeof window !== 'undefined' ? window.soTheme.get() : 'dark');
   const NEXT_ICON = { dark: '☀', light: '☾' };
@@ -28,7 +35,13 @@
   <span class="spacer"></span>
   <span class="sync-chip" title={$sseConnected ? 'Live verbunden' : 'Verbindung getrennt'}>
     <span class="dot" style:background={$online && $sseConnected ? 'var(--ok)' : 'var(--g-neg)'}></span>
-    <span class="desk">{$me?.team?.name || ''}</span>
+    {#if teams.length > 1}
+      <select class="teamsel" value={$me?.team?.id} onchange={onSwitch} title="Team wechseln">
+        {#each teams as t (t.id)}<option value={t.id}>{t.name}</option>{/each}
+      </select>
+    {:else}
+      <span class="desk">{$me?.team?.name || ''}</span>
+    {/if}
   </span>
   <button class="icon-btn" onclick={() => window.soTheme.cycle()} title="Theme wechseln">{NEXT_ICON[theme]}</button>
   <a class="icon-btn" href="/einstellungen" title={$me?.user?.display_name || 'Einstellungen'}>{initials}</a>
@@ -42,7 +55,9 @@
 </nav>
 
 <style>
+  .teamsel { height: 30px; max-width: 160px; padding: 0 6px; font-size: 13px; font-weight: 600; background: var(--raised); border: 1px solid var(--line-soft); border-radius: var(--r-m); color: var(--ink); }
   @media (max-width: 760px) {
     .desk { display: none; }
+    .teamsel { max-width: 120px; }
   }
 </style>

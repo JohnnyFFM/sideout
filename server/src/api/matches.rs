@@ -304,6 +304,12 @@ pub async fn add_action(
             }
         }
         "lib" => {} // sub_in = libero (+ sub_out = whom she replaces), or nothing = libero out
+        "adj" | "srv" => {
+            if !matches!(body.grade.as_deref(), Some("#") | Some("=")) {
+                return Err(ApiError::BadRequest("Nachtrag braucht # (wir) oder = (Gegner)".into()));
+            }
+        }
+        "rot" => {}
         _ => return Err(ApiError::BadRequest("Aktion unbekannt".into())),
     }
     let cfg = load_config(&state, id, &row.get::<String, _>("first_serve")).await?;
@@ -338,8 +344,8 @@ pub async fn add_action(
     )
     .bind(id).bind(body.seq).bind(st.set)
     .bind(&body.skill)
-    .bind(if body.skill == "sub" || body.skill == "lib" { None } else { body.grade.clone() })
-    .bind(if body.skill == "sub" || body.skill == "lib" || body.skill == "opp" { None } else { body.player_id })
+    .bind(if body.skill == "sub" || body.skill == "lib" || body.skill == "rot" { None } else { body.grade.clone() })
+    .bind(if matches!(body.skill.as_str(), "S" | "R" | "E" | "A" | "B" | "D") { body.player_id } else { None })
     .bind(body.sub_out).bind(body.sub_in)
     .bind(user.id)
     .execute(&state.dbw)
@@ -349,7 +355,7 @@ pub async fn add_action(
     let mut actions2 = actions;
     actions2.push(engine::Action {
         id: action_id, seq: body.seq, skill: body.skill.clone(),
-        grade: if body.skill == "sub" || body.skill == "lib" { None } else { body.grade.clone() },
+        grade: if body.skill == "sub" || body.skill == "lib" || body.skill == "rot" { None } else { body.grade.clone() },
         player_id: body.player_id, sub_out: body.sub_out, sub_in: body.sub_in,
     });
     let st2 = engine::replay(&cfg, &actions2);

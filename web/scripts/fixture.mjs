@@ -24,7 +24,7 @@ const players = [
 const cfg = { first_serve_us: true, lineups: { 1: { pos: [14, 12, 13, 11, 15, 16], libero: 17 }, 3: { pos: [12, 13, 11, 15, 16, 14], libero: 17 } } };
 const actions = [];
 let seq = 0;
-const push = (a) => actions.push({ id: ++seq, seq, grade: null, player_id: null, sub_out: null, sub_in: null, ...a });
+const push = (a) => actions.push({ id: ++seq, seq, grade: null, player_id: null, sub_out: null, sub_in: null, ...a, ...(a.skill === 'rot' ? { grade: null } : {}) });
 
 let st = replay(cfg, actions);
 for (let guard = 0; guard < 3000 && !st.finished; guard++) {
@@ -33,6 +33,7 @@ for (let guard = 0; guard < 3000 && !st.finished; guard++) {
   const r = rnd();
   if (r < 0.03 && st.rally > 3) push({ skill: 'sub', sub_out: onCourt[Math.floor(rnd() * 6)], sub_in: 18 });
   else if (r < 0.05) { const off = rnd() < 0.2; push({ skill: 'lib', sub_out: off || rnd() < 0.3 ? null : onCourt[4 + Math.floor(rnd() * 2)], sub_in: off ? null : 17 }); }
+  else if (r < 0.065) push({ skill: pick([['adj', 3], ['rot', 1], ['srv', 1]]) === 'adj' ? 'adj' : rnd() < 0.5 ? 'rot' : 'srv', grade: pick([['#', 1], ['=', 1]]) });
   else if (r < 0.15) push({ skill: 'opp', grade: pick([['#', 55], ['=', 45]]) });
   else {
     const skill = st.serving && st.rows.filter((x) => x.set === st.set && x.rally === st.rally).length === 0 ? 'S' : pick([['R', 20], ['E', 25], ['A', 30], ['B', 10], ['D', 15]]);

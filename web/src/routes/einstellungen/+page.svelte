@@ -2,7 +2,23 @@
   // Team settings, members & roles, join code, logout.
   import { goto } from '$app/navigation';
   import { api } from '$lib/api.js';
-  import { me, showToast, refreshMe, meCache } from '$lib/stores.js';
+  import { me, showToast, refreshMe, meCache, switchTeam, reconnectSSE } from '$lib/stores.js';
+  let newTeam = $state('');
+  let joinCode = $state('');
+  async function createTeam(e) {
+    e.preventDefault();
+    try { await api('/teams', { method: 'POST', body: { name: newTeam } }); newTeam = ''; await refreshMe(); reconnectSSE(); showToast('Team angelegt und gewechselt'); goto('/team'); }
+    catch (err) { showToast(err.message, true); }
+  }
+  async function joinTeam(e) {
+    e.preventDefault();
+    try { await api('/teams/join', { method: 'POST', body: { code: joinCode } }); joinCode = ''; await refreshMe(); reconnectSSE(); showToast('Beigetreten und gewechselt'); goto('/team'); }
+    catch (err) { showToast(err.message, true); }
+  }
+  async function pick(t) {
+    if (t.id === $me?.team?.id) return;
+    try { await switchTeam(t.id); showToast(`Jetzt: ${t.name}`); } catch (err) { showToast(err.message, true); }
+  }
 
   const isCoach = $derived($me?.user?.role === 'coach');
   let name = $state('');
@@ -62,6 +78,28 @@
         </section>
       {/if}
       <section class="panel">
+        <div class="panel-head"><h2>Meine Teams</h2><span class="small muted">ein Konto, mehrere Teams</span></div>
+        <ul class="teams">
+          {#each $me?.teams || [] as t (t.id)}
+            <li class:cur={t.id === $me?.team?.id}>
+              <span><b>{t.name}</b><div class="small muted">{[t.league, ROLES[t.role]].filter(Boolean).join(' · ')}</div></span>
+              {#if t.id === $me?.team?.id}<span class="chip">aktiv</span>{:else}<button class="btn" onclick={() => pick(t)}>Wechseln</button>{/if}
+            </li>
+          {/each}
+        </ul>
+        <div class="grid2" style="margin-top:12px">
+          <form onsubmit={createTeam} class="row" style="align-items:end">
+            <label class="f">Neues Team anlegen<input type="text" bind:value={newTeam} placeholder="z. B. TSV Eintracht II" required /></label>
+            <button class="btn" type="submit" style="flex:0">Anlegen</button>
+          </form>
+          <form onsubmit={joinTeam} class="row" style="align-items:end">
+            <label class="f">Team beitreten<input type="text" bind:value={joinCode} placeholder="Team-Code XXX-0000" autocapitalize="characters" required /></label>
+            <button class="btn" type="submit" style="flex:0">Beitreten</button>
+          </form>
+        </div>
+        <p class="small muted" style="margin:10px 0 0">Das aktive Team steht oben in der Leiste und lässt sich dort wechseln. Kader, Spiele und Auswertung gehören immer zum aktiven Team.</p>
+      </section>
+      <section class="panel">
         <div class="panel-head"><h2>Anleitung</h2></div>
         <p class="small" style="margin:0">Alles zum Scouten, zur Bewertungsskala und zur Auswertung: <a href="/hilfe/">Anleitung öffnen</a>.</p>
       </section>
@@ -96,4 +134,7 @@
   .members li { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line-soft); }
   .members li:last-child { border-bottom: 0; }
   .members select { width: auto; }
+  .teams { list-style: none; margin: 0; padding: 0; }
+  .teams li { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line-soft); }
+  .teams li:last-child { border-bottom: 0; }
 </style>

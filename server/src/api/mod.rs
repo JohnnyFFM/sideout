@@ -21,6 +21,9 @@ pub fn router(state: AppState) -> Router {
         .route("/team", patch(team::patch_team))
         .route("/team/rotate-code", post(team::rotate_code))
         .route("/team/members/{id}", patch(team::patch_member).delete(team::delete_member))
+        .route("/teams", post(team::create_team))
+        .route("/teams/join", post(team::join_team))
+        .route("/teams/switch", post(team::switch_team))
         .route("/players", get(team::list_players).post(team::create_player))
         .route("/players/{id}", patch(team::patch_player).delete(team::delete_player))
         // matches

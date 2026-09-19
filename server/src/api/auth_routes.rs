@@ -71,7 +71,8 @@ pub async fn me_payload(state: &AppState, user: &CurrentUser) -> ApiResult<Value
         .fetch_one(&state.db)
         .await?;
     let members: Vec<Value> = sqlx::query(
-        "SELECT id, username, display_name, role FROM users WHERE team_id = ? ORDER BY id",
+        "SELECT u.id, u.username, u.display_name, m.role FROM memberships m JOIN users u ON u.id = m.user_id
+         WHERE m.team_id = ? ORDER BY u.id",
     )
     .bind(user.team_id)
     .fetch_all(&state.db)
@@ -86,6 +87,25 @@ pub async fn me_payload(state: &AppState, user: &CurrentUser) -> ApiResult<Value
         })
     })
     .collect();
+    let teams: Vec<Value> = sqlx::query(
+        "SELECT t.id, t.name, t.short, t.league, t.season, m.role FROM memberships m JOIN teams t ON t.id = m.team_id
+         WHERE m.user_id = ? ORDER BY t.name",
+    )
+    .bind(user.id)
+    .fetch_all(&state.db)
+    .await?
+    .iter()
+    .map(|r| {
+        json!({
+            "id": r.get::<i64, _>("id"),
+            "name": r.get::<String, _>("name"),
+            "short": r.get::<String, _>("short"),
+            "league": r.get::<String, _>("league"),
+            "season": r.get::<String, _>("season"),
+            "role": r.get::<String, _>("role"),
+        })
+    })
+    .collect();
     Ok(json!({
         "user": {
             "id": user.id,
@@ -93,6 +113,7 @@ pub async fn me_payload(state: &AppState, user: &CurrentUser) -> ApiResult<Value
             "display_name": user.display_name,
             "role": user.role.as_str(),
         },
+        "teams": teams,
         "team": {
             "id": team.get::<i64, _>("id"),
             "name": team.get::<String, _>("name"),
@@ -172,6 +193,8 @@ pub async fn register_team(
         other => other.into(),
     })?;
     let user_id = res.last_insert_rowid();
+    sqlx::query("INSERT INTO memberships (user_id, team_id, role) VALUES (?, ?, 'coach')")
+        .bind(user_id).bind(team_id).execute(&state.dbw).await?;
     audit(&state, team_id, "team", team_id, "created", "Team angelegt", Some(user_id)).await?;
 
     let token = start_session(&state, user_id, &headers).await?;
@@ -221,6 +244,8 @@ pub async fn join(
         other => other.into(),
     })?;
     let user_id = res.last_insert_rowid();
+    sqlx::query("INSERT INTO memberships (user_id, team_id, role) VALUES (?, ?, 'assistant')")
+        .bind(user_id).bind(team_id).execute(&state.dbw).await?;
     audit(&state, team_id, "team", team_id, "member_joined", body.display_name.trim(), Some(user_id)).await?;
     state.events.publish(crate::events::EventMsg {
         team_id, entity: "team".into(), id: team_id, version: 0,

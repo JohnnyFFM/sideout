@@ -29,8 +29,9 @@ export const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI'];
 
 /** rally outcome of one action: 'us' | 'them' | null (continues) */
 export function outcome(skill, grade) {
-  if (skill === 'opp') return grade === '=' ? 'us' : 'them';
-  if (skill === 'sub') return null;
+  if (skill === 'opp') return grade === '=' ? 'us' : 'them'; // opponent error → our point
+  if (skill === 'adj') return grade === '#' ? 'us' : 'them'; // catch-up: # us, = them
+  if (skill === 'sub' || skill === 'lib' || skill === 'rot' || skill === 'srv') return null;
   if (grade === '=') return 'them';
   if (grade === '/' && skill === 'A') return 'them';
   if (grade === '#' && (skill === 'A' || skill === 'S' || skill === 'B')) return 'us';
@@ -67,6 +68,11 @@ export function replay(cfg, actions) {
   for (const a of actions) {
     if (st.finished) break;
     st.last_seq = a.seq;
+    if (a.skill === 'rot' || a.skill === 'srv') {
+      if (a.skill === 'rot') st.lineup = rotate(st.lineup); else st.serving = a.grade === '#';
+      st.rows.push({ ...a, set: st.set, rally: st.rally, us: st.us, them: st.them, serving: st.serving, rot: st.lineup[0], outcome: null });
+      continue;
+    }
     if (a.skill === 'sub' || a.skill === 'lib') {
       if (a.skill === 'lib') {
         if (a.sub_in == null) { st.libero_off = true; st.libero_for = null; }
@@ -83,12 +89,17 @@ export function replay(cfg, actions) {
     st.rows.push({ ...a, set: st.set, rally: st.rally, us: st.us, them: st.them, serving: st.serving, rot: st.lineup[0], outcome: out });
     if (!out) continue;
     const won = out === 'us';
-    st.rally_log.push({ set: st.set, rally: st.rally, serving: st.serving, won, rot: st.lineup[0], us: st.us, them: st.them });
-    const wonOnReceive = won && !st.serving;
-    if (won) st.us++; else st.them++;
-    if (wonOnReceive) st.lineup = rotate(st.lineup);
-    st.serving = won;
-    st.rally++;
+    if (a.skill === 'adj') {
+      // catch-up point: score only, no rally, rotation or serve change
+      if (won) st.us++; else st.them++;
+    } else {
+      st.rally_log.push({ set: st.set, rally: st.rally, serving: st.serving, won, rot: st.lineup[0], us: st.us, them: st.them });
+      const wonOnReceive = won && !st.serving;
+      if (won) st.us++; else st.them++;
+      if (wonOnReceive) st.lineup = rotate(st.lineup);
+      st.serving = won;
+      st.rally++;
+    }
     const tgt = setTarget(st.set);
     if ((st.us >= tgt || st.them >= tgt) && Math.abs(st.us - st.them) >= 2) {
       st.sets.push({ us: st.us, them: st.them });
@@ -134,7 +145,7 @@ export function courtView(lineup, libero, byId, liberoFor = null, liberoOff = fa
 
 /** the skill(s) the rally phase makes likely next */
 export function expectedSkills(st) {
-  const cur = st.rows.filter((r) => r.set === st.set && r.rally === st.rally && r.skill !== 'sub' && r.skill !== 'lib');
+  const cur = st.rows.filter((r) => r.set === st.set && r.rally === st.rally && !['sub', 'lib', 'rot', 'srv', 'adj'].includes(r.skill));
   if (!cur.length) return st.serving ? ['S'] : ['R'];
   const last = cur[cur.length - 1].skill;
   return { S: ['B', 'D'], R: ['E'], E: ['A'], A: ['B', 'D'], B: ['D'], D: ['E'] }[last] || [];
@@ -168,7 +179,7 @@ export function stats(cfg, players, actions, set) {
   const get = (id) => (P[id] = P[id] || emptyPlayer(byId[id] || { id, number: 0, name: '?', position: '?' }));
   let lastSet = null;
   for (const r of rows) {
-    if (r.skill === 'sub' || r.skill === 'lib' || r.skill === 'opp') {
+    if (['sub', 'lib', 'opp', 'adj', 'rot', 'srv'].includes(r.skill)) {
       if (r.skill === 'opp') { if (r.grade === '=') team.ptsBy.opp++; else team.lostBy.oppKill++; }
       lastSet = null;
       continue;

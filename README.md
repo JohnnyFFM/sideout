@@ -70,7 +70,10 @@ docker exec sideout-live /app/server user-list
 ## How scouting works
 
 - **Roles**: coach (everything), assistant (scouts, edits matches), viewer.
-  A team has a join code; whoever joins becomes an assistant.
+  A team has a join code; whoever joins becomes an assistant. One account
+  can belong to several teams with a role per team (a coach with the first
+  and the second team in two leagues); the active team is switched in the
+  top bar, and everything else is scoped to it.
 - **Court**: own half from behind the baseline, front row IV III II at the
   net, back row V VI I. The libero stands in for the back-row middle on
   V and VI, and on I while the opponent serves; she never serves herself.
@@ -84,6 +87,10 @@ docker exec sideout-live /app/server user-list
   a serve or set tapped without a selection books itself to her. Two big
   buttons cover rallies the opponent ends, undo pops the last action.
   Keyboard on a laptop: 1–6 select positions, Ctrl+Z undoes.
+- **Catch-up**: four dashed buttons under the score for the coach who
+  missed a few rallies: +1 for either side (score only, no rally, rotation
+  or serve change, excluded from side-out stats), rotate one position, set
+  who serves. Each is a logged action (`adj`, `rot`, `srv`) and undoable.
 - **Bench**: a strip of chips under the court for everyone not on it.
   While the libero sits she is the first chip; while she stands in for
   someone, that player is the first chip. Drag a chip onto a court slot
@@ -110,6 +117,7 @@ non-GET. Errors are `{"error": "..."}`, optimistic-locking conflicts are
 ```
 POST /auth/register-team · /auth/join · /auth/login · /auth/logout   GET /config · /me
 PATCH /team · POST /team/rotate-code · PATCH|DELETE /team/members/{id}
+POST /teams {name} · POST /teams/join {code} · POST /teams/switch {team_id}
 GET|POST /players · PATCH|DELETE /players/{id}
 GET|POST /matches · GET|PATCH|DELETE /matches/{id}
 PUT /matches/{id}/lineups/{set}          {pos:[6 player ids], libero}

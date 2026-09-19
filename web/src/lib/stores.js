@@ -62,6 +62,20 @@ export function disconnectSSE() {
   close();
 }
 
+/** after switching teams: the stream is scoped to the team at connect time */
+export function reconnectSSE() {
+  close();
+  if (wanted) connectSSE();
+}
+
+/** switch the active team, refresh the session and the live stream */
+export async function switchTeam(teamId) {
+  const { api } = await import('./api.js');
+  await api('/teams/switch', { method: 'POST', body: { team_id: teamId } });
+  await refreshMe();
+  reconnectSSE();
+}
+
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => online.set(true));
   window.addEventListener('offline', () => online.set(false));

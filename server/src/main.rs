@@ -190,7 +190,11 @@ async fn run_cli(args: &[String], db: &sqlx::SqlitePool) {
                 .execute(db)
                 .await
             {
-                Ok(_) => println!("user '{username}' ({role}) created in team {team_id}"),
+                Ok(res) => {
+                    sqlx::query("INSERT INTO memberships (user_id, team_id, role) VALUES (?, ?, ?)")
+                        .bind(res.last_insert_rowid()).bind(team_id).bind(role).execute(db).await.expect("membership");
+                    println!("user '{username}' ({role}) created in team {team_id}");
+                }
                 Err(e) => { eprintln!("failed: {e}"); std::process::exit(1); }
             }
         }
@@ -214,7 +218,7 @@ async fn run_cli(args: &[String], db: &sqlx::SqlitePool) {
         }
         "user-list" => {
             let rows = sqlx::query(
-                "SELECT u.username, u.display_name, u.role, t.name AS team FROM users u JOIN teams t ON t.id = u.team_id ORDER BY u.id",
+                "SELECT u.username, u.display_name, m.role, t.name AS team FROM memberships m JOIN users u ON u.id = m.user_id JOIN teams t ON t.id = m.team_id ORDER BY u.id, t.name",
             )
             .fetch_all(db)
             .await

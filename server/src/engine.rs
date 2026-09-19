@@ -46,8 +46,9 @@ pub struct Player {
 pub fn outcome(skill: &str, grade: Option<&str>) -> Option<&'static str> {
     let g = grade.unwrap_or("");
     match skill {
-        "opp" => Some(if g == "=" { "us" } else { "them" }),
-        "sub" => None,
+        "opp" => Some(if g == "=" { "us" } else { "them" }),   // opponent error → our point
+        "adj" => Some(if g == "#" { "us" } else { "them" }),   // catch-up: # us, = them
+        "sub" | "lib" | "rot" | "srv" => None,
         _ => {
             if g == "=" {
                 Some("them")
@@ -165,6 +166,15 @@ pub fn replay(cfg: &MatchConfig, actions: &[Action]) -> State {
             break;
         }
         st.last_seq = a.seq;
+        if a.skill == "rot" || a.skill == "srv" {
+            if a.skill == "rot" { st.lineup = rotate(st.lineup); } else { st.serving = a.grade.as_deref() == Some("#"); }
+            st.rows.push(Row {
+                id: a.id, seq: a.seq, set: st.set, rally: st.rally, us: st.us, them: st.them,
+                serving: st.serving, rot: st.lineup[0], skill: a.skill.clone(), grade: a.grade.clone(),
+                player_id: None, sub_out: None, sub_in: None, outcome: None,
+            });
+            continue;
+        }
         if a.skill == "sub" || a.skill == "lib" {
             if a.skill == "lib" {
                 if a.sub_in.is_none() {
@@ -197,16 +207,21 @@ pub fn replay(cfg: &MatchConfig, actions: &[Action]) -> State {
         });
         let Some(out) = out else { continue };
         let won = out == "us";
-        st.rally_log.push(Rally {
-            set: st.set, rally: st.rally, serving: st.serving, won, rot: st.lineup[0], us: st.us, them: st.them,
-        });
-        let won_on_receive = won && !st.serving;
-        if won { st.us += 1 } else { st.them += 1 }
-        if won_on_receive {
-            st.lineup = rotate(st.lineup);
+        if a.skill == "adj" {
+            // catch-up point: score only, no rally, rotation or serve change
+            if won { st.us += 1 } else { st.them += 1 }
+        } else {
+            st.rally_log.push(Rally {
+                set: st.set, rally: st.rally, serving: st.serving, won, rot: st.lineup[0], us: st.us, them: st.them,
+            });
+            let won_on_receive = won && !st.serving;
+            if won { st.us += 1 } else { st.them += 1 }
+            if won_on_receive {
+                st.lineup = rotate(st.lineup);
+            }
+            st.serving = won;
+            st.rally += 1;
         }
-        st.serving = won;
-        st.rally += 1;
         let tgt = set_target(st.set);
         if (st.us >= tgt || st.them >= tgt) && (st.us - st.them).abs() >= 2 {
             st.sets.push(SetScore { us: st.us, them: st.them });
@@ -271,7 +286,7 @@ pub fn stats(cfg: &MatchConfig, players: &[Player], actions: &[Action], set: Opt
 
     let mut last_set: Option<i64> = None; // setter id of the set preceding an attack
     for r in &rows {
-        if r.skill == "sub" || r.skill == "lib" || r.skill == "opp" {
+        if matches!(r.skill.as_str(), "sub" | "lib" | "opp" | "adj" | "rot" | "srv") {
             if r.skill == "opp" {
                 if r.grade.as_deref() == Some("=") { inc(&mut pts_by, "opp") } else { lost_opp_kill += 1 }
             }
@@ -480,6 +495,23 @@ mod tests {
         let st = replay(&cfg(), &a);
         assert!(!st.libero_off);
         assert_eq!(st.libero_for, Some(6));
+    }
+
+    #[test]
+    fn catch_up_actions_change_score_rotation_and_serve_only() {
+        let a = vec![
+            Action { id: 1, seq: 1, skill: "adj".into(), grade: Some("#".into()), player_id: None, sub_out: None, sub_in: None },
+            Action { id: 2, seq: 2, skill: "adj".into(), grade: Some("=".into()), player_id: None, sub_out: None, sub_in: None },
+            Action { id: 3, seq: 3, skill: "rot".into(), grade: None, player_id: None, sub_out: None, sub_in: None },
+            Action { id: 4, seq: 4, skill: "srv".into(), grade: Some("=".into()), player_id: None, sub_out: None, sub_in: None },
+        ];
+        let st = replay(&cfg(), &a[..1]);
+        assert_eq!((st.us, st.them), (1, 0), "adj # is our point");
+        let st = replay(&cfg(), &a);
+        assert_eq!((st.us, st.them), (1, 1));
+        assert_eq!(st.lineup, [2, 3, 4, 5, 6, 1]);
+        assert!(!st.serving);
+        assert!(st.rally_log.is_empty(), "catch-up points are not rallies");
     }
 
     #[test]

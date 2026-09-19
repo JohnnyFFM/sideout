@@ -88,17 +88,17 @@ pub async fn patch_member(
             return Err(ApiError::BadRequest("Die eigene Trainer-Rolle kann nicht abgegeben werden".into()));
         }
     }
-    let res = sqlx::query(
-        "UPDATE users SET display_name = COALESCE(?, display_name), role = COALESCE(?, role) WHERE id = ? AND team_id = ?",
-    )
-    .bind(body.display_name.as_deref().map(str::trim))
-    .bind(body.role.as_deref())
-    .bind(id)
-    .bind(user.team_id)
-    .execute(&state.dbw)
-    .await?;
+    let res = sqlx::query("UPDATE memberships SET role = COALESCE(?, role) WHERE user_id = ? AND team_id = ?")
+        .bind(body.role.as_deref())
+        .bind(id)
+        .bind(user.team_id)
+        .execute(&state.dbw)
+        .await?;
     if res.rows_affected() == 0 {
         return Err(ApiError::NotFound);
+    }
+    if let Some(n) = body.display_name.as_deref().map(str::trim).filter(|n| !n.is_empty()) {
+        sqlx::query("UPDATE users SET display_name = ? WHERE id = ?").bind(n).bind(id).execute(&state.dbw).await?;
     }
     Ok(Json(me_payload(&state, &user).await?))
 }
@@ -108,7 +108,7 @@ pub async fn delete_member(State(state): State<AppState>, user: CurrentUser, Pat
     if id == user.id {
         return Err(ApiError::BadRequest("Du kannst dich nicht selbst entfernen".into()));
     }
-    let res = sqlx::query("DELETE FROM users WHERE id = ? AND team_id = ?")
+    let res = sqlx::query("DELETE FROM memberships WHERE user_id = ? AND team_id = ?")
         .bind(id)
         .bind(user.team_id)
         .execute(&state.dbw)
@@ -116,7 +116,86 @@ pub async fn delete_member(State(state): State<AppState>, user: CurrentUser, Pat
     if res.rows_affected() == 0 {
         return Err(ApiError::NotFound);
     }
+    // the removed member's selected team moves to another membership, if any
+    sqlx::query(
+        "UPDATE users SET team_id = COALESCE((SELECT team_id FROM memberships WHERE user_id = ? ORDER BY created_at LIMIT 1), team_id)
+         WHERE id = ?",
+    )
+    .bind(id).bind(id).execute(&state.dbw).await?;
     Ok(Json(me_payload(&state, &user).await?))
+}
+
+// ---------------------------------------------------------------- my teams
+
+#[derive(Deserialize)]
+pub struct NewTeam {
+    pub name: String,
+}
+
+/// A logged-in user founds another team and becomes its coach.
+pub async fn create_team(State(state): State<AppState>, user: CurrentUser, Json(body): Json<NewTeam>) -> ApiResult<Json<Value>> {
+    if body.name.trim().is_empty() {
+        return Err(ApiError::BadRequest("Teamname fehlt".into()));
+    }
+    let short: String = body.name.split_whitespace().filter_map(|w| w.chars().next()).take(3).collect::<String>().to_uppercase();
+    let mut team_id = 0i64;
+    for _ in 0..5 {
+        let code = new_join_code();
+        match sqlx::query("INSERT INTO teams (name, short, join_code) VALUES (?, ?, ?)")
+            .bind(body.name.trim()).bind(&short).bind(&code).execute(&state.dbw).await
+        {
+            Ok(res) => { team_id = res.last_insert_rowid(); break; }
+            Err(sqlx::Error::Database(e)) if e.is_unique_violation() => continue,
+            Err(e) => return Err(e.into()),
+        }
+    }
+    if team_id == 0 {
+        return Err(ApiError::Internal("join code generation failed".into()));
+    }
+    sqlx::query("INSERT INTO memberships (user_id, team_id, role) VALUES (?, ?, 'coach')").bind(user.id).bind(team_id).execute(&state.dbw).await?;
+    sqlx::query("UPDATE users SET team_id = ? WHERE id = ?").bind(team_id).bind(user.id).execute(&state.dbw).await?;
+    audit(&state, team_id, "team", team_id, "created", "Team angelegt", Some(user.id)).await?;
+    let switched = CurrentUser { team_id, role: Role::Coach, ..user };
+    Ok(Json(me_payload(&state, &switched).await?))
+}
+
+#[derive(Deserialize)]
+pub struct JoinCode {
+    pub code: String,
+}
+
+/// A logged-in user joins another team by code (as assistant) and switches to it.
+pub async fn join_team(State(state): State<AppState>, user: CurrentUser, Json(body): Json<JoinCode>) -> ApiResult<Json<Value>> {
+    if !state.config.signup_open {
+        return Err(ApiError::BadRequest("Beitreten ist auf dieser Instanz geschlossen".into()));
+    }
+    let team = sqlx::query("SELECT id FROM teams WHERE join_code = ?")
+        .bind(body.code.trim().to_uppercase())
+        .fetch_optional(&state.db)
+        .await?
+        .ok_or_else(|| ApiError::BadRequest("Team-Code nicht gefunden".into()))?;
+    let team_id: i64 = team.get("id");
+    sqlx::query("INSERT OR IGNORE INTO memberships (user_id, team_id, role) VALUES (?, ?, 'assistant')").bind(user.id).bind(team_id).execute(&state.dbw).await?;
+    sqlx::query("UPDATE users SET team_id = ? WHERE id = ?").bind(team_id).bind(user.id).execute(&state.dbw).await?;
+    audit(&state, team_id, "team", team_id, "member_joined", &user.display_name, Some(user.id)).await?;
+    state.events.publish(EventMsg { team_id, entity: "team".into(), id: team_id, version: 0, action: "member_joined".into(), actor: user.display_name.clone() });
+    let role: String = sqlx::query("SELECT role FROM memberships WHERE user_id = ? AND team_id = ?").bind(user.id).bind(team_id).fetch_one(&state.db).await?.get("role");
+    let switched = CurrentUser { team_id, role: Role::parse(&role), ..user };
+    Ok(Json(me_payload(&state, &switched).await?))
+}
+
+#[derive(Deserialize)]
+pub struct SwitchTeam {
+    pub team_id: i64,
+}
+
+pub async fn switch_team(State(state): State<AppState>, user: CurrentUser, Json(body): Json<SwitchTeam>) -> ApiResult<Json<Value>> {
+    let m = sqlx::query("SELECT role FROM memberships WHERE user_id = ? AND team_id = ?")
+        .bind(user.id).bind(body.team_id).fetch_optional(&state.db).await?
+        .ok_or(ApiError::Forbidden)?;
+    sqlx::query("UPDATE users SET team_id = ? WHERE id = ?").bind(body.team_id).bind(user.id).execute(&state.dbw).await?;
+    let switched = CurrentUser { team_id: body.team_id, role: Role::parse(&m.get::<String, _>("role")), ..user };
+    Ok(Json(me_payload(&state, &switched).await?))
 }
 
 // ---------------------------------------------------------------- players

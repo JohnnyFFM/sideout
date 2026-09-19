@@ -118,8 +118,9 @@ pub fn clear_cookie() -> String {
 pub async fn validate_session(db: &SqlitePool, dbw: &SqlitePool, token: &str) -> ApiResult<CurrentUser> {
     let th = token_hash(token);
     let row = sqlx::query(
-        "SELECT s.id AS sid, s.last_seen, u.id, u.team_id, u.username, u.display_name, u.role
+        "SELECT s.id AS sid, s.last_seen, u.id, u.team_id, u.username, u.display_name, m.role
          FROM sessions s JOIN users u ON u.id = s.user_id
+         LEFT JOIN memberships m ON m.user_id = u.id AND m.team_id = u.team_id
          WHERE s.token_hash = ? AND s.last_seen > datetime('now', ?)",
     )
     .bind(&th)
@@ -127,6 +128,22 @@ pub async fn validate_session(db: &SqlitePool, dbw: &SqlitePool, token: &str) ->
     .fetch_optional(db)
     .await?
     .ok_or(ApiError::Unauthorized)?;
+
+    // the selected team is no longer one of ours (removed by a coach):
+    // fall back to any remaining membership, or refuse the session
+    let mut team_id: i64 = row.get("team_id");
+    let mut role: Option<String> = row.get("role");
+    if role.is_none() {
+        let uid: i64 = row.get("id");
+        let alt = sqlx::query("SELECT team_id, role FROM memberships WHERE user_id = ? ORDER BY created_at LIMIT 1")
+            .bind(uid)
+            .fetch_optional(db)
+            .await?
+            .ok_or(ApiError::Unauthorized)?;
+        team_id = alt.get("team_id");
+        role = Some(alt.get("role"));
+        sqlx::query("UPDATE users SET team_id = ? WHERE id = ?").bind(team_id).bind(uid).execute(dbw).await.ok();
+    }
 
     // rolling session: refresh last_seen, throttled to ~hourly
     let sid: i64 = row.get("sid");
@@ -147,10 +164,10 @@ pub async fn validate_session(db: &SqlitePool, dbw: &SqlitePool, token: &str) ->
 
     Ok(CurrentUser {
         id: row.get("id"),
-        team_id: row.get("team_id"),
+        team_id,
         username: row.get("username"),
         display_name: row.get("display_name"),
-        role: Role::parse(row.get::<String, _>("role").as_str()),
+        role: Role::parse(role.as_deref().unwrap_or("viewer")),
     })
 }
 

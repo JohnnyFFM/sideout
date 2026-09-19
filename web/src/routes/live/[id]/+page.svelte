@@ -94,6 +94,9 @@
 
   function describe(a) {
     if (!a) return '';
+    if (a.skill === 'adj') return a.grade === '#' ? 'Nachtrag: +1 wir' : 'Nachtrag: +1 Gegner';
+    if (a.skill === 'rot') return 'Nachtrag: rotiert';
+    if (a.skill === 'srv') return a.grade === '#' ? 'Nachtrag: Aufschlag wir' : 'Nachtrag: Aufschlag Gegner';
     if (a.skill === 'lib') return a.sub_in == null ? 'Libera raus' : a.sub_out ? `Libera für ${byId[a.sub_out]?.number} ${firstName(byId[a.sub_out])}` : 'Libera automatisch (Mitte)';
     if (a.skill === 'sub') return `Wechsel ${byId[a.sub_out]?.number} → ${byId[a.sub_in]?.number}`;
     if (a.skill === 'opp') return a.grade === '=' ? 'Fehler Gegner' : 'Punkt Gegner';
@@ -268,6 +271,14 @@
             {#if st.sets.length}<span><b>{st.sets.map((s) => s.us + ':' + s.them).join('  ')}</b></span>{/if}
             <span>{st.serving ? 'Aufschlag' : 'Annahme'} · Rally <b>{st.rally}</b></span>
           </div>
+          {#if canScout && !st.finished}
+            <div class="catch" title="Nachtragen: Spielstand, Rotation und Aufschlag ohne Aktionen angleichen">
+              <button onclick={() => queue({ skill: 'adj', grade: '#' })}>+1 wir</button>
+              <button onclick={() => queue({ skill: 'adj', grade: '=' })}>+1 Gegner</button>
+              <button onclick={() => queue({ skill: 'rot' })}>⟳ Rotieren</button>
+              <button onclick={() => queue({ skill: 'srv', grade: st.serving ? '=' : '#' })}>Aufschlag {st.serving ? 'Gegner' : 'wir'}</button>
+            </div>
+          {/if}
         </section>
         {#if missingLineupForSet}
           <div class="panel hint">Satz {st.set}: Aufstellung von Satz {st.set - 1} übernommen. <a href="/spiele/{id}?set={st.set}">Anpassen</a></div>
@@ -350,6 +361,12 @@
               <div class="tl-score" class:us={e.won} class:them={!e.won}>{e.us}:{e.them}</div>
             {:else if e.r.skill === 'opp'}
               <div class="tl-item opp"><b>{e.r.grade === '=' ? '✕' : '●'}</b><small>Gegner</small></div>
+            {:else if e.r.skill === 'adj'}
+              <div class="tl-item sub"><b>+1</b><small>{e.r.grade === '#' ? 'wir' : 'Gegner'}</small></div>
+            {:else if e.r.skill === 'rot'}
+              <div class="tl-item sub"><b>⟳</b><small>rotiert</small></div>
+            {:else if e.r.skill === 'srv'}
+              <div class="tl-item sub"><b>S</b><small>{e.r.grade === '#' ? 'wir' : 'Gegner'}</small></div>
             {:else if e.r.skill === 'sub'}
               <div class="tl-item sub"><b>⇄</b><small>{byId[e.r.sub_out]?.number}→{byId[e.r.sub_in]?.number}</small></div>
             {:else if e.r.skill === 'lib'}
@@ -373,6 +390,9 @@
   @media (min-width: 760px) { .live { grid-template-columns: 340px 1fr; align-items: start; } .timeline { grid-column: 1 / -1; } }
   .col { display: grid; gap: 12px; align-content: start; min-width: 0; }
   .timeline { min-width: 0; }
+  :global(.score .catch) { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 4px; }
+  :global(.score .catch button) { height: 30px; border-radius: 6px; border: 1px dashed var(--line); background: transparent; color: var(--ink-2); font-size: 12px; font-weight: 600; cursor: pointer; }
+  :global(.score .catch button:hover) { background: var(--raised); color: var(--ink); }
   /* desktop: one screen. Row 1 = three cards of equal height (each scrolls
      inside if it must), row 2 = the timeline across the full width. */
   @media (min-width: 1100px) {
@@ -381,6 +401,7 @@
     .col { display: flex; flex-direction: column; min-height: 0; }
     .col > :global(*) { flex: 0 0 auto; }
     .col.left .court-wrap { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
+  .col.left :global(.catch) { grid-column: 1 / -1; }
     .col.left .court-wrap :global(.court) { flex: 1 1 auto; }
     .col.mid :global(.pad) { flex: 1 1 auto; grid-template-rows: auto repeat(6, minmax(0, 1fr)); }
     .col.right .stats-panel { flex: 1 1 auto; min-height: 0; overflow: auto; }
