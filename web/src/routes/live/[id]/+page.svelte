@@ -2,7 +2,7 @@
   // The capture screen. Renders from confirmed actions + a local op queue,
   // so every tap shows instantly and survives a dead connection.
   import { page } from '$app/stores';
-  import { untrack } from 'svelte';
+  import { untrack, tick } from 'svelte';
   import { api } from '$lib/api.js';
   import { me, mutations, online, showToast } from '$lib/stores.js';
   import { replay, courtView, expectedSkills, stats, SKILL, PAD, GRADE_CLASS, ROMAN, firstName, eff, fix } from '$lib/engine.js';
@@ -36,7 +36,20 @@
   });
   const last = $derived(actionsAll[actionsAll.length - 1] || null);
   const stat = $derived(st ? stats(cfg, match.players, actionsAll, scope === 'set' ? st.set : 0) : null);
-  const logRows = $derived(st ? st.rows.filter((r) => r.set === st.set).slice(-14).reverse() : []);
+  // timeline: every action left to right, a score pill after each rally, a divider per set
+  const timeline = $derived.by(() => {
+    if (!st) return [];
+    const out = []; let set = 0;
+    for (const r of st.rows) {
+      if (r.set !== set) { set = r.set; out.push({ t: 'set', n: set, key: 'set' + set }); }
+      out.push({ t: 'act', r, key: 'a' + r.seq });
+      if (r.outcome) out.push({ t: 'score', us: r.us + (r.outcome === 'us' ? 1 : 0), them: r.them + (r.outcome === 'them' ? 1 : 0), won: r.outcome === 'us', key: 's' + r.seq });
+    }
+    return out;
+  });
+  let tlEl = $state(null);
+  // newest entry stays in view
+  $effect(() => { void timeline.length; const el = tlEl; if (el) tick().then(() => { el.scrollLeft = el.scrollWidth; }); });
   const missingLineupForSet = $derived(st && st.set > 1 && !match.lineups?.[st.set]);
 
   async function load() {
@@ -245,7 +258,7 @@
     </div>
   {:else}
     <div class="live">
-      <div class="col">
+      <div class="col left">
         <section class="score">
           <div class="side us"><span class="serve" class:on={st.serving}></span><span class="team">{$me?.team?.short || 'Wir'}</span><span class="pts">{st.us}</span></div>
           <div class="colon">:</div>
@@ -289,7 +302,7 @@
         </section>
       </div>
 
-      <div class="col">
+      <div class="col mid">
         <Pad {expected} idle={!selected} disabled={!canScout || st.finished} ontap={tapCell} />
         <div class="pad-foot">
           <button class="btn big us" disabled={!canScout || st.finished} onclick={() => queue({ skill: 'opp', grade: '=' })}>Fehler Gegner <span class="muted">+1 wir</span></button>
@@ -304,8 +317,8 @@
         {/if}
       </div>
 
-      <div class="col">
-        <section class="panel">
+      <div class="col right">
+        <section class="panel stats-panel">
           <div class="panel-head"><h2>{scope === 'set' ? 'Dieser Satz' : 'Ganzes Spiel'}</h2>
             <span class="tabs"><button class:active={scope === 'set'} onclick={() => (scope = 'set')}>Satz</button><button class:active={scope === 'match'} onclick={() => (scope = 'match')}>Spiel</button></span></div>
           {#if stat}
@@ -326,24 +339,29 @@
             </table>
           {/if}
         </section>
-        <section class="panel">
-          <div class="panel-head"><h2>Verlauf</h2><a class="small" href="/auswertung/{id}">Auswertung →</a></div>
-          <ul class="log">
-            {#each logRows as r (r.seq)}
-              {@const sc = r.outcome ? `${r.outcome === 'us' ? r.us + 1 : r.us}:${r.outcome === 'them' ? r.them + 1 : r.them}` : ''}
-              <li class:pt-us={r.outcome === 'us'} class:pt-them={r.outcome === 'them'}>
-                <span class="sc">{sc}</span>
-                {#if r.skill === 'sub'}<span class="who">Wechsel {byId[r.sub_out]?.number} → {byId[r.sub_in]?.number}</span><span></span>
-                {:else if r.skill === 'lib'}<span class="who">Libera {r.sub_in == null ? 'raus' : r.sub_out ? 'für ' + byId[r.sub_out]?.number : 'automatisch'}</span><span></span>
-                {:else if r.skill === 'opp'}<span class="who"><small>Gegner</small> {r.grade === '=' ? 'Fehler' : 'Punkt'}</span><span></span>
-                {:else}<span class="who"><b>{byId[r.player_id]?.number}</b> {firstName(byId[r.player_id])} <small>{SKILL[r.skill].name}</small></span><span class="g {GRADE_CLASS[r.grade]}">{r.grade}</span>{/if}
-              </li>
-            {:else}
-              <li class="muted">Satz beginnt.</li>
-            {/each}
-          </ul>
-        </section>
       </div>
+      <section class="panel timeline">
+        <div class="tl-head"><h2>Verlauf</h2><span class="small muted">{actionsAll.length} Aktionen</span><span class="spacer"></span><a class="small" href="/auswertung/{id}">Auswertung →</a></div>
+        <div class="tl" bind:this={tlEl}>
+          {#each timeline as e (e.key)}
+            {#if e.t === 'set'}
+              <div class="tl-set">Satz {e.n}</div>
+            {:else if e.t === 'score'}
+              <div class="tl-score" class:us={e.won} class:them={!e.won}>{e.us}:{e.them}</div>
+            {:else if e.r.skill === 'opp'}
+              <div class="tl-item opp"><b>{e.r.grade === '=' ? '✕' : '●'}</b><small>Gegner</small></div>
+            {:else if e.r.skill === 'sub'}
+              <div class="tl-item sub"><b>⇄</b><small>{byId[e.r.sub_out]?.number}→{byId[e.r.sub_in]?.number}</small></div>
+            {:else if e.r.skill === 'lib'}
+              <div class="tl-item sub"><b>L</b><small>{e.r.sub_in == null ? 'raus' : e.r.sub_out ? 'für ' + byId[e.r.sub_out]?.number : 'auto'}</small></div>
+            {:else}
+              <div class="tl-item"><b>{byId[e.r.player_id]?.number}</b><small>{SKILL[e.r.skill].short}</small><span class="g {GRADE_CLASS[e.r.grade]}">{e.r.grade}</span></div>
+            {/if}
+          {:else}
+            <div class="muted small">Noch keine Aktion. Der Verlauf wächst nach rechts.</div>
+          {/each}
+        </div>
+      </section>
     </div>
   {/if}
 </main>
@@ -352,9 +370,37 @@
 
 <style>
   .live { display: grid; gap: 12px; grid-template-columns: 1fr; }
-  @media (min-width: 760px) { .live { grid-template-columns: 340px 1fr; align-items: start; } }
-  @media (min-width: 1100px) { .live { grid-template-columns: 340px 1fr 360px; } }
-  .col { display: grid; gap: 12px; align-content: start; }
+  @media (min-width: 760px) { .live { grid-template-columns: 340px 1fr; align-items: start; } .timeline { grid-column: 1 / -1; } }
+  .col { display: grid; gap: 12px; align-content: start; min-width: 0; }
+  .timeline { min-width: 0; }
+  /* desktop: one screen. Row 1 = three cards of equal height (each scrolls
+     inside if it must), row 2 = the timeline across the full width. */
+  @media (min-width: 1100px) {
+    .live-page { padding-bottom: 16px; }
+    .live { grid-template-columns: 340px 1fr 360px; grid-template-rows: minmax(0, 1fr) auto; height: calc(100dvh - 52px - 32px); align-items: stretch; }
+    .col { display: flex; flex-direction: column; min-height: 0; }
+    .col > :global(*) { flex: 0 0 auto; }
+    .col.left .court-wrap { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
+    .col.left .court-wrap :global(.court) { flex: 1 1 auto; }
+    .col.mid :global(.pad) { flex: 1 1 auto; grid-template-rows: auto repeat(6, minmax(0, 1fr)); }
+    .col.right .stats-panel { flex: 1 1 auto; min-height: 0; overflow: auto; }
+    .timeline { grid-column: 1 / -1; }
+  }
+  /* timeline */
+  .timeline { padding: 8px 12px 6px; }
+  .tl-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
+  .tl-head h2 { font-size: 15px; }
+  .tl { display: flex; align-items: center; gap: 4px; overflow-x: auto; padding: 6px 2px 6px; scrollbar-width: thin; }
+  .tl-item { flex: 0 0 auto; position: relative; display: grid; justify-items: center; gap: 1px; width: 46px; padding: 5px 0 4px; border-radius: 6px; background: var(--raised); }
+  .tl-item b { font-family: var(--disp); font-size: 16px; font-weight: 700; line-height: 1; }
+  .tl-item small { font-size: 9px; color: var(--ink-3); line-height: 1; white-space: nowrap; }
+  .tl-item .g { position: absolute; top: -5px; right: -4px; width: 16px; height: 16px; border-radius: 4px; display: grid; place-items: center; font-family: var(--disp); font-weight: 700; font-size: 11px; }
+  .tl-item.opp b { color: var(--ink-3); }
+  .tl-item.sub { background: var(--accent-soft); }
+  .tl-score { flex: 0 0 auto; font-family: var(--disp); font-weight: 700; font-size: 13px; padding: 2px 7px; border-radius: 10px; margin: 0 3px; }
+  .tl-score.us { background: var(--g-win); color: var(--g-win-ink); }
+  .tl-score.them { background: var(--g-err); color: #fff; }
+  .tl-set { flex: 0 0 auto; align-self: stretch; display: grid; align-items: center; padding: 0 8px 0 10px; margin: 0 4px; border-left: 2px solid var(--line); font-size: 11px; font-weight: 600; color: var(--ink-3); white-space: nowrap; }
   .court-wrap { background: var(--panel); border: 1px solid var(--line-soft); border-radius: var(--r-l); padding: 10px; }
   .court-foot { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--ink-2); min-height: 22px; }
   .bench { display: flex; gap: 6px; margin-top: 8px; overflow-x: auto; padding: 2px 0 4px; scrollbar-width: none; touch-action: none; }
@@ -394,14 +440,6 @@
   .mini td.l, .mini th.l { text-align: left; }
   .mini td.l { font-weight: 600; }
   .mini td.l small { color: var(--ink-3); font-weight: 500; margin-left: 4px; }
-  .log { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 13px; }
-  .log li { display: grid; grid-template-columns: 40px 1fr auto; gap: 8px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--line-soft); }
-  .log li .sc { color: var(--ink-3); font-variant-numeric: tabular-nums; font-size: 12px; }
-  .log li .g { width: 22px; height: 22px; border-radius: 5px; display: grid; place-items: center; font-family: var(--disp); font-weight: 700; font-size: 14px; }
-  .log li .who { display: flex; gap: 6px; align-items: center; }
-  .log li .who small { color: var(--ink-3); }
-  .log li.pt-us .sc { color: var(--g-win); font-weight: 700; }
-  .log li.pt-them .sc { color: var(--g-err); font-weight: 700; }
   @media (max-width: 759px) {
     .live-page { padding-bottom: 130px; }
     .live { gap: 8px; } .col { gap: 8px; }

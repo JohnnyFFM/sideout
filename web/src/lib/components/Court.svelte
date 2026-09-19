@@ -47,12 +47,12 @@
   .slot {
     min-height: 76px; border-radius: var(--r-m); border: 2px solid transparent;
     background: var(--panel); cursor: pointer; padding: 6px 6px 5px; text-align: left; position: relative;
-    display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto; align-content: space-between;
+    display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto 1fr auto; align-content: stretch;
     transition: border-color 0.12s, box-shadow 0.12s;
   }
   .slot .posn { font-size: 10px; color: var(--ink-3); grid-column: 1; }
   .slot .role { font-size: 10px; font-weight: 700; color: var(--ink-3); grid-column: 2; text-align: right; }
-  .slot .jersey { font-family: var(--disp); font-size: 30px; font-weight: 700; line-height: 1; grid-column: 1; }
+  .slot .jersey { font-family: var(--disp); font-size: 30px; font-weight: 700; line-height: 1; grid-column: 1; align-self: center; }
   .slot .nm { font-size: 12px; color: var(--ink-2); grid-column: 1 / -1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .slot.hint { border-color: var(--accent); border-style: dashed; }
   .slot.hint::before { content: 'erwartet'; position: absolute; top: 4px; right: 6px; font-size: 9px; color: var(--accent-text); font-weight: 600; }
