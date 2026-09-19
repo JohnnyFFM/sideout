@@ -3,13 +3,20 @@ export const ssr = false;
 export const prerender = false;
 
 import { api } from '$lib/api.js';
+import { meCache } from '$lib/stores.js';
 
+// /me is fetched once per session and cached; login, logout and the
+// settings page call refreshMe() to drop the cache.
 export async function load({ url }) {
-  if (url.pathname === '/login') return { me: null };
+  if (url.pathname === '/login') {
+    meCache.value = null;
+    return { me: null };
+  }
+  if (meCache.value) return { me: meCache.value };
   try {
-    return { me: await api('/me') };
+    meCache.value = await api('/me');
+    return { me: meCache.value };
   } catch (e) {
-    // offline with a cached shell: keep the app usable, the live page has its own cache
     if (e.offline) return { me: { offline: true, user: { display_name: '' }, team: { name: '' }, members: [] } };
     return { me: null };
   }

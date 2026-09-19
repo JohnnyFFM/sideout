@@ -19,7 +19,7 @@
     catch (e) { const c = cachedMatch(id); if (c) match = c; else error = e.offline ? 'Keine Verbindung.' : e.message; }
   }
   $effect(() => { void id; untrack(load); });
-  $effect(() => { if ($mutations && ($mutations.entity === 'action' || $mutations.entity === 'match') && $mutations.id === id) untrack(load); });
+  $effect(() => { if ($mutations && (($mutations.entity === 'action' || $mutations.entity === 'match') && $mutations.id === id || $mutations.entity === 'resync')) untrack(load); });
 
   const cfg = $derived(match ? { first_serve_us: match.first_serve === 'us', lineups: match.lineups } : null);
   const actions = $derived(match ? applyOps(match.actions, loadOps(id)) : []);

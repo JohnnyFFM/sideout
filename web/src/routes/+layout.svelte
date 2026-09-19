@@ -11,12 +11,14 @@
     me.set(data.me);
   });
 
+  // one live stream per tab for the whole session; no cleanup on
+  // navigation, so the stream is not torn down and reopened on every page
   $effect(() => {
-    if (data.me) {
+    if (data.me && !data.me.offline) {
       connectSSE();
-      return () => disconnectSSE();
-    } else if ($page.url.pathname !== '/login') {
-      goto('/login');
+    } else if (!data.me) {
+      disconnectSSE();
+      if ($page.url.pathname !== '/login') goto('/login');
     }
   });
 </script>

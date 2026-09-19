@@ -17,7 +17,7 @@
 
   async function load() { try { players = (await api('/players')).players; } catch (e) { error = e.offline ? 'Keine Verbindung.' : e.message; } }
   $effect(() => { untrack(load); });
-  $effect(() => { if ($mutations?.entity === 'player') untrack(load); });
+  $effect(() => { if ($mutations?.entity === 'player' || $mutations?.entity === 'resync') untrack(load); });
 
   async function add(e) {
     e.preventDefault();

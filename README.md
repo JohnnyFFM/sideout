@@ -79,10 +79,17 @@ docker exec sideout-live /app/server user-list
   end the rally, everything else follows: score, rotation on a won
   reception rally, serve, set end at 25 (15 in the fifth) with two clear,
   match end at three sets.
-- **Speed**: the expected next skill is highlighted from the rally phase,
-  a serve books itself to position I, two big buttons cover rallies the
-  opponent ends, undo pops the last action. Keyboard on a laptop: 1–6
-  select positions, Ctrl+Z undoes.
+- **Speed**: the expected next skill is highlighted from the rally phase
+  and so is the likely player (the server on I, the setter for a set);
+  a serve or set tapped without a selection books itself to her. Two big
+  buttons cover rallies the opponent ends, undo pops the last action.
+  Keyboard on a laptop: 1–6 select positions, Ctrl+Z undoes.
+- **Bench**: a strip of chips under the court, the libero pinned first.
+  Drag a chip onto a court slot (pointer events, works with touch) or tap
+  the chip and then the slot. A bench player replaces the slot's player
+  (substitution); the libero dropped on V or VI stands in for that player
+  as long as she is in the back row (an explicit `lib` action in the log,
+  otherwise the libero automatically covers the back-row middle).
 - **Offline**: the live page keeps the match and an op queue in
   localStorage. Taps render from the local replay and are sent when the
   connection is back; retries are idempotent (`seq`), a conflict with

@@ -8,7 +8,7 @@
   const canScout = $derived(['coach', 'assistant'].includes($me?.user?.role));
   async function load() { try { matches = (await api('/matches')).matches; } catch (e) { error = e.offline ? 'Keine Verbindung.' : e.message; } }
   $effect(() => { untrack(load); });
-  $effect(() => { if ($mutations?.entity === 'match' || $mutations?.entity === 'action') untrack(load); });
+  $effect(() => { if ($mutations?.entity === 'match' || $mutations?.entity === 'action' || $mutations?.entity === 'resync') untrack(load); });
   const live = $derived((matches || []).filter((m) => m.status === 'live'));
   const planned = $derived((matches || []).filter((m) => m.status === 'planned'));
   const done = $derived((matches || []).filter((m) => m.status === 'done'));

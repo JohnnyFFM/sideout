@@ -1,8 +1,8 @@
 <script>
   // Team settings, members & roles, join code, logout.
-  import { goto, invalidateAll } from '$app/navigation';
+  import { goto } from '$app/navigation';
   import { api } from '$lib/api.js';
-  import { me, showToast } from '$lib/stores.js';
+  import { me, showToast, refreshMe, meCache } from '$lib/stores.js';
 
   const isCoach = $derived($me?.user?.role === 'coach');
   let name = $state('');
@@ -14,21 +14,21 @@
 
   async function saveTeam(e) {
     e.preventDefault();
-    try { await api('/team', { method: 'PATCH', body: { name, short, league, season } }); await invalidateAll(); showToast('Gespeichert'); }
+    try { await api('/team', { method: 'PATCH', body: { name, short, league, season } }); await refreshMe(); showToast('Gespeichert'); }
     catch (err) { showToast(err.message, true); }
   }
   async function rotate() {
     if (!confirm('Neuen Team-Code erzeugen? Der alte Code wird ungültig.')) return;
-    try { await api('/team/rotate-code', { method: 'POST' }); await invalidateAll(); } catch (err) { showToast(err.message, true); }
+    try { await api('/team/rotate-code', { method: 'POST' }); await refreshMe(); } catch (err) { showToast(err.message, true); }
   }
   async function setRole(m, role) {
-    try { await api(`/team/members/${m.id}`, { method: 'PATCH', body: { role } }); await invalidateAll(); showToast('Rolle geändert'); } catch (err) { showToast(err.message, true); }
+    try { await api(`/team/members/${m.id}`, { method: 'PATCH', body: { role } }); await refreshMe(); showToast('Rolle geändert'); } catch (err) { showToast(err.message, true); }
   }
   async function removeMember(m) {
     if (!confirm(`${m.display_name} aus dem Team entfernen?`)) return;
-    try { await api(`/team/members/${m.id}`, { method: 'DELETE' }); await invalidateAll(); } catch (err) { showToast(err.message, true); }
+    try { await api(`/team/members/${m.id}`, { method: 'DELETE' }); await refreshMe(); } catch (err) { showToast(err.message, true); }
   }
-  async function logout() { await api('/auth/logout', { method: 'POST' }); goto('/login'); }
+  async function logout() { await api('/auth/logout', { method: 'POST' }); meCache.value = null; goto('/login'); }
   function installHint() { return /iphone|ipad/i.test(navigator.userAgent) ? 'Safari: Teilen → „Zum Home-Bildschirm“.' : 'Browser-Menü → „App installieren“ oder „Zum Startbildschirm“.'; }
 </script>
 

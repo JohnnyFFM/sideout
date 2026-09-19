@@ -17,7 +17,7 @@
     } catch (e) { error = e.offline ? 'Keine Verbindung.' : e.message; }
   }
   $effect(() => { untrack(load); });
-  $effect(() => { if ($mutations && ['match', 'action', 'player'].includes($mutations.entity)) untrack(load); });
+  $effect(() => { if ($mutations && ['match', 'action', 'player', 'resync'].includes($mutations.entity)) untrack(load); });
 
   const live = $derived((matches || []).find((m) => m.status === 'live'));
   const lastDone = $derived((matches || []).find((m) => m.status === 'done'));

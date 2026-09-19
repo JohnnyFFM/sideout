@@ -27,8 +27,16 @@
   const actionsAll = $derived(match ? applyOps(match.actions, ops) : []);
   const st = $derived(cfg ? replay(cfg, actionsAll) : null);
   const hasLineup = $derived(!!match && Object.keys(match.lineups || {}).length > 0);
-  const court = $derived(st ? courtView(st.lineup, st.libero, byId) : []);
+  const court = $derived(st ? courtView(st.lineup, st.libero, byId, st.libero_for) : []);
   const expected = $derived(st ? expectedSkills(st) : []);
+  // who the next action most likely belongs to: the server on I, the setter for a set
+  const setters = $derived(court.filter((c) => byId[c.id]?.position === 'Z' && !c.libero).map((c) => c.id));
+  const suggested = $derived.by(() => {
+    if (!st) return [];
+    if (expected.includes('S') && st.serving) return [st.lineup[0]];
+    if (expected.includes('E')) return setters;
+    return [];
+  });
   const last = $derived(actionsAll[actionsAll.length - 1] || null);
   const stat = $derived(st ? stats(cfg, match.players, actionsAll, scope === 'set' ? st.set : 0) : null);
   const logRows = $derived(st ? st.rows.filter((r) => r.set === st.set).slice(-14).reverse() : []);
@@ -59,7 +67,7 @@
     const m = $mutations;
     if (!m) return;
     untrack(() => {
-      if (match && (m.entity === 'action' || m.entity === 'match') && m.id === id && ops.length === 0) load();
+      if (match && ((m.entity === 'action' || m.entity === 'match') && m.id === id || m.entity === 'resync') && ops.length === 0) load();
     });
   });
   $effect(() => { if ($online) untrack(flush); });
@@ -76,6 +84,7 @@
 
   function describe(a) {
     if (!a) return '';
+    if (a.skill === 'lib') return a.sub_out ? `Libera für ${byId[a.sub_out]?.number} ${firstName(byId[a.sub_out])}` : 'Libera automatisch (Mitte)';
     if (a.skill === 'sub') return `Wechsel ${byId[a.sub_out]?.number} → ${byId[a.sub_in]?.number}`;
     if (a.skill === 'opp') return a.grade === '=' ? 'Fehler Gegner' : 'Punkt Gegner';
     const p = byId[a.player_id];
@@ -133,8 +142,59 @@
   function tapCell(skill, grade) {
     let who = selected;
     if (!who && skill === 'S' && st.serving) who = st.lineup[0];
+    if (!who && skill === 'E' && setters.length === 1) who = setters[0];
     if (!who) { showToast('Erst Spielerin auf dem Feld tippen'); return; }
     queue({ skill, grade, player_id: who });
+  }
+
+  // ----- bench strip: libero pinned first, then the bench. A chip is
+  // dragged onto a court slot (pointer events, works with touch) or tapped
+  // to arm it, then the target slot is tapped. -----
+  let armed = $state(null);   // chip id waiting for a slot
+  let drag = $state(null);    // { id, x, y, moved }
+  let over = $state(null);    // court position under the dragged chip
+  const benchChips = $derived(match && st ? match.players.filter((p) => p.active && !st.lineup.includes(p.id) && p.id !== st.libero) : []);
+  const liberoP = $derived(st?.libero ? byId[st.libero] : null);
+  const liberoStandsFor = $derived(court.find((c) => c.libero)?.replaced ?? null);
+
+  function slotUnder(x, y) {
+    const el = document.elementFromPoint(x, y)?.closest('.slot');
+    return el ? Number(el.dataset.pos) : null;
+  }
+  function chipDown(e, pid) {
+    if (!canScout || st.finished) return;
+    e.preventDefault();
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    drag = { id: pid, x: e.clientX, y: e.clientY, moved: false };
+  }
+  function chipMove(e) {
+    if (!drag) return;
+    const moved = drag.moved || Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 6;
+    drag = { ...drag, x: e.clientX, y: e.clientY, moved };
+    over = moved ? slotUnder(e.clientX, e.clientY) : null;
+  }
+  function chipUp(e) {
+    if (!drag) return;
+    const d = drag; drag = null; over = null;
+    if (d.moved) { const pos = slotUnder(e.clientX, e.clientY); if (pos) dropOn(d.id, pos); }
+    else armed = armed === d.id ? null : d.id;   // a tap arms the chip
+  }
+  function slotTap(pid, pos) {
+    if (armed) { dropOn(armed, pos); armed = null; return; }
+    selected = selected === pid ? null : pid;
+  }
+  function dropOn(chipId, pos) {
+    const slot = court[pos - 1];
+    const target = slot.replaced || slot.id;   // the player who actually holds the position
+    if (chipId === st.libero) {
+      if (pos !== 5 && pos !== 6) { showToast('Die Libera kann nur auf V oder VI stehen'); return; }
+      if (st.libero_for === target) { queue({ skill: 'lib', sub_out: null, sub_in: st.libero }); showToast('Libera wieder automatisch für die Mitte'); }
+      else { queue({ skill: 'lib', sub_out: target, sub_in: st.libero }); showToast(`Libera für ${byId[target]?.number} ${firstName(byId[target])}`); }
+      return;
+    }
+    if (target === chipId) return;
+    queue({ skill: 'sub', sub_out: target, sub_in: chipId });
+    showToast(`Wechsel ${byId[target]?.number} → ${byId[chipId]?.number}`);
   }
   function undo() {
     if (!actionsAll.length) return;
@@ -155,7 +215,7 @@
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
     if (e.key >= '1' && e.key <= '6' && court.length) { selected = court[+e.key - 1].id; }
     if (e.key === 'z' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); undo(); }
-    if (e.key === 'Escape') { selected = null; sheet = null; }
+    if (e.key === 'Escape') { selected = null; sheet = null; armed = null; }
   }
 </script>
 
@@ -190,9 +250,28 @@
           <div class="panel hint">Satz {st.set}: Aufstellung von Satz {st.set - 1} übernommen. <a href="/spiele/{id}?set={st.set}">Anpassen</a></div>
         {/if}
         <section class="court-wrap">
-          <Court {court} {byId} {selected} serving={st.serving} onselect={(pid) => (selected = selected === pid ? null : pid)} />
+          <Court {court} {byId} {selected} serving={st.serving} {suggested} {over} armed={!!armed} onselect={slotTap} />
+          {#if liberoP || benchChips.length}
+            <div class="bench" onpointermove={chipMove} onpointerup={chipUp} onpointercancel={chipUp}>
+              {#if liberoP}
+                <button class="chipb libero" class:armed={armed === liberoP.id} class:dragging={drag?.id === liberoP.id} onpointerdown={(e) => chipDown(e, liberoP.id)} disabled={!canScout || st.finished}>
+                  <b>{liberoP.number}</b><span>{firstName(liberoP)}</span><small>L · {liberoStandsFor ? 'für ' + byId[liberoStandsFor]?.number : 'vorne'}{st.libero_for ? '' : ' · auto'}</small>
+                </button>
+              {/if}
+              {#each benchChips as p (p.id)}
+                <button class="chipb" class:armed={armed === p.id} class:dragging={drag?.id === p.id} onpointerdown={(e) => chipDown(e, p.id)} disabled={!canScout || st.finished}>
+                  <b>{p.number}</b><span>{firstName(p)}</span><small>{p.position}</small>
+                </button>
+              {/each}
+            </div>
+          {/if}
+          {#if drag?.moved}
+            <div class="dragghost" style="left:{drag.x}px; top:{drag.y}px">{byId[drag.id]?.number} {firstName(byId[drag.id])}</div>
+          {/if}
           <div class="court-foot">
-            {#if selected}
+            {#if armed}
+              <span class="chip pos-{byId[armed]?.position}">{byId[armed]?.number} {firstName(byId[armed])}</span><span>{armed === st.libero ? 'auf V oder VI tippen' : 'Position tippen, die sie übernimmt'}</span><span class="spacer"></span><button class="btn ghost sm" onclick={() => (armed = null)}>Abbrechen</button>
+            {:else if selected}
               <span class="chip pos-{byId[selected]?.position}">{byId[selected]?.number} {firstName(byId[selected])}</span><span>ausgewählt, jetzt Aktion tippen</span>
             {:else}
               <span>Spielerin tippen, dann Aktion.</span><span class="spacer"></span>
@@ -251,6 +330,7 @@
               <li class:pt-us={r.outcome === 'us'} class:pt-them={r.outcome === 'them'}>
                 <span class="sc">{sc}</span>
                 {#if r.skill === 'sub'}<span class="who">Wechsel {byId[r.sub_out]?.number} → {byId[r.sub_in]?.number}</span><span></span>
+                {:else if r.skill === 'lib'}<span class="who">Libera {r.sub_out ? 'für ' + byId[r.sub_out]?.number : 'automatisch'}</span><span></span>
                 {:else if r.skill === 'opp'}<span class="who"><small>Gegner</small> {r.grade === '=' ? 'Fehler' : 'Punkt'}</span><span></span>
                 {:else}<span class="who"><b>{byId[r.player_id]?.number}</b> {firstName(byId[r.player_id])} <small>{SKILL[r.skill].name}</small></span><span class="g {GRADE_CLASS[r.grade]}">{r.grade}</span>{/if}
               </li>
@@ -284,6 +364,25 @@
   .col { display: grid; gap: 12px; align-content: start; }
   .court-wrap { background: var(--panel); border: 1px solid var(--line-soft); border-radius: var(--r-l); padding: 10px; }
   .court-foot { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--ink-2); min-height: 22px; }
+  .bench { display: flex; gap: 6px; margin-top: 8px; overflow-x: auto; padding: 2px 0 4px; scrollbar-width: none; touch-action: none; }
+  .bench::-webkit-scrollbar { display: none; }
+  .chipb {
+    flex: 0 0 auto; display: grid; grid-template-columns: auto auto; align-items: baseline; column-gap: 5px;
+    height: 40px; padding: 0 10px; border-radius: 20px; border: 1px solid var(--line); background: var(--raised);
+    cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none;
+  }
+  .chipb b { font-family: var(--disp); font-size: 18px; font-weight: 700; }
+  .chipb span { font-size: 12px; color: var(--ink-2); }
+  .chipb small { grid-column: 1 / -1; font-size: 10px; color: var(--ink-3); line-height: 1; margin-top: -2px; }
+  .chipb.libero { border-color: var(--court-line); background: var(--court-soft); }
+  .chipb.libero small { color: var(--court-line); }
+  .chipb.armed { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 2px var(--accent-soft); }
+  .chipb.dragging { opacity: 0.4; }
+  .chipb:disabled { opacity: 0.4; cursor: default; }
+  .dragghost {
+    position: fixed; z-index: 50; transform: translate(-50%, -120%); pointer-events: none;
+    padding: 6px 12px; border-radius: 18px; background: var(--accent); color: #fff; font-weight: 700; box-shadow: 0 6px 20px #0008;
+  }
   .btn.sm { height: 28px; padding: 0 10px; font-size: 12px; }
   .hint { padding: 8px 12px; font-size: 13px; color: var(--ink-2); }
   .pad-foot { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }

@@ -111,6 +111,9 @@ pub struct State {
     pub sets_lost: i64,
     pub lineup: [i64; 6],
     pub libero: Option<i64>,
+    /// explicit libero assignment ('lib' action): the player she stands in
+    /// for; None = automatic (the back-row middle)
+    pub libero_for: Option<i64>,
     pub serving: bool,
     pub rally: i64,
     pub finished: bool,
@@ -145,6 +148,7 @@ pub fn replay(cfg: &MatchConfig, actions: &[Action]) -> State {
         sets_lost: 0,
         lineup: first.pos,
         libero: first.libero,
+        libero_for: None,
         serving: cfg.first_serve_us,
         rally: 1,
         finished: false,
@@ -158,10 +162,15 @@ pub fn replay(cfg: &MatchConfig, actions: &[Action]) -> State {
             break;
         }
         st.last_seq = a.seq;
-        if a.skill == "sub" {
-            if let (Some(out), Some(inn)) = (a.sub_out, a.sub_in) {
+        if a.skill == "sub" || a.skill == "lib" {
+            if a.skill == "lib" {
+                st.libero_for = a.sub_out;
+            } else if let (Some(out), Some(inn)) = (a.sub_out, a.sub_in) {
                 if let Some(k) = st.lineup.iter().position(|&p| p == out) {
                     st.lineup[k] = inn;
+                }
+                if st.libero_for == Some(out) {
+                    st.libero_for = None;
                 }
             }
             st.rows.push(Row {
@@ -253,7 +262,7 @@ pub fn stats(cfg: &MatchConfig, players: &[Player], actions: &[Action], set: Opt
 
     let mut last_set: Option<i64> = None; // setter id of the set preceding an attack
     for r in &rows {
-        if r.skill == "sub" || r.skill == "opp" {
+        if r.skill == "sub" || r.skill == "lib" || r.skill == "opp" {
             if r.skill == "opp" {
                 if r.grade.as_deref() == Some("=") { inc(&mut pts_by, "opp") } else { lost_opp_kill += 1 }
             }
@@ -444,6 +453,19 @@ mod tests {
     }
 
     #[test]
+    fn libero_override_follows_sub_and_undo_semantics() {
+        let mut a = vec![];
+        a.push(Action { id: 1, seq: 1, skill: "lib".into(), grade: None, player_id: None, sub_out: Some(5), sub_in: Some(7) });
+        let st = replay(&cfg(), &a);
+        assert_eq!(st.libero_for, Some(5));
+        // the replaced player leaves the court → back to automatic
+        a.push(Action { id: 2, seq: 2, skill: "sub".into(), grade: None, player_id: None, sub_out: Some(5), sub_in: Some(9) });
+        let st = replay(&cfg(), &a);
+        assert_eq!(st.libero_for, None);
+        assert_eq!(st.lineup, [1, 2, 3, 4, 9, 6]);
+    }
+
+    #[test]
     fn deuce_needs_two() {
         let mut a = vec![];
         for i in 0..24 { a.push(act(i, "S", "#", Some(1))); }
@@ -488,6 +510,7 @@ mod tests {
         assert_eq!(json!(st.lineup), exp["lineup"]);
         assert_eq!(st.serving, exp["serving"]);
         assert_eq!(json!(st.sets), exp["sets"]);
+        assert_eq!(json!(st.libero_for), exp["libero_for"]);
         let s = stats(&cfg, &players, &actions, None);
         assert_eq!(s["team"]["sideout"], exp["sideout"]);
         assert_eq!(s["team"]["brk"], exp["brk"]);

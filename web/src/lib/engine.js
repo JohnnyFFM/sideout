@@ -59,7 +59,7 @@ export function replay(cfg, actions) {
   const first = lineupFor(cfg, 1);
   const st = {
     set: 1, us: 0, them: 0, sets: [], sets_won: 0, sets_lost: 0,
-    lineup: first.pos, libero: first.libero,
+    lineup: first.pos, libero: first.libero, libero_for: null,
     serving: !!cfg.first_serve_us, rally: 1, finished: false, last_seq: 0,
     rows: [], rally_log: []
   };
@@ -67,9 +67,13 @@ export function replay(cfg, actions) {
   for (const a of actions) {
     if (st.finished) break;
     st.last_seq = a.seq;
-    if (a.skill === 'sub') {
-      const k = st.lineup.indexOf(a.sub_out);
-      if (k >= 0 && a.sub_in) st.lineup[k] = a.sub_in;
+    if (a.skill === 'sub' || a.skill === 'lib') {
+      if (a.skill === 'lib') st.libero_for = a.sub_out ?? null;
+      else {
+        const k = st.lineup.indexOf(a.sub_out);
+        if (k >= 0 && a.sub_in) st.lineup[k] = a.sub_in;
+        if (st.libero_for === a.sub_out) st.libero_for = null;
+      }
       st.rows.push({ ...a, set: st.set, rally: st.rally, us: st.us, them: st.them, serving: st.serving, rot: st.lineup[0], outcome: null });
       continue;
     }
@@ -105,19 +109,21 @@ export function replay(cfg, actions) {
   return st;
 }
 
-/** court slots I..VI; the libero stands in for the back-row middle on V/VI (on I the middle serves) */
-export function courtView(lineup, libero, byId) {
+/** court slots I..VI; the libero stands in for the back-row middle on V/VI
+ *  (on I the middle serves), or for `liberoFor` when the coach set one explicitly */
+export function courtView(lineup, libero, byId, liberoFor = null) {
   return lineup.map((id, idx) => {
     const pos = idx + 1;
     const p = byId[id];
-    const lib = libero && p && p.position === 'M' && (pos === 5 || pos === 6);
+    const back = pos === 5 || pos === 6;
+    const lib = libero && back && (liberoFor ? id === liberoFor : p && p.position === 'M');
     return { pos, id: lib ? libero : id, replaced: lib ? id : null, libero: !!lib };
   });
 }
 
 /** the skill(s) the rally phase makes likely next */
 export function expectedSkills(st) {
-  const cur = st.rows.filter((r) => r.set === st.set && r.rally === st.rally && r.skill !== 'sub');
+  const cur = st.rows.filter((r) => r.set === st.set && r.rally === st.rally && r.skill !== 'sub' && r.skill !== 'lib');
   if (!cur.length) return st.serving ? ['S'] : ['R'];
   const last = cur[cur.length - 1].skill;
   return { S: ['B', 'D'], R: ['E'], E: ['A'], A: ['B', 'D'], B: ['D'], D: ['E'] }[last] || [];
@@ -151,7 +157,7 @@ export function stats(cfg, players, actions, set) {
   const get = (id) => (P[id] = P[id] || emptyPlayer(byId[id] || { id, number: 0, name: '?', position: '?' }));
   let lastSet = null;
   for (const r of rows) {
-    if (r.skill === 'sub' || r.skill === 'opp') {
+    if (r.skill === 'sub' || r.skill === 'lib' || r.skill === 'opp') {
       if (r.skill === 'opp') { if (r.grade === '=') team.ptsBy.opp++; else team.lostBy.oppKill++; }
       lastSet = null;
       continue;

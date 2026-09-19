@@ -1,6 +1,7 @@
 <script>
-  import { goto, invalidateAll } from '$app/navigation';
+  import { goto } from '$app/navigation';
   import { api } from '$lib/api.js';
+  import { refreshMe } from '$lib/stores.js';
 
   let mode = $state('login'); // login | register | join
   let busy = $state(false);
@@ -32,7 +33,7 @@
       if (mode === 'login') await api('/auth/login', { method: 'POST', body: { username, password } });
       else if (mode === 'register') await api('/auth/register-team', { method: 'POST', body: { team_name, display_name, username, password } });
       else await api('/auth/join', { method: 'POST', body: { code, display_name, username, password } });
-      await invalidateAll();
+      await refreshMe();
       goto('/team');
     } catch (err) {
       error = err.offline ? 'Keine Verbindung' : err.message;
