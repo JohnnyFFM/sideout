@@ -84,12 +84,15 @@ docker exec sideout-live /app/server user-list
   a serve or set tapped without a selection books itself to her. Two big
   buttons cover rallies the opponent ends, undo pops the last action.
   Keyboard on a laptop: 1–6 select positions, Ctrl+Z undoes.
-- **Bench**: a strip of chips under the court, the libero pinned first.
-  Drag a chip onto a court slot (pointer events, works with touch) or tap
-  the chip and then the slot. A bench player replaces the slot's player
-  (substitution); the libero dropped on V or VI stands in for that player
-  as long as she is in the back row (an explicit `lib` action in the log,
-  otherwise the libero automatically covers the back-row middle).
+- **Bench**: a strip of chips under the court for everyone not on it.
+  While the libero sits she is the first chip; while she stands in for
+  someone, that player is the first chip. Drag a chip onto a court slot
+  (pointer events, works with touch) or tap the chip and then the slot. A
+  bench player replaces the slot's player (substitution); the libero
+  dropped on V or VI stands in for that player as long as she is in the
+  back row (a `lib` action in the log; without one she automatically covers
+  the back-row middle); dropping the replaced player back on her own card
+  sends the libero out.
 - **Offline**: the live page keeps the match and an op queue in
   localStorage. Taps render from the local replay and are sent when the
   connection is back; retries are idempotent (`seq`), a conflict with

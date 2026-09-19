@@ -162,12 +162,13 @@
       <p><b>So geht ein Tipp:</b> Spielerin auf dem Feld antippen (die Karte wird blau), dann im Pad die Zelle für Aktion und Bewertung. Danach ist die Auswahl wieder leer. Nochmal auf dieselbe Karte tippen hebt die Auswahl auf.</p>
       <p><b>Wer ist dran?</b> Sideout markiert die Karte, zu der die nächste Aktion wahrscheinlich gehört, mit einem gestrichelten blauen Rand und dem Wort <span class="ui">erwartet</span>: bei eigenem Aufschlag die Position I, nach einer Annahme oder Abwehr die Zuspielerin. Tippst du dann eine Zuspiel-Zelle ohne Auswahl, bucht Sideout sie auf die Zuspielerin, genau wie eine Aufschlag-Zelle auf Position I.</p>
       <h3 id="bank">Die Bank und die Libera</h3>
-      <p>Unter dem Feld liegt eine Reihe Chips: zuerst die Libera (orange), dann die Bank. Ein Chip zeigt Nummer, Name und Position. Damit wechselst du ohne Blatt und Auswahlliste:</p>
+      <p>Unter dem Feld liegt die Bank: ein Chip für jede Spielerin, die gerade nicht auf dem Feld steht. Sitzt die Libera, ist sie der erste Chip (orange). Steht sie für jemanden auf dem Feld, ist stattdessen diese Spielerin der erste Chip (gestrichelt, „draußen für L“). Ein Chip zeigt Nummer, Name und Position.</p>
       <ul>
         <li><b>Ziehen:</b> Chip anfassen, auf die Karte ziehen, die sie übernehmen soll, loslassen. Die Zielkarte leuchtet orange, solange der Chip darüber schwebt.</li>
         <li><b>Tippen:</b> Chip antippen (er wird blau, unter dem Feld steht, was Sideout erwartet), dann die Zielkarte antippen. <span class="ui">Abbrechen</span> oder <kbd>Esc</kbd> löst den Chip wieder.</li>
-        <li><b>Bankspielerin auf eine Karte</b> ist ein Wechsel: Sie übernimmt die Position, die Spielerin von der Karte geht auf die Bank. Das alte Blatt unter <span class="ui">⇄ Wechsel</span> gibt es weiterhin.</li>
-        <li><b>Libera auf V oder VI</b> heißt: Sie steht ab jetzt für diese Spielerin, egal ob Mitte, Außen oder Diagonal, und zwar so lange, wie diese hinten steht. Rotiert die Spielerin nach vorne, kommt sie zurück, und die Libera wartet auf dem Chip. Legst du die Libera ein zweites Mal auf dieselbe Spielerin, gilt wieder die Automatik für die Mittelblockerin. Der Chip zeigt immer, für wen die Libera gerade steht und ob die Automatik aktiv ist (<span class="ui">auto</span>).</li>
+        <li><b>Bankspielerin auf eine Karte</b> ist ein Wechsel: Sie übernimmt die Position, die Spielerin von der Karte geht auf die Bank.</li>
+        <li><b>Libera auf V oder VI</b> heißt: Sie steht ab jetzt für diese Spielerin, egal ob Mitte, Außen oder Diagonal, solange diese hinten steht. Rotiert die Spielerin nach vorne, kommt sie von selbst zurück und die Libera sitzt wieder auf der Bank. Ohne eigene Zuweisung gilt die Automatik: Die Libera steht für die Mittelblockerin, sobald diese auf V oder VI rotiert.</li>
+        <li><b>Libera raus:</b> Zieh die Spielerin, für die die Libera steht (den gestrichelten Chip), auf ihre eigene Karte. Dann sitzt die Libera, bis du sie wieder auf eine Karte legst.</li>
       </ul>
       <p>Libera-Tausch und Wechsel stehen als eigene Einträge im Verlauf und lassen sich wie jede Aktion mit <span class="ui">↶ Rückgängig</span> zurücknehmen.</p>
 
@@ -204,7 +205,7 @@
       <ul>
         <li><b>Aufschlag ohne Auswahl:</b> Haben wir Aufschlag, kannst du direkt eine Aufschlag-Zelle tippen. Sideout bucht sie auf die Spielerin auf Position I.</li>
         <li><b>Zuspiel ohne Auswahl:</b> Steht genau eine Zuspielerin auf dem Feld, kannst du eine Zuspiel-Zelle direkt tippen. Sideout bucht sie auf die Zuspielerin.</li>
-        <li><b>Wechsel:</b> Am schnellsten per Chip aus der Bank (siehe oben). Alternativ öffnet <span class="ui">⇄ Wechsel</span> unter dem Feld ein Blatt mit <span class="ui">Raus</span> (die sechs auf dem Feld) und <span class="ui">Rein</span> (die Bank). <span class="ui">Wechsel eintragen</span> tauscht die Position.</li>
+        <li><b>Wechsel:</b> Chip aus der Bank auf die Karte ziehen oder Chip und dann Karte tippen (siehe oben).</li>
         <li><b>Rückgängig:</b> Der Knopf <span class="ui">↶ Rückgängig</span> nimmt die letzte Aktion zurück, beliebig oft. Punkte, Rotation und Aufschlagrecht folgen automatisch.</li>
         <li><b>Laptop:</b> Tasten <kbd>1</kbd> bis <kbd>6</kbd> wählen die Positionen I bis VI, <kbd>Strg</kbd>+<kbd>Z</kbd> macht rückgängig, <kbd>Esc</kbd> hebt die Auswahl auf.</li>
         <li><b>Live-Werte:</b> Rechts (oder auf dem Handy unter dem Pad) stehen Sideout, Break und Angriff-Effizienz mit einer kleinen Tabelle, umschaltbar zwischen <span class="ui">Satz</span> und <span class="ui">Spiel</span>. Darunter der Verlauf der letzten Aktionen.</li>

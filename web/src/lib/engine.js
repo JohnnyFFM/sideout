@@ -59,7 +59,7 @@ export function replay(cfg, actions) {
   const first = lineupFor(cfg, 1);
   const st = {
     set: 1, us: 0, them: 0, sets: [], sets_won: 0, sets_lost: 0,
-    lineup: first.pos, libero: first.libero, libero_for: null,
+    lineup: first.pos, libero: first.libero, libero_for: null, libero_off: false,
     serving: !!cfg.first_serve_us, rally: 1, finished: false, last_seq: 0,
     rows: [], rally_log: []
   };
@@ -68,8 +68,10 @@ export function replay(cfg, actions) {
     if (st.finished) break;
     st.last_seq = a.seq;
     if (a.skill === 'sub' || a.skill === 'lib') {
-      if (a.skill === 'lib') st.libero_for = a.sub_out ?? null;
-      else {
+      if (a.skill === 'lib') {
+        if (a.sub_in == null) { st.libero_off = true; st.libero_for = null; }
+        else { st.libero_off = false; st.libero_for = a.sub_out ?? null; }
+      } else {
         const k = st.lineup.indexOf(a.sub_out);
         if (k >= 0 && a.sub_in) st.lineup[k] = a.sub_in;
         if (st.libero_for === a.sub_out) st.libero_for = null;
@@ -111,12 +113,12 @@ export function replay(cfg, actions) {
 
 /** court slots I..VI; the libero stands in for the back-row middle on V/VI
  *  (on I the middle serves), or for `liberoFor` when the coach set one explicitly */
-export function courtView(lineup, libero, byId, liberoFor = null) {
+export function courtView(lineup, libero, byId, liberoFor = null, liberoOff = false) {
   return lineup.map((id, idx) => {
     const pos = idx + 1;
     const p = byId[id];
     const back = pos === 5 || pos === 6;
-    const lib = libero && back && (liberoFor ? id === liberoFor : p && p.position === 'M');
+    const lib = libero && !liberoOff && back && (liberoFor ? id === liberoFor : p && p.position === 'M');
     return { pos, id: lib ? libero : id, replaced: lib ? id : null, libero: !!lib };
   });
 }

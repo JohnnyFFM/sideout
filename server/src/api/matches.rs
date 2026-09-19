@@ -303,11 +303,7 @@ pub async fn add_action(
                 return Err(ApiError::BadRequest("Wechsel braucht raus und rein".into()));
             }
         }
-        "lib" => {
-            if body.sub_in.is_none() {
-                return Err(ApiError::BadRequest("Libera fehlt".into()));
-            }
-        }
+        "lib" => {} // sub_in = libero (+ sub_out = whom she replaces), or nothing = libero out
         _ => return Err(ApiError::BadRequest("Aktion unbekannt".into())),
     }
     let cfg = load_config(&state, id, &row.get::<String, _>("first_serve")).await?;

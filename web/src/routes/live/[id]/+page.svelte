@@ -5,7 +5,7 @@
   import { untrack } from 'svelte';
   import { api } from '$lib/api.js';
   import { me, mutations, online, showToast } from '$lib/stores.js';
-  import { replay, courtView, expectedSkills, stats, SKILL, PAD, GRADE_CLASS, firstName, eff, fix } from '$lib/engine.js';
+  import { replay, courtView, expectedSkills, stats, SKILL, PAD, GRADE_CLASS, ROMAN, firstName, eff, fix } from '$lib/engine.js';
   import { loadOps, saveOps, applyOps, cacheMatch, cachedMatch } from '$lib/offline.js';
   import Court from '$lib/components/Court.svelte';
   import Pad from '$lib/components/Pad.svelte';
@@ -15,9 +15,6 @@
   let ops = $state([]);
   let selected = $state(null);
   let scope = $state('set');
-  let sheet = $state(null); // null | 'sub' | 'menu'
-  let subOut = $state(null);
-  let subIn = $state(null);
   let flushing = false;
   let loadError = $state('');
 
@@ -27,7 +24,7 @@
   const actionsAll = $derived(match ? applyOps(match.actions, ops) : []);
   const st = $derived(cfg ? replay(cfg, actionsAll) : null);
   const hasLineup = $derived(!!match && Object.keys(match.lineups || {}).length > 0);
-  const court = $derived(st ? courtView(st.lineup, st.libero, byId, st.libero_for) : []);
+  const court = $derived(st ? courtView(st.lineup, st.libero, byId, st.libero_for, st.libero_off) : []);
   const expected = $derived(st ? expectedSkills(st) : []);
   // who the next action most likely belongs to: the server on I, the setter for a set
   const setters = $derived(court.filter((c) => byId[c.id]?.position === 'Z' && !c.libero).map((c) => c.id));
@@ -84,7 +81,7 @@
 
   function describe(a) {
     if (!a) return '';
-    if (a.skill === 'lib') return a.sub_out ? `Libera für ${byId[a.sub_out]?.number} ${firstName(byId[a.sub_out])}` : 'Libera automatisch (Mitte)';
+    if (a.skill === 'lib') return a.sub_in == null ? 'Libera raus' : a.sub_out ? `Libera für ${byId[a.sub_out]?.number} ${firstName(byId[a.sub_out])}` : 'Libera automatisch (Mitte)';
     if (a.skill === 'sub') return `Wechsel ${byId[a.sub_out]?.number} → ${byId[a.sub_in]?.number}`;
     if (a.skill === 'opp') return a.grade === '=' ? 'Fehler Gegner' : 'Punkt Gegner';
     const p = byId[a.player_id];
@@ -153,9 +150,18 @@
   let armed = $state(null);   // chip id waiting for a slot
   let drag = $state(null);    // { id, x, y, moved }
   let over = $state(null);    // court position under the dragged chip
-  const benchChips = $derived(match && st ? match.players.filter((p) => p.active && !st.lineup.includes(p.id) && p.id !== st.libero) : []);
-  const liberoP = $derived(st?.libero ? byId[st.libero] : null);
-  const liberoStandsFor = $derived(court.find((c) => c.libero)?.replaced ?? null);
+  // the bench = everyone not on the court right now. The libero leads it
+  // while she sits; while she stands in for someone, that someone leads it.
+  const liberoCard = $derived(court.find((c) => c.libero) || null);
+  const benchChips = $derived.by(() => {
+    if (!match || !st) return [];
+    const rest = match.players.filter((p) => p.active && !st.lineup.includes(p.id) && p.id !== st.libero).sort((a, b) => a.number - b.number);
+    const first = [];
+    if (st.libero && !liberoCard && byId[st.libero]) first.push(byId[st.libero]);
+    if (liberoCard && byId[liberoCard.replaced]) first.push(byId[liberoCard.replaced]);
+    return first.concat(rest);
+  });
+  const chipNote = (p) => (p.id === st?.libero ? 'Libera' : liberoCard?.replaced === p.id ? `${p.position} · draußen für L` : p.position);
 
   function slotUnder(x, y) {
     const el = document.elementFromPoint(x, y)?.closest('.slot');
@@ -164,7 +170,7 @@
   function chipDown(e, pid) {
     if (!canScout || st.finished) return;
     e.preventDefault();
-    e.currentTarget.setPointerCapture?.(e.pointerId);
+    try { e.currentTarget.setPointerCapture?.(e.pointerId); } catch { /* synthetic or already-released pointer */ }
     drag = { id: pid, x: e.clientX, y: e.clientY, moved: false };
   }
   function chipMove(e) {
@@ -188,8 +194,14 @@
     const target = slot.replaced || slot.id;   // the player who actually holds the position
     if (chipId === st.libero) {
       if (pos !== 5 && pos !== 6) { showToast('Die Libera kann nur auf V oder VI stehen'); return; }
-      if (st.libero_for === target) { queue({ skill: 'lib', sub_out: null, sub_in: st.libero }); showToast('Libera wieder automatisch für die Mitte'); }
-      else { queue({ skill: 'lib', sub_out: target, sub_in: st.libero }); showToast(`Libera für ${byId[target]?.number} ${firstName(byId[target])}`); }
+      queue({ skill: 'lib', sub_out: target, sub_in: st.libero });
+      showToast(`Libera für ${byId[target]?.number} ${firstName(byId[target])}`);
+      return;
+    }
+    if (liberoCard && chipId === liberoCard.replaced) {
+      // the player the libero stands in for comes back onto her own card
+      if (slot.replaced === chipId) { queue({ skill: 'lib', sub_out: null, sub_in: null }); showToast(`Libera raus, ${byId[chipId]?.number} ${firstName(byId[chipId])} wieder auf ${ROMAN[pos - 1]}`); }
+      else showToast(`${byId[chipId]?.number} gehört zu Position ${ROMAN[liberoCard.pos - 1]}, dort ablegen`);
       return;
     }
     if (target === chipId) return;
@@ -207,15 +219,12 @@
     showToast('Rückgängig: ' + describe(a));
     flush();
   }
-  function openSub() { subOut = null; subIn = null; sheet = 'sub'; }
-  function confirmSub() { queue({ skill: 'sub', sub_out: subOut, sub_in: subIn }); sheet = null; }
-  const bench = $derived(match ? match.players.filter((p) => p.active && !st.lineup.includes(p.id) && p.id !== st.libero) : []);
 
   function keys(e) {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
     if (e.key >= '1' && e.key <= '6' && court.length) { selected = court[+e.key - 1].id; }
     if (e.key === 'z' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); undo(); }
-    if (e.key === 'Escape') { selected = null; sheet = null; armed = null; }
+    if (e.key === 'Escape') { selected = null; armed = null; }
   }
 </script>
 
@@ -251,16 +260,11 @@
         {/if}
         <section class="court-wrap">
           <Court {court} {byId} {selected} serving={st.serving} {suggested} {over} armed={!!armed} onselect={slotTap} />
-          {#if liberoP || benchChips.length}
+          {#if benchChips.length}
             <div class="bench" onpointermove={chipMove} onpointerup={chipUp} onpointercancel={chipUp}>
-              {#if liberoP}
-                <button class="chipb libero" class:armed={armed === liberoP.id} class:dragging={drag?.id === liberoP.id} onpointerdown={(e) => chipDown(e, liberoP.id)} disabled={!canScout || st.finished}>
-                  <b>{liberoP.number}</b><span>{firstName(liberoP)}</span><small>L · {liberoStandsFor ? 'für ' + byId[liberoStandsFor]?.number : 'vorne'}{st.libero_for ? '' : ' · auto'}</small>
-                </button>
-              {/if}
               {#each benchChips as p (p.id)}
-                <button class="chipb" class:armed={armed === p.id} class:dragging={drag?.id === p.id} onpointerdown={(e) => chipDown(e, p.id)} disabled={!canScout || st.finished}>
-                  <b>{p.number}</b><span>{firstName(p)}</span><small>{p.position}</small>
+                <button class="chipb" class:libero={p.id === st.libero} class:out={liberoCard?.replaced === p.id} class:armed={armed === p.id} class:dragging={drag?.id === p.id} onpointerdown={(e) => chipDown(e, p.id)} disabled={!canScout || st.finished}>
+                  <b>{p.number}</b><span>{firstName(p)}</span><small>{chipNote(p)}</small>
                 </button>
               {/each}
             </div>
@@ -270,12 +274,11 @@
           {/if}
           <div class="court-foot">
             {#if armed}
-              <span class="chip pos-{byId[armed]?.position}">{byId[armed]?.number} {firstName(byId[armed])}</span><span>{armed === st.libero ? 'auf V oder VI tippen' : 'Position tippen, die sie übernimmt'}</span><span class="spacer"></span><button class="btn ghost sm" onclick={() => (armed = null)}>Abbrechen</button>
+              <span class="chip pos-{byId[armed]?.position}">{byId[armed]?.number} {firstName(byId[armed])}</span><span>{armed === st.libero ? 'auf V oder VI tippen' : liberoCard?.replaced === armed ? 'auf ihre Karte tippen, dann geht die Libera raus' : 'Position tippen, die sie übernimmt'}</span><span class="spacer"></span><button class="btn ghost sm" onclick={() => (armed = null)}>Abbrechen</button>
             {:else if selected}
               <span class="chip pos-{byId[selected]?.position}">{byId[selected]?.number} {firstName(byId[selected])}</span><span>ausgewählt, jetzt Aktion tippen</span>
             {:else}
-              <span>Spielerin tippen, dann Aktion.</span><span class="spacer"></span>
-              {#if canScout}<button class="btn ghost sm" onclick={openSub}>⇄ Wechsel</button>{/if}
+              <span>Spielerin tippen, dann Aktion. Wechsel: Chip auf eine Karte ziehen.</span>
             {/if}
           </div>
         </section>
@@ -330,7 +333,7 @@
               <li class:pt-us={r.outcome === 'us'} class:pt-them={r.outcome === 'them'}>
                 <span class="sc">{sc}</span>
                 {#if r.skill === 'sub'}<span class="who">Wechsel {byId[r.sub_out]?.number} → {byId[r.sub_in]?.number}</span><span></span>
-                {:else if r.skill === 'lib'}<span class="who">Libera {r.sub_out ? 'für ' + byId[r.sub_out]?.number : 'automatisch'}</span><span></span>
+                {:else if r.skill === 'lib'}<span class="who">Libera {r.sub_in == null ? 'raus' : r.sub_out ? 'für ' + byId[r.sub_out]?.number : 'automatisch'}</span><span></span>
                 {:else if r.skill === 'opp'}<span class="who"><small>Gegner</small> {r.grade === '=' ? 'Fehler' : 'Punkt'}</span><span></span>
                 {:else}<span class="who"><b>{byId[r.player_id]?.number}</b> {firstName(byId[r.player_id])} <small>{SKILL[r.skill].name}</small></span><span class="g {GRADE_CLASS[r.grade]}">{r.grade}</span>{/if}
               </li>
@@ -344,18 +347,7 @@
   {/if}
 </main>
 
-{#if sheet === 'sub'}
-  <div class="sheet-bg" role="presentation" onclick={(e) => { if (e.target === e.currentTarget) sheet = null; }}>
-    <div class="sheet">
-      <div class="panel-head"><h2>Wechsel</h2><button class="btn ghost" onclick={() => (sheet = null)}>Schließen</button></div>
-      <h3>Raus</h3>
-      <div class="pick">{#each st.lineup as pid}<button class:on={subOut === pid} onclick={() => (subOut = pid)}>{byId[pid]?.number} {firstName(byId[pid])}</button>{/each}</div>
-      <h3>Rein</h3>
-      <div class="pick">{#each bench as p (p.id)}<button class:on={subIn === p.id} onclick={() => (subIn = p.id)}>{p.number} {firstName(p)} <small class="muted">{p.position}</small></button>{:else}<span class="muted small">Keine Spielerin auf der Bank.</span>{/each}</div>
-      <button class="btn primary big" style="width:100%;justify-content:center" disabled={!subOut || !subIn} onclick={confirmSub}>Wechsel eintragen</button>
-    </div>
-  </div>
-{/if}
+
 
 <style>
   .live { display: grid; gap: 12px; grid-template-columns: 1fr; }
@@ -376,6 +368,7 @@
   .chipb small { grid-column: 1 / -1; font-size: 10px; color: var(--ink-3); line-height: 1; margin-top: -2px; }
   .chipb.libero { border-color: var(--court-line); background: var(--court-soft); }
   .chipb.libero small { color: var(--court-line); }
+  .chipb.out { border-style: dashed; }
   .chipb.armed { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 2px var(--accent-soft); }
   .chipb.dragging { opacity: 0.4; }
   .chipb:disabled { opacity: 0.4; cursor: default; }

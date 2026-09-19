@@ -114,6 +114,8 @@ pub struct State {
     /// explicit libero assignment ('lib' action): the player she stands in
     /// for; None = automatic (the back-row middle)
     pub libero_for: Option<i64>,
+    /// 'lib' action without a libero (sub_in NULL): she sits until dragged in again
+    pub libero_off: bool,
     pub serving: bool,
     pub rally: i64,
     pub finished: bool,
@@ -149,6 +151,7 @@ pub fn replay(cfg: &MatchConfig, actions: &[Action]) -> State {
         lineup: first.pos,
         libero: first.libero,
         libero_for: None,
+        libero_off: false,
         serving: cfg.first_serve_us,
         rally: 1,
         finished: false,
@@ -164,7 +167,13 @@ pub fn replay(cfg: &MatchConfig, actions: &[Action]) -> State {
         st.last_seq = a.seq;
         if a.skill == "sub" || a.skill == "lib" {
             if a.skill == "lib" {
-                st.libero_for = a.sub_out;
+                if a.sub_in.is_none() {
+                    st.libero_off = true;
+                    st.libero_for = None;
+                } else {
+                    st.libero_off = false;
+                    st.libero_for = a.sub_out;
+                }
             } else if let (Some(out), Some(inn)) = (a.sub_out, a.sub_in) {
                 if let Some(k) = st.lineup.iter().position(|&p| p == out) {
                     st.lineup[k] = inn;
@@ -463,6 +472,14 @@ mod tests {
         let st = replay(&cfg(), &a);
         assert_eq!(st.libero_for, None);
         assert_eq!(st.lineup, [1, 2, 3, 4, 9, 6]);
+        // libero out (no sub_in) → off until she is placed again
+        a.push(Action { id: 3, seq: 3, skill: "lib".into(), grade: None, player_id: None, sub_out: None, sub_in: None });
+        let st = replay(&cfg(), &a);
+        assert!(st.libero_off);
+        a.push(Action { id: 4, seq: 4, skill: "lib".into(), grade: None, player_id: None, sub_out: Some(6), sub_in: Some(7) });
+        let st = replay(&cfg(), &a);
+        assert!(!st.libero_off);
+        assert_eq!(st.libero_for, Some(6));
     }
 
     #[test]
@@ -511,6 +528,7 @@ mod tests {
         assert_eq!(st.serving, exp["serving"]);
         assert_eq!(json!(st.sets), exp["sets"]);
         assert_eq!(json!(st.libero_for), exp["libero_for"]);
+        assert_eq!(st.libero_off, exp["libero_off"]);
         let s = stats(&cfg, &players, &actions, None);
         assert_eq!(s["team"]["sideout"], exp["sideout"]);
         assert_eq!(s["team"]["brk"], exp["brk"]);

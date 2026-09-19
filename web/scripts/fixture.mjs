@@ -32,7 +32,7 @@ for (let guard = 0; guard < 3000 && !st.finished; guard++) {
   const who = () => onCourt[Math.floor(rnd() * 6)];
   const r = rnd();
   if (r < 0.03 && st.rally > 3) push({ skill: 'sub', sub_out: onCourt[Math.floor(rnd() * 6)], sub_in: 18 });
-  else if (r < 0.05) push({ skill: 'lib', sub_out: rnd() < 0.3 ? null : onCourt[4 + Math.floor(rnd() * 2)], sub_in: 17 });
+  else if (r < 0.05) { const off = rnd() < 0.2; push({ skill: 'lib', sub_out: off || rnd() < 0.3 ? null : onCourt[4 + Math.floor(rnd() * 2)], sub_in: off ? null : 17 }); }
   else if (r < 0.15) push({ skill: 'opp', grade: pick([['#', 55], ['=', 45]]) });
   else {
     const skill = st.serving && st.rows.filter((x) => x.set === st.set && x.rally === st.rally).length === 0 ? 'S' : pick([['R', 20], ['E', 25], ['A', 30], ['B', 10], ['D', 15]]);
@@ -48,7 +48,7 @@ const fixture = {
   players,
   actions,
   expected: {
-    set: st.set, us: st.us, them: st.them, lineup: st.lineup, serving: st.serving, sets: st.sets, libero_for: st.libero_for,
+    set: st.set, us: st.us, them: st.them, lineup: st.lineup, serving: st.serving, sets: st.sets, libero_for: st.libero_for, libero_off: st.libero_off,
     sideout: s.team.sideout, brk: s.team.brk, ptsBy: s.team.ptsBy,
     players: s.players.map((p) => ({ id: p.id, pts: p.pts, k: p.A.k, rsum: p.R.sum, ast: p.E.ast }))
   }

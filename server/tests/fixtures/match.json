@@ -316,18 +316,18 @@
    "seq": 27,
    "grade": null,
    "player_id": null,
-   "sub_out": 14,
+   "sub_out": 16,
    "sub_in": 17,
    "skill": "lib"
   },
   {
    "id": 28,
    "seq": 28,
-   "grade": "=",
-   "player_id": 12,
+   "grade": "!",
+   "player_id": 17,
    "sub_out": null,
    "sub_in": null,
-   "skill": "A"
+   "skill": "D"
   },
   {
    "id": 29,
@@ -352,68 +352,68 @@
    "seq": 31,
    "grade": null,
    "player_id": null,
-   "sub_out": 16,
+   "sub_out": 14,
    "sub_in": 17,
    "skill": "lib"
   },
   {
    "id": 32,
    "seq": 32,
-   "grade": "!",
-   "player_id": 13,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "B"
-  },
-  {
-   "id": 33,
-   "seq": 33,
-   "grade": null,
-   "player_id": null,
-   "sub_out": 16,
-   "sub_in": 17,
-   "skill": "lib"
-  },
-  {
-   "id": 34,
-   "seq": 34,
-   "grade": "+",
-   "player_id": 13,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 35,
-   "seq": 35,
-   "grade": "#",
-   "player_id": 15,
+   "grade": "=",
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
    "skill": "D"
   },
   {
-   "id": 36,
-   "seq": 36,
-   "grade": "#",
-   "player_id": 17,
+   "id": 33,
+   "seq": 33,
+   "grade": "/",
+   "player_id": 18,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
   },
   {
-   "id": 37,
-   "seq": 37,
-   "grade": "=",
-   "player_id": 13,
+   "id": 34,
+   "seq": 34,
+   "grade": "-",
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
-   "skill": "S"
+   "skill": "R"
+  },
+  {
+   "id": 35,
+   "seq": 35,
+   "grade": "!",
+   "player_id": 12,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 36,
+   "seq": 36,
+   "grade": "=",
+   "player_id": 17,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "R"
+  },
+  {
+   "id": 37,
+   "seq": 37,
+   "grade": "!",
+   "player_id": 17,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "R"
   },
   {
    "id": 38,
    "seq": 38,
-   "grade": "#",
+   "grade": "=",
    "player_id": null,
    "sub_out": null,
    "sub_in": null,
@@ -422,33 +422,15 @@
   {
    "id": 39,
    "seq": 39,
-   "grade": "#",
+   "grade": null,
    "player_id": null,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "opp"
+   "sub_out": 14,
+   "sub_in": 17,
+   "skill": "lib"
   },
   {
    "id": 40,
    "seq": 40,
-   "grade": "#",
-   "player_id": null,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "opp"
-  },
-  {
-   "id": 41,
-   "seq": 41,
-   "grade": "=",
-   "player_id": 13,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "R"
-  },
-  {
-   "id": 42,
-   "seq": 42,
    "grade": "+",
    "player_id": 15,
    "sub_out": null,
@@ -456,8 +438,8 @@
    "skill": "E"
   },
   {
-   "id": 43,
-   "seq": 43,
+   "id": 41,
+   "seq": 41,
    "grade": "#",
    "player_id": 17,
    "sub_out": null,
@@ -465,8 +447,8 @@
    "skill": "E"
   },
   {
-   "id": 44,
-   "seq": 44,
+   "id": 42,
+   "seq": 42,
    "grade": "+",
    "player_id": 14,
    "sub_out": null,
@@ -474,8 +456,8 @@
    "skill": "A"
   },
   {
-   "id": 45,
-   "seq": 45,
+   "id": 43,
+   "seq": 43,
    "grade": "!",
    "player_id": 16,
    "sub_out": null,
@@ -483,8 +465,8 @@
    "skill": "R"
   },
   {
-   "id": 46,
-   "seq": 46,
+   "id": 44,
+   "seq": 44,
    "grade": "=",
    "player_id": null,
    "sub_out": null,
@@ -492,26 +474,26 @@
    "skill": "opp"
   },
   {
+   "id": 45,
+   "seq": 45,
+   "grade": "#",
+   "player_id": 13,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "S"
+  },
+  {
+   "id": 46,
+   "seq": 46,
+   "grade": "-",
+   "player_id": 13,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "S"
+  },
+  {
    "id": 47,
    "seq": 47,
-   "grade": "#",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "S"
-  },
-  {
-   "id": 48,
-   "seq": 48,
-   "grade": "-",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "S"
-  },
-  {
-   "id": 49,
-   "seq": 49,
    "grade": "+",
    "player_id": 17,
    "sub_out": null,
@@ -519,10 +501,28 @@
    "skill": "A"
   },
   {
+   "id": 48,
+   "seq": 48,
+   "grade": "!",
+   "player_id": 13,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "R"
+  },
+  {
+   "id": 49,
+   "seq": 49,
+   "grade": "#",
+   "player_id": 15,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "R"
+  },
+  {
    "id": 50,
    "seq": 50,
-   "grade": "!",
-   "player_id": 18,
+   "grade": "=",
+   "player_id": 17,
    "sub_out": null,
    "sub_in": null,
    "skill": "R"
@@ -530,107 +530,107 @@
   {
    "id": 51,
    "seq": 51,
-   "grade": "#",
-   "player_id": 16,
+   "grade": "!",
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
-   "skill": "R"
+   "skill": "E"
   },
   {
    "id": 52,
    "seq": 52,
    "grade": "=",
-   "player_id": 17,
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
-   "skill": "R"
+   "skill": "E"
   },
   {
    "id": 53,
    "seq": 53,
    "grade": "!",
+   "player_id": 18,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "D"
+  },
+  {
+   "id": 54,
+   "seq": 54,
+   "grade": "!",
+   "player_id": 17,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 55,
+   "seq": 55,
+   "grade": "!",
+   "player_id": 18,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 56,
+   "seq": 56,
+   "grade": "-",
+   "player_id": 14,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "B"
+  },
+  {
+   "id": 57,
+   "seq": 57,
+   "grade": "-",
+   "player_id": 18,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "E"
+  },
+  {
+   "id": 58,
+   "seq": 58,
+   "grade": "#",
+   "player_id": 17,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 59,
+   "seq": 59,
+   "grade": "+",
+   "player_id": 18,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "S"
+  },
+  {
+   "id": 60,
+   "seq": 60,
+   "grade": "#",
    "player_id": 16,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
   },
   {
-   "id": 54,
-   "seq": 54,
-   "grade": "=",
-   "player_id": 13,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "E"
-  },
-  {
-   "id": 55,
-   "seq": 55,
+   "id": 61,
+   "seq": 61,
    "grade": "!",
-   "player_id": 15,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "D"
-  },
-  {
-   "id": 56,
-   "seq": 56,
-   "grade": "!",
-   "player_id": 17,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 57,
-   "seq": 57,
-   "grade": "!",
-   "player_id": 15,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 58,
-   "seq": 58,
-   "grade": "-",
-   "player_id": 12,
+   "player_id": 18,
    "sub_out": null,
    "sub_in": null,
    "skill": "B"
   },
   {
-   "id": 59,
-   "seq": 59,
-   "grade": "-",
-   "player_id": 15,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "E"
-  },
-  {
-   "id": 60,
-   "seq": 60,
-   "grade": "#",
-   "player_id": 17,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 61,
-   "seq": 61,
-   "grade": "+",
-   "player_id": 15,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "S"
-  },
-  {
    "id": 62,
    "seq": 62,
-   "grade": "#",
-   "player_id": 14,
+   "grade": "+",
+   "player_id": 17,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
@@ -638,17 +638,17 @@
   {
    "id": 63,
    "seq": 63,
-   "grade": "!",
-   "player_id": 15,
+   "grade": "=",
+   "player_id": 16,
    "sub_out": null,
    "sub_in": null,
-   "skill": "B"
+   "skill": "D"
   },
   {
    "id": 64,
    "seq": 64,
-   "grade": "+",
-   "player_id": 17,
+   "grade": "!",
+   "player_id": 14,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
@@ -656,42 +656,24 @@
   {
    "id": 65,
    "seq": 65,
-   "grade": "=",
-   "player_id": 14,
+   "grade": "!",
+   "player_id": 16,
    "sub_out": null,
    "sub_in": null,
-   "skill": "D"
+   "skill": "E"
   },
   {
    "id": 66,
    "seq": 66,
-   "grade": "!",
-   "player_id": 12,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "E"
-  },
-  {
-   "id": 67,
-   "seq": 67,
-   "grade": "!",
-   "player_id": 14,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "E"
-  },
-  {
-   "id": 68,
-   "seq": 68,
    "grade": "+",
-   "player_id": 18,
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
    "skill": "D"
   },
   {
-   "id": 69,
-   "seq": 69,
+   "id": 67,
+   "seq": 67,
    "grade": "!",
    "player_id": 17,
    "sub_out": null,
@@ -699,19 +681,37 @@
    "skill": "A"
   },
   {
-   "id": 70,
-   "seq": 70,
+   "id": 68,
+   "seq": 68,
    "grade": "!",
-   "player_id": 18,
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
   },
   {
+   "id": 69,
+   "seq": 69,
+   "grade": "#",
+   "player_id": 12,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "E"
+  },
+  {
+   "id": 70,
+   "seq": 70,
+   "grade": "!",
+   "player_id": 13,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "R"
+  },
+  {
    "id": 71,
    "seq": 71,
-   "grade": "#",
-   "player_id": 13,
+   "grade": "+",
+   "player_id": 14,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
@@ -720,16 +720,16 @@
    "id": 72,
    "seq": 72,
    "grade": "!",
-   "player_id": 18,
+   "player_id": 14,
    "sub_out": null,
    "sub_in": null,
-   "skill": "R"
+   "skill": "E"
   },
   {
    "id": 73,
    "seq": 73,
-   "grade": "+",
-   "player_id": 12,
+   "grade": "!",
+   "player_id": 17,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
@@ -737,17 +737,17 @@
   {
    "id": 74,
    "seq": 74,
-   "grade": "!",
-   "player_id": 12,
+   "grade": "+",
+   "player_id": 18,
    "sub_out": null,
    "sub_in": null,
-   "skill": "E"
+   "skill": "A"
   },
   {
    "id": 75,
    "seq": 75,
    "grade": "!",
-   "player_id": 17,
+   "player_id": 18,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
@@ -756,50 +756,32 @@
    "id": 76,
    "seq": 76,
    "grade": "+",
-   "player_id": 15,
+   "player_id": 16,
    "sub_out": null,
    "sub_in": null,
-   "skill": "A"
+   "skill": "E"
   },
   {
    "id": 77,
    "seq": 77,
-   "grade": "!",
-   "player_id": 15,
+   "grade": "+",
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
-   "skill": "E"
+   "skill": "R"
   },
   {
    "id": 78,
    "seq": 78,
-   "grade": "+",
-   "player_id": 14,
+   "grade": "!",
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
-   "skill": "E"
+   "skill": "R"
   },
   {
    "id": 79,
    "seq": 79,
-   "grade": "+",
-   "player_id": 13,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "R"
-  },
-  {
-   "id": 80,
-   "seq": 80,
-   "grade": "!",
-   "player_id": 16,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "R"
-  },
-  {
-   "id": 81,
-   "seq": 81,
    "grade": "#",
    "player_id": null,
    "sub_out": null,
@@ -807,37 +789,55 @@
    "skill": "opp"
   },
   {
-   "id": 82,
-   "seq": 82,
+   "id": 80,
+   "seq": 80,
    "grade": null,
    "player_id": null,
-   "sub_out": 13,
+   "sub_out": 12,
    "sub_in": 17,
    "skill": "lib"
+  },
+  {
+   "id": 81,
+   "seq": 81,
+   "grade": "!",
+   "player_id": 14,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "R"
+  },
+  {
+   "id": 82,
+   "seq": 82,
+   "grade": "!",
+   "player_id": 17,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "R"
   },
   {
    "id": 83,
    "seq": 83,
-   "grade": null,
-   "player_id": null,
+   "grade": "!",
+   "player_id": 15,
    "sub_out": null,
-   "sub_in": 17,
-   "skill": "lib"
+   "sub_in": null,
+   "skill": "A"
   },
   {
    "id": 84,
    "seq": 84,
-   "grade": null,
-   "player_id": null,
-   "sub_out": 18,
-   "sub_in": 17,
-   "skill": "lib"
+   "grade": "#",
+   "player_id": 13,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "D"
   },
   {
    "id": 85,
    "seq": 85,
-   "grade": "#",
-   "player_id": 15,
+   "grade": "!",
+   "player_id": 18,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -845,168 +845,15 @@
   {
    "id": 86,
    "seq": 86,
-   "grade": "-",
-   "player_id": 16,
+   "grade": "#",
+   "player_id": 18,
    "sub_out": null,
    "sub_in": null,
-   "skill": "S"
+   "skill": "A"
   },
   {
    "id": 87,
    "seq": 87,
-   "grade": "+",
-   "player_id": 15,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "B"
-  },
-  {
-   "id": 88,
-   "seq": 88,
-   "grade": null,
-   "player_id": null,
-   "sub_out": 14,
-   "sub_in": 18,
-   "skill": "sub"
-  },
-  {
-   "id": 89,
-   "seq": 89,
-   "grade": "-",
-   "player_id": 13,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "B"
-  },
-  {
-   "id": 90,
-   "seq": 90,
-   "grade": "#",
-   "player_id": null,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "opp"
-  },
-  {
-   "id": 91,
-   "seq": 91,
-   "grade": "=",
-   "player_id": 17,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "R"
-  },
-  {
-   "id": 92,
-   "seq": 92,
-   "grade": null,
-   "player_id": null,
-   "sub_out": 15,
-   "sub_in": 18,
-   "skill": "sub"
-  },
-  {
-   "id": 93,
-   "seq": 93,
-   "grade": "=",
-   "player_id": 17,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 94,
-   "seq": 94,
-   "grade": "+",
-   "player_id": 17,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "D"
-  },
-  {
-   "id": 95,
-   "seq": 95,
-   "grade": "!",
-   "player_id": 12,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "R"
-  },
-  {
-   "id": 96,
-   "seq": 96,
-   "grade": "+",
-   "player_id": 13,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 97,
-   "seq": 97,
-   "grade": "+",
-   "player_id": 13,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 98,
-   "seq": 98,
-   "grade": "!",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "D"
-  },
-  {
-   "id": 99,
-   "seq": 99,
-   "grade": "#",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 100,
-   "seq": 100,
-   "grade": "#",
-   "player_id": null,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "opp"
-  },
-  {
-   "id": 101,
-   "seq": 101,
-   "grade": "-",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "R"
-  },
-  {
-   "id": 102,
-   "seq": 102,
-   "grade": "!",
-   "player_id": 17,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "D"
-  },
-  {
-   "id": 103,
-   "seq": 103,
-   "grade": "=",
-   "player_id": null,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "opp"
-  },
-  {
-   "id": 104,
-   "seq": 104,
    "grade": null,
    "player_id": null,
    "sub_out": 18,
@@ -1014,8 +861,116 @@
    "skill": "sub"
   },
   {
-   "id": 105,
-   "seq": 105,
+   "id": 88,
+   "seq": 88,
+   "grade": "=",
+   "player_id": 17,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 89,
+   "seq": 89,
+   "grade": "+",
+   "player_id": 17,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "D"
+  },
+  {
+   "id": 90,
+   "seq": 90,
+   "grade": "!",
+   "player_id": 14,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "R"
+  },
+  {
+   "id": 91,
+   "seq": 91,
+   "grade": "+",
+   "player_id": 12,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 92,
+   "seq": 92,
+   "grade": "+",
+   "player_id": 12,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 93,
+   "seq": 93,
+   "grade": "!",
+   "player_id": 16,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "D"
+  },
+  {
+   "id": 94,
+   "seq": 94,
+   "grade": "#",
+   "player_id": 13,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 95,
+   "seq": 95,
+   "grade": "#",
+   "player_id": null,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "opp"
+  },
+  {
+   "id": 96,
+   "seq": 96,
+   "grade": "-",
+   "player_id": 18,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "R"
+  },
+  {
+   "id": 97,
+   "seq": 97,
+   "grade": "!",
+   "player_id": 17,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "D"
+  },
+  {
+   "id": 98,
+   "seq": 98,
+   "grade": "=",
+   "player_id": null,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "opp"
+  },
+  {
+   "id": 99,
+   "seq": 99,
+   "grade": null,
+   "player_id": null,
+   "sub_out": 16,
+   "sub_in": 18,
+   "skill": "sub"
+  },
+  {
+   "id": 100,
+   "seq": 100,
    "grade": null,
    "player_id": null,
    "sub_out": 18,
@@ -1023,53 +978,53 @@
    "skill": "lib"
   },
   {
-   "id": 106,
-   "seq": 106,
-   "grade": "-",
-   "player_id": 16,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "D"
-  },
-  {
-   "id": 107,
-   "seq": 107,
-   "grade": "+",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "R"
-  },
-  {
-   "id": 108,
-   "seq": 108,
-   "grade": "=",
-   "player_id": 12,
+   "id": 101,
+   "seq": 101,
+   "grade": "/",
+   "player_id": 14,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
   },
   {
-   "id": 109,
-   "seq": 109,
-   "grade": "-",
-   "player_id": 18,
+   "id": 102,
+   "seq": 102,
+   "grade": "!",
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
   },
   {
-   "id": 110,
-   "seq": 110,
-   "grade": "+",
-   "player_id": 12,
+   "id": 103,
+   "seq": 103,
+   "grade": "-",
+   "player_id": 17,
    "sub_out": null,
    "sub_in": null,
    "skill": "D"
   },
   {
-   "id": 111,
-   "seq": 111,
+   "id": 104,
+   "seq": 104,
+   "grade": "-",
+   "player_id": 13,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "E"
+  },
+  {
+   "id": 105,
+   "seq": 105,
+   "grade": "+",
+   "player_id": 14,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "D"
+  },
+  {
+   "id": 106,
+   "seq": 106,
    "grade": "=",
    "player_id": null,
    "sub_out": null,
@@ -1077,13 +1032,58 @@
    "skill": "opp"
   },
   {
-   "id": 112,
-   "seq": 112,
+   "id": 107,
+   "seq": 107,
    "grade": "-",
-   "player_id": 13,
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
    "skill": "S"
+  },
+  {
+   "id": 108,
+   "seq": 108,
+   "grade": "+",
+   "player_id": 13,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 109,
+   "seq": 109,
+   "grade": "+",
+   "player_id": 18,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "B"
+  },
+  {
+   "id": 110,
+   "seq": 110,
+   "grade": "-",
+   "player_id": 18,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "R"
+  },
+  {
+   "id": 111,
+   "seq": 111,
+   "grade": "+",
+   "player_id": 17,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "E"
+  },
+  {
+   "id": 112,
+   "seq": 112,
+   "grade": "#",
+   "player_id": null,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "opp"
   },
   {
    "id": 113,
@@ -1092,56 +1092,11 @@
    "player_id": 18,
    "sub_out": null,
    "sub_in": null,
-   "skill": "A"
+   "skill": "D"
   },
   {
    "id": 114,
    "seq": 114,
-   "grade": "+",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "B"
-  },
-  {
-   "id": 115,
-   "seq": 115,
-   "grade": "-",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "R"
-  },
-  {
-   "id": 116,
-   "seq": 116,
-   "grade": "+",
-   "player_id": 17,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "E"
-  },
-  {
-   "id": 117,
-   "seq": 117,
-   "grade": "#",
-   "player_id": null,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "opp"
-  },
-  {
-   "id": 118,
-   "seq": 118,
-   "grade": "+",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "D"
-  },
-  {
-   "id": 119,
-   "seq": 119,
    "grade": "=",
    "player_id": null,
    "sub_out": null,
@@ -1149,44 +1104,44 @@
    "skill": "opp"
   },
   {
-   "id": 120,
-   "seq": 120,
+   "id": 115,
+   "seq": 115,
    "grade": "+",
-   "player_id": 18,
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
    "skill": "S"
   },
   {
-   "id": 121,
-   "seq": 121,
+   "id": 116,
+   "seq": 116,
    "grade": null,
    "player_id": null,
-   "sub_out": 13,
+   "sub_out": 12,
    "sub_in": 17,
    "skill": "lib"
   },
   {
-   "id": 122,
-   "seq": 122,
+   "id": 117,
+   "seq": 117,
    "grade": "!",
-   "player_id": 16,
+   "player_id": 18,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
   },
   {
-   "id": 123,
-   "seq": 123,
-   "grade": "+",
-   "player_id": 18,
+   "id": 118,
+   "seq": 118,
+   "grade": "!",
+   "player_id": 17,
    "sub_out": null,
    "sub_in": null,
-   "skill": "B"
+   "skill": "E"
   },
   {
-   "id": 124,
-   "seq": 124,
+   "id": 119,
+   "seq": 119,
    "grade": "+",
    "player_id": 17,
    "sub_out": null,
@@ -1194,31 +1149,76 @@
    "skill": "E"
   },
   {
-   "id": 125,
-   "seq": 125,
+   "id": 120,
+   "seq": 120,
    "grade": "+",
-   "player_id": 16,
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
   },
   {
-   "id": 126,
-   "seq": 126,
+   "id": 121,
+   "seq": 121,
    "grade": "#",
+   "player_id": 12,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "D"
+  },
+  {
+   "id": 122,
+   "seq": 122,
+   "grade": "+",
    "player_id": 13,
    "sub_out": null,
    "sub_in": null,
    "skill": "D"
   },
   {
-   "id": 127,
-   "seq": 127,
-   "grade": "+",
+   "id": 123,
+   "seq": 123,
+   "grade": "=",
    "player_id": 18,
    "sub_out": null,
    "sub_in": null,
    "skill": "D"
+  },
+  {
+   "id": 124,
+   "seq": 124,
+   "grade": "+",
+   "player_id": 13,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 125,
+   "seq": 125,
+   "grade": "+",
+   "player_id": 13,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "E"
+  },
+  {
+   "id": 126,
+   "seq": 126,
+   "grade": "#",
+   "player_id": 17,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 127,
+   "seq": 127,
+   "grade": "#",
+   "player_id": 18,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "S"
   },
   {
    "id": 128,
@@ -1227,83 +1227,38 @@
    "player_id": 18,
    "sub_out": null,
    "sub_in": null,
-   "skill": "D"
+   "skill": "S"
   },
   {
    "id": 129,
    "seq": 129,
-   "grade": "+",
-   "player_id": 18,
+   "grade": "=",
+   "player_id": null,
    "sub_out": null,
    "sub_in": null,
-   "skill": "A"
+   "skill": "opp"
   },
   {
    "id": 130,
    "seq": 130,
    "grade": "+",
-   "player_id": 18,
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
-   "skill": "E"
+   "skill": "S"
   },
   {
    "id": 131,
    "seq": 131,
-   "grade": "#",
-   "player_id": 17,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 132,
-   "seq": 132,
-   "grade": "#",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "S"
-  },
-  {
-   "id": 133,
-   "seq": 133,
-   "grade": "=",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "S"
-  },
-  {
-   "id": 134,
-   "seq": 134,
-   "grade": "=",
-   "player_id": null,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "opp"
-  },
-  {
-   "id": 135,
-   "seq": 135,
-   "grade": "+",
-   "player_id": 16,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "S"
-  },
-  {
-   "id": 136,
-   "seq": 136,
    "grade": "-",
-   "player_id": 16,
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
    "skill": "D"
   },
   {
-   "id": 137,
-   "seq": 137,
+   "id": 132,
+   "seq": 132,
    "grade": "#",
    "player_id": null,
    "sub_out": null,
@@ -1311,8 +1266,8 @@
    "skill": "opp"
   },
   {
-   "id": 138,
-   "seq": 138,
+   "id": 133,
+   "seq": 133,
    "grade": "+",
    "player_id": 17,
    "sub_out": null,
@@ -1320,8 +1275,8 @@
    "skill": "E"
   },
   {
-   "id": 139,
-   "seq": 139,
+   "id": 134,
+   "seq": 134,
    "grade": "+",
    "player_id": 17,
    "sub_out": null,
@@ -1329,17 +1284,17 @@
    "skill": "A"
   },
   {
-   "id": 140,
-   "seq": 140,
+   "id": 135,
+   "seq": 135,
    "grade": "+",
-   "player_id": 12,
+   "player_id": 14,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
   },
   {
-   "id": 141,
-   "seq": 141,
+   "id": 136,
+   "seq": 136,
    "grade": "!",
    "player_id": 18,
    "sub_out": null,
@@ -1347,10 +1302,55 @@
    "skill": "A"
   },
   {
-   "id": 142,
-   "seq": 142,
+   "id": 137,
+   "seq": 137,
    "grade": "+",
    "player_id": 18,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 138,
+   "seq": 138,
+   "grade": "=",
+   "player_id": 14,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 139,
+   "seq": 139,
+   "grade": "+",
+   "player_id": 14,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "D"
+  },
+  {
+   "id": 140,
+   "seq": 140,
+   "grade": "#",
+   "player_id": null,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "opp"
+  },
+  {
+   "id": 141,
+   "seq": 141,
+   "grade": "#",
+   "player_id": 15,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "R"
+  },
+  {
+   "id": 142,
+   "seq": 142,
+   "grade": "=",
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -1358,44 +1358,44 @@
   {
    "id": 143,
    "seq": 143,
-   "grade": "=",
-   "player_id": 12,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 144,
-   "seq": 144,
-   "grade": "+",
-   "player_id": 12,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "D"
-  },
-  {
-   "id": 145,
-   "seq": 145,
-   "grade": "#",
-   "player_id": null,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "opp"
-  },
-  {
-   "id": 146,
-   "seq": 146,
-   "grade": "#",
-   "player_id": 16,
+   "grade": "-",
+   "player_id": 18,
    "sub_out": null,
    "sub_in": null,
    "skill": "R"
   },
   {
+   "id": 144,
+   "seq": 144,
+   "grade": "+",
+   "player_id": 18,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "R"
+  },
+  {
+   "id": 145,
+   "seq": 145,
+   "grade": "-",
+   "player_id": 18,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "D"
+  },
+  {
+   "id": 146,
+   "seq": 146,
+   "grade": "+",
+   "player_id": 14,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
    "id": 147,
    "seq": 147,
-   "grade": "=",
-   "player_id": 18,
+   "grade": "-",
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -1403,35 +1403,35 @@
   {
    "id": 148,
    "seq": 148,
-   "grade": "-",
-   "player_id": 16,
+   "grade": "+",
+   "player_id": 18,
    "sub_out": null,
    "sub_in": null,
-   "skill": "R"
+   "skill": "A"
   },
   {
    "id": 149,
    "seq": 149,
-   "grade": "+",
-   "player_id": 16,
+   "grade": "/",
+   "player_id": 18,
    "sub_out": null,
    "sub_in": null,
-   "skill": "R"
+   "skill": "A"
   },
   {
    "id": 150,
    "seq": 150,
-   "grade": "-",
-   "player_id": 12,
+   "grade": "=",
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
-   "skill": "D"
+   "skill": "A"
   },
   {
    "id": 151,
    "seq": 151,
-   "grade": "+",
-   "player_id": 13,
+   "grade": "/",
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -1439,8 +1439,8 @@
   {
    "id": 152,
    "seq": 152,
-   "grade": "-",
-   "player_id": 14,
+   "grade": "#",
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -1448,35 +1448,35 @@
   {
    "id": 153,
    "seq": 153,
-   "grade": "+",
-   "player_id": 16,
+   "grade": "!",
+   "player_id": 18,
    "sub_out": null,
    "sub_in": null,
-   "skill": "A"
+   "skill": "S"
   },
   {
    "id": 154,
    "seq": 154,
-   "grade": "/",
-   "player_id": 12,
+   "grade": "!",
+   "player_id": 14,
    "sub_out": null,
    "sub_in": null,
-   "skill": "A"
+   "skill": "E"
   },
   {
    "id": 155,
    "seq": 155,
-   "grade": "=",
-   "player_id": 14,
+   "grade": "!",
+   "player_id": 17,
    "sub_out": null,
    "sub_in": null,
-   "skill": "A"
+   "skill": "E"
   },
   {
    "id": 156,
    "seq": 156,
-   "grade": "/",
-   "player_id": 11,
+   "grade": "+",
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -1484,26 +1484,26 @@
   {
    "id": 157,
    "seq": 157,
-   "grade": "#",
+   "grade": "!",
    "player_id": 15,
    "sub_out": null,
    "sub_in": null,
-   "skill": "A"
+   "skill": "E"
   },
   {
    "id": 158,
    "seq": 158,
-   "grade": "!",
-   "player_id": 12,
+   "grade": "+",
+   "player_id": 17,
    "sub_out": null,
    "sub_in": null,
-   "skill": "S"
+   "skill": "E"
   },
   {
    "id": 159,
    "seq": 159,
-   "grade": "!",
-   "player_id": 13,
+   "grade": "-",
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
@@ -1511,51 +1511,6 @@
   {
    "id": 160,
    "seq": 160,
-   "grade": "!",
-   "player_id": 17,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "E"
-  },
-  {
-   "id": 161,
-   "seq": 161,
-   "grade": "+",
-   "player_id": 11,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 162,
-   "seq": 162,
-   "grade": "!",
-   "player_id": 14,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "E"
-  },
-  {
-   "id": 163,
-   "seq": 163,
-   "grade": "+",
-   "player_id": 17,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "E"
-  },
-  {
-   "id": 164,
-   "seq": 164,
-   "grade": "-",
-   "player_id": 14,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "E"
-  },
-  {
-   "id": 165,
-   "seq": 165,
    "grade": "=",
    "player_id": null,
    "sub_out": null,
@@ -1563,26 +1518,80 @@
    "skill": "opp"
   },
   {
-   "id": 166,
-   "seq": 166,
+   "id": 161,
+   "seq": 161,
    "grade": "#",
-   "player_id": 12,
+   "player_id": 18,
    "sub_out": null,
    "sub_in": null,
    "skill": "S"
+  },
+  {
+   "id": 162,
+   "seq": 162,
+   "grade": "-",
+   "player_id": 18,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "S"
+  },
+  {
+   "id": 163,
+   "seq": 163,
+   "grade": null,
+   "player_id": null,
+   "sub_out": 14,
+   "sub_in": 18,
+   "skill": "sub"
+  },
+  {
+   "id": 164,
+   "seq": 164,
+   "grade": "=",
+   "player_id": null,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "opp"
+  },
+  {
+   "id": 165,
+   "seq": 165,
+   "grade": "-",
+   "player_id": 18,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "S"
+  },
+  {
+   "id": 166,
+   "seq": 166,
+   "grade": "+",
+   "player_id": 12,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "D"
   },
   {
    "id": 167,
    "seq": 167,
-   "grade": "-",
-   "player_id": 12,
+   "grade": "!",
+   "player_id": 18,
    "sub_out": null,
    "sub_in": null,
-   "skill": "S"
+   "skill": "A"
   },
   {
    "id": 168,
    "seq": 168,
+   "grade": "#",
+   "player_id": null,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "opp"
+  },
+  {
+   "id": 169,
+   "seq": 169,
    "grade": null,
    "player_id": null,
    "sub_out": 13,
@@ -1590,35 +1599,35 @@
    "skill": "sub"
   },
   {
-   "id": 169,
-   "seq": 169,
-   "grade": "=",
-   "player_id": null,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "opp"
-  },
-  {
    "id": 170,
    "seq": 170,
-   "grade": "-",
-   "player_id": 12,
+   "grade": "+",
+   "player_id": 18,
    "sub_out": null,
    "sub_in": null,
-   "skill": "S"
+   "skill": "A"
   },
   {
    "id": 171,
    "seq": 171,
-   "grade": "+",
-   "player_id": 11,
+   "grade": "=",
+   "player_id": 17,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 172,
+   "seq": 172,
+   "grade": "-",
+   "player_id": 18,
    "sub_out": null,
    "sub_in": null,
    "skill": "D"
   },
   {
-   "id": 172,
-   "seq": 172,
+   "id": 173,
+   "seq": 173,
    "grade": "!",
    "player_id": 12,
    "sub_out": null,
@@ -1626,27 +1635,18 @@
    "skill": "A"
   },
   {
-   "id": 173,
-   "seq": 173,
-   "grade": "#",
-   "player_id": null,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "opp"
-  },
-  {
    "id": 174,
    "seq": 174,
    "grade": null,
    "player_id": null,
-   "sub_out": 15,
+   "sub_out": 12,
    "sub_in": 18,
    "skill": "sub"
   },
   {
    "id": 175,
    "seq": 175,
-   "grade": "+",
+   "grade": "-",
    "player_id": 18,
    "sub_out": null,
    "sub_in": null,
@@ -1655,51 +1655,6 @@
   {
    "id": 176,
    "seq": 176,
-   "grade": "=",
-   "player_id": 17,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 177,
-   "seq": 177,
-   "grade": "-",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "D"
-  },
-  {
-   "id": 178,
-   "seq": 178,
-   "grade": "!",
-   "player_id": 11,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 179,
-   "seq": 179,
-   "grade": null,
-   "player_id": null,
-   "sub_out": 11,
-   "sub_in": 18,
-   "skill": "sub"
-  },
-  {
-   "id": 180,
-   "seq": 180,
-   "grade": "-",
-   "player_id": 12,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 181,
-   "seq": 181,
    "grade": "#",
    "player_id": 18,
    "sub_out": null,
@@ -1707,17 +1662,17 @@
    "skill": "D"
   },
   {
-   "id": 182,
-   "seq": 182,
+   "id": 177,
+   "seq": 177,
    "grade": "!",
-   "player_id": 12,
+   "player_id": 18,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
   },
   {
-   "id": 183,
-   "seq": 183,
+   "id": 178,
+   "seq": 178,
    "grade": "-",
    "player_id": 17,
    "sub_out": null,
@@ -1725,17 +1680,17 @@
    "skill": "R"
   },
   {
-   "id": 184,
-   "seq": 184,
+   "id": 179,
+   "seq": 179,
    "grade": "+",
-   "player_id": 12,
+   "player_id": 18,
    "sub_out": null,
    "sub_in": null,
    "skill": "B"
   },
   {
-   "id": 185,
-   "seq": 185,
+   "id": 180,
+   "seq": 180,
    "grade": "+",
    "player_id": 17,
    "sub_out": null,
@@ -1743,17 +1698,17 @@
    "skill": "B"
   },
   {
-   "id": 186,
-   "seq": 186,
+   "id": 181,
+   "seq": 181,
    "grade": "+",
-   "player_id": 16,
+   "player_id": 18,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
   },
   {
-   "id": 187,
-   "seq": 187,
+   "id": 182,
+   "seq": 182,
    "grade": "#",
    "player_id": 18,
    "sub_out": null,
@@ -1761,17 +1716,17 @@
    "skill": "E"
   },
   {
-   "id": 188,
-   "seq": 188,
+   "id": 183,
+   "seq": 183,
    "grade": null,
    "player_id": null,
    "sub_out": null,
-   "sub_in": 17,
+   "sub_in": null,
    "skill": "lib"
   },
   {
-   "id": 189,
-   "seq": 189,
+   "id": 184,
+   "seq": 184,
    "grade": "!",
    "player_id": 17,
    "sub_out": null,
@@ -1779,10 +1734,55 @@
    "skill": "D"
   },
   {
+   "id": 185,
+   "seq": 185,
+   "grade": "#",
+   "player_id": 15,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 186,
+   "seq": 186,
+   "grade": "#",
+   "player_id": 18,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "S"
+  },
+  {
+   "id": 187,
+   "seq": 187,
+   "grade": "-",
+   "player_id": 18,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "S"
+  },
+  {
+   "id": 188,
+   "seq": 188,
+   "grade": "-",
+   "player_id": 18,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "E"
+  },
+  {
+   "id": 189,
+   "seq": 189,
+   "grade": "#",
+   "player_id": 18,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
    "id": 190,
    "seq": 190,
-   "grade": "#",
-   "player_id": 14,
+   "grade": "=",
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -1790,87 +1790,33 @@
   {
    "id": 191,
    "seq": 191,
-   "grade": "#",
-   "player_id": 18,
+   "grade": "!",
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
-   "skill": "S"
+   "skill": "D"
   },
   {
    "id": 192,
    "seq": 192,
-   "grade": "-",
-   "player_id": 18,
+   "grade": "#",
+   "player_id": null,
    "sub_out": null,
    "sub_in": null,
-   "skill": "S"
+   "skill": "opp"
   },
   {
    "id": 193,
    "seq": 193,
-   "grade": "-",
-   "player_id": 12,
+   "grade": "#",
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
-   "skill": "E"
+   "skill": "R"
   },
   {
    "id": 194,
    "seq": 194,
-   "grade": "#",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 195,
-   "seq": 195,
-   "grade": "!",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "S"
-  },
-  {
-   "id": 196,
-   "seq": 196,
-   "grade": "!",
-   "player_id": 12,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 197,
-   "seq": 197,
-   "grade": "-",
-   "player_id": 17,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "B"
-  },
-  {
-   "id": 198,
-   "seq": 198,
-   "grade": "#",
-   "player_id": 17,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 199,
-   "seq": 199,
-   "grade": "!",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "S"
-  },
-  {
-   "id": 200,
-   "seq": 200,
    "grade": "/",
    "player_id": 17,
    "sub_out": null,
@@ -1878,19 +1824,73 @@
    "skill": "R"
   },
   {
-   "id": 201,
-   "seq": 201,
+   "id": 195,
+   "seq": 195,
    "grade": "+",
-   "player_id": 16,
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
   },
   {
+   "id": 196,
+   "seq": 196,
+   "grade": "+",
+   "player_id": 15,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 197,
+   "seq": 197,
+   "grade": "#",
+   "player_id": 14,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "R"
+  },
+  {
+   "id": 198,
+   "seq": 198,
+   "grade": "!",
+   "player_id": 14,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "E"
+  },
+  {
+   "id": 199,
+   "seq": 199,
+   "grade": "!",
+   "player_id": 11,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "R"
+  },
+  {
+   "id": 200,
+   "seq": 200,
+   "grade": "=",
+   "player_id": 14,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "R"
+  },
+  {
+   "id": 201,
+   "seq": 201,
+   "grade": "-",
+   "player_id": 12,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "R"
+  },
+  {
    "id": 202,
    "seq": 202,
-   "grade": "+",
-   "player_id": 14,
+   "grade": "-",
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -1899,52 +1899,52 @@
    "id": 203,
    "seq": 203,
    "grade": "#",
-   "player_id": 18,
+   "player_id": null,
    "sub_out": null,
    "sub_in": null,
-   "skill": "R"
+   "skill": "opp"
   },
   {
    "id": 204,
    "seq": 204,
-   "grade": "!",
-   "player_id": 18,
+   "grade": "#",
+   "player_id": 17,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 205,
+   "seq": 205,
+   "grade": "+",
+   "player_id": 12,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "S"
+  },
+  {
+   "id": 206,
+   "seq": 206,
+   "grade": "#",
+   "player_id": null,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "opp"
+  },
+  {
+   "id": 207,
+   "seq": 207,
+   "grade": "+",
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
   },
   {
-   "id": 205,
-   "seq": 205,
-   "grade": "!",
-   "player_id": 16,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "R"
-  },
-  {
-   "id": 206,
-   "seq": 206,
-   "grade": "=",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "R"
-  },
-  {
-   "id": 207,
-   "seq": 207,
-   "grade": "-",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "R"
-  },
-  {
    "id": 208,
    "seq": 208,
-   "grade": "-",
-   "player_id": 18,
+   "grade": "=",
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -1952,33 +1952,60 @@
   {
    "id": 209,
    "seq": 209,
-   "grade": "#",
-   "player_id": null,
+   "grade": "+",
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
-   "skill": "opp"
+   "skill": "E"
   },
   {
    "id": 210,
    "seq": 210,
+   "grade": "!",
+   "player_id": 16,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "R"
+  },
+  {
+   "id": 211,
+   "seq": 211,
    "grade": "#",
-   "player_id": 17,
+   "player_id": 14,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
   },
   {
-   "id": 211,
-   "seq": 211,
+   "id": 212,
+   "seq": 212,
    "grade": "+",
-   "player_id": 18,
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
    "skill": "S"
   },
   {
-   "id": 212,
-   "seq": 212,
+   "id": 213,
+   "seq": 213,
+   "grade": "!",
+   "player_id": 14,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "B"
+  },
+  {
+   "id": 214,
+   "seq": 214,
+   "grade": "+",
+   "player_id": 12,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "E"
+  },
+  {
+   "id": 215,
+   "seq": 215,
    "grade": "#",
    "player_id": null,
    "sub_out": null,
@@ -1986,37 +2013,10 @@
    "skill": "opp"
   },
   {
-   "id": 213,
-   "seq": 213,
-   "grade": "+",
-   "player_id": 14,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "E"
-  },
-  {
-   "id": 214,
-   "seq": 214,
-   "grade": "=",
-   "player_id": 14,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 215,
-   "seq": 215,
-   "grade": "+",
-   "player_id": 16,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "E"
-  },
-  {
    "id": 216,
    "seq": 216,
-   "grade": "!",
-   "player_id": 12,
+   "grade": "+",
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
    "skill": "R"
@@ -2024,96 +2024,42 @@
   {
    "id": 217,
    "seq": 217,
-   "grade": "#",
-   "player_id": 18,
+   "grade": "+",
+   "player_id": 16,
    "sub_out": null,
    "sub_in": null,
-   "skill": "A"
+   "skill": "R"
   },
   {
    "id": 218,
    "seq": 218,
-   "grade": "+",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "S"
-  },
-  {
-   "id": 219,
-   "seq": 219,
-   "grade": "!",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "B"
-  },
-  {
-   "id": 220,
-   "seq": 220,
-   "grade": "+",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "E"
-  },
-  {
-   "id": 221,
-   "seq": 221,
-   "grade": "#",
-   "player_id": null,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "opp"
-  },
-  {
-   "id": 222,
-   "seq": 222,
-   "grade": "+",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "R"
-  },
-  {
-   "id": 223,
-   "seq": 223,
-   "grade": "+",
-   "player_id": 12,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "R"
-  },
-  {
-   "id": 224,
-   "seq": 224,
    "grade": "-",
-   "player_id": 18,
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
    "skill": "D"
   },
   {
-   "id": 225,
-   "seq": 225,
+   "id": 219,
+   "seq": 219,
    "grade": "+",
-   "player_id": 18,
+   "player_id": 14,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
   },
   {
-   "id": 226,
-   "seq": 226,
+   "id": 220,
+   "seq": 220,
    "grade": "=",
-   "player_id": 18,
+   "player_id": 14,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
   },
   {
-   "id": 227,
-   "seq": 227,
+   "id": 221,
+   "seq": 221,
    "grade": "#",
    "player_id": 17,
    "sub_out": null,
@@ -2121,13 +2067,67 @@
    "skill": "D"
   },
   {
-   "id": 228,
-   "seq": 228,
+   "id": 222,
+   "seq": 222,
    "grade": "!",
-   "player_id": 18,
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
+  },
+  {
+   "id": 223,
+   "seq": 223,
+   "grade": "=",
+   "player_id": null,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "opp"
+  },
+  {
+   "id": 224,
+   "seq": 224,
+   "grade": "+",
+   "player_id": 11,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "S"
+  },
+  {
+   "id": 225,
+   "seq": 225,
+   "grade": "!",
+   "player_id": 17,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 226,
+   "seq": 226,
+   "grade": "-",
+   "player_id": 13,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 227,
+   "seq": 227,
+   "grade": "/",
+   "player_id": 17,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 228,
+   "seq": 228,
+   "grade": "=",
+   "player_id": 13,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "R"
   },
   {
    "id": 229,
@@ -2141,8 +2141,8 @@
   {
    "id": 230,
    "seq": 230,
-   "grade": "+",
-   "player_id": 16,
+   "grade": "!",
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
    "skill": "S"
@@ -2150,107 +2150,107 @@
   {
    "id": 231,
    "seq": 231,
-   "grade": "!",
-   "player_id": 17,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 232,
-   "seq": 232,
-   "grade": "-",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 233,
-   "seq": 233,
-   "grade": "/",
-   "player_id": 17,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 234,
-   "seq": 234,
-   "grade": "=",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "R"
-  },
-  {
-   "id": 235,
-   "seq": 235,
-   "grade": "=",
-   "player_id": null,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "opp"
-  },
-  {
-   "id": 236,
-   "seq": 236,
-   "grade": "!",
-   "player_id": 14,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "S"
-  },
-  {
-   "id": 237,
-   "seq": 237,
    "grade": "#",
-   "player_id": 18,
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
    "skill": "D"
   },
   {
-   "id": 238,
-   "seq": 238,
+   "id": 232,
+   "seq": 232,
    "grade": "!",
-   "player_id": 16,
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
    "skill": "B"
   },
   {
-   "id": 239,
-   "seq": 239,
+   "id": 233,
+   "seq": 233,
    "grade": "!",
-   "player_id": 14,
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
   },
   {
-   "id": 240,
-   "seq": 240,
+   "id": 234,
+   "seq": 234,
    "grade": "+",
+   "player_id": 11,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 235,
+   "seq": 235,
+   "grade": "!",
+   "player_id": 13,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 236,
+   "seq": 236,
+   "grade": "=",
+   "player_id": 12,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 237,
+   "seq": 237,
+   "grade": "!",
    "player_id": 16,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
   },
   {
-   "id": 241,
-   "seq": 241,
-   "grade": "!",
-   "player_id": 18,
+   "id": 238,
+   "seq": 238,
+   "grade": "-",
+   "player_id": 17,
    "sub_out": null,
    "sub_in": null,
-   "skill": "A"
+   "skill": "R"
+  },
+  {
+   "id": 239,
+   "seq": 239,
+   "grade": "#",
+   "player_id": 17,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "D"
+  },
+  {
+   "id": 240,
+   "seq": 240,
+   "grade": "=",
+   "player_id": 11,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "R"
+  },
+  {
+   "id": 241,
+   "seq": 241,
+   "grade": "=",
+   "player_id": 15,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "D"
   },
   {
    "id": 242,
    "seq": 242,
-   "grade": "=",
-   "player_id": 18,
+   "grade": "#",
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -2258,35 +2258,35 @@
   {
    "id": 243,
    "seq": 243,
-   "grade": "!",
-   "player_id": 12,
+   "grade": "=",
+   "player_id": 16,
    "sub_out": null,
    "sub_in": null,
-   "skill": "A"
+   "skill": "S"
   },
   {
    "id": 244,
    "seq": 244,
-   "grade": "-",
-   "player_id": 17,
+   "grade": "#",
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
-   "skill": "R"
+   "skill": "E"
   },
   {
    "id": 245,
    "seq": 245,
-   "grade": "#",
-   "player_id": 17,
+   "grade": "-",
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
-   "skill": "D"
+   "skill": "E"
   },
   {
    "id": 246,
    "seq": 246,
-   "grade": "=",
-   "player_id": 16,
+   "grade": "-",
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
    "skill": "R"
@@ -2294,17 +2294,17 @@
   {
    "id": 247,
    "seq": 247,
-   "grade": "=",
-   "player_id": 14,
+   "grade": "+",
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
-   "skill": "D"
+   "skill": "A"
   },
   {
    "id": 248,
    "seq": 248,
    "grade": "#",
-   "player_id": 18,
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -2312,44 +2312,44 @@
   {
    "id": 249,
    "seq": 249,
-   "grade": "=",
-   "player_id": 12,
+   "grade": null,
+   "player_id": null,
    "sub_out": null,
-   "sub_in": null,
-   "skill": "S"
+   "sub_in": 17,
+   "skill": "lib"
   },
   {
    "id": 250,
    "seq": 250,
-   "grade": "#",
-   "player_id": 18,
+   "grade": "!",
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
-   "skill": "E"
+   "skill": "D"
   },
   {
    "id": 251,
    "seq": 251,
-   "grade": "-",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "E"
-  },
-  {
-   "id": 252,
-   "seq": 252,
-   "grade": "-",
-   "player_id": 14,
+   "grade": "=",
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
    "skill": "R"
   },
   {
+   "id": 252,
+   "seq": 252,
+   "grade": "#",
+   "player_id": null,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "opp"
+  },
+  {
    "id": 253,
    "seq": 253,
-   "grade": "+",
-   "player_id": 18,
+   "grade": "=",
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -2358,52 +2358,52 @@
    "id": 254,
    "seq": 254,
    "grade": "#",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 255,
-   "seq": 255,
-   "grade": null,
-   "player_id": null,
-   "sub_out": 14,
-   "sub_in": 17,
-   "skill": "lib"
-  },
-  {
-   "id": 256,
-   "seq": 256,
-   "grade": "!",
-   "player_id": 16,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "D"
-  },
-  {
-   "id": 257,
-   "seq": 257,
-   "grade": "=",
-   "player_id": 14,
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
    "skill": "R"
   },
   {
-   "id": 258,
-   "seq": 258,
-   "grade": "#",
-   "player_id": null,
+   "id": 255,
+   "seq": 255,
+   "grade": "+",
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
-   "skill": "opp"
+   "skill": "R"
+  },
+  {
+   "id": 256,
+   "seq": 256,
+   "grade": "!",
+   "player_id": 11,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 257,
+   "seq": 257,
+   "grade": "+",
+   "player_id": 16,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "E"
+  },
+  {
+   "id": 258,
+   "seq": 258,
+   "grade": "+",
+   "player_id": 16,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "E"
   },
   {
    "id": 259,
    "seq": 259,
-   "grade": "=",
-   "player_id": 18,
+   "grade": "+",
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -2412,34 +2412,34 @@
    "id": 260,
    "seq": 260,
    "grade": "#",
-   "player_id": 14,
+   "player_id": null,
    "sub_out": null,
    "sub_in": null,
-   "skill": "R"
+   "skill": "opp"
   },
   {
    "id": 261,
    "seq": 261,
-   "grade": "+",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "R"
-  },
-  {
-   "id": 262,
-   "seq": 262,
-   "grade": "!",
-   "player_id": 16,
+   "grade": "=",
+   "player_id": 17,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
   },
   {
+   "id": 262,
+   "seq": 262,
+   "grade": "!",
+   "player_id": 17,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "D"
+  },
+  {
    "id": 263,
    "seq": 263,
-   "grade": "+",
-   "player_id": 12,
+   "grade": "!",
+   "player_id": 14,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
@@ -2447,29 +2447,29 @@
   {
    "id": 264,
    "seq": 264,
-   "grade": "+",
+   "grade": "=",
    "player_id": 12,
    "sub_out": null,
    "sub_in": null,
-   "skill": "E"
+   "skill": "R"
   },
   {
    "id": 265,
    "seq": 265,
    "grade": "+",
-   "player_id": 16,
+   "player_id": 17,
    "sub_out": null,
    "sub_in": null,
-   "skill": "A"
+   "skill": "R"
   },
   {
    "id": 266,
    "seq": 266,
-   "grade": "#",
-   "player_id": null,
+   "grade": "=",
+   "player_id": 17,
    "sub_out": null,
    "sub_in": null,
-   "skill": "opp"
+   "skill": "R"
   },
   {
    "id": 267,
@@ -2478,66 +2478,66 @@
    "player_id": 17,
    "sub_out": null,
    "sub_in": null,
-   "skill": "A"
+   "skill": "R"
   },
   {
    "id": 268,
    "seq": 268,
-   "grade": "!",
-   "player_id": 17,
+   "grade": "-",
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
-   "skill": "D"
+   "skill": "A"
   },
   {
    "id": 269,
    "seq": 269,
    "grade": "!",
-   "player_id": 18,
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
-   "skill": "E"
+   "skill": "R"
   },
   {
    "id": 270,
    "seq": 270,
-   "grade": "=",
-   "player_id": 18,
+   "grade": "+",
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
-   "skill": "R"
+   "skill": "D"
   },
   {
    "id": 271,
    "seq": 271,
-   "grade": "+",
-   "player_id": 17,
+   "grade": "#",
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
-   "skill": "R"
+   "skill": "A"
   },
   {
    "id": 272,
    "seq": 272,
-   "grade": "=",
-   "player_id": 17,
+   "grade": "#",
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
-   "skill": "R"
+   "skill": "S"
   },
   {
    "id": 273,
    "seq": 273,
-   "grade": "=",
-   "player_id": 17,
+   "grade": "#",
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
-   "skill": "R"
+   "skill": "S"
   },
   {
    "id": 274,
    "seq": 274,
-   "grade": "!",
+   "grade": "+",
    "player_id": 12,
    "sub_out": null,
    "sub_in": null,
@@ -2546,150 +2546,114 @@
   {
    "id": 275,
    "seq": 275,
-   "grade": "-",
+   "grade": "!",
    "player_id": 13,
    "sub_out": null,
    "sub_in": null,
-   "skill": "B"
+   "skill": "D"
   },
   {
    "id": 276,
    "seq": 276,
-   "grade": "+",
-   "player_id": 14,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 277,
-   "seq": 277,
-   "grade": "+",
-   "player_id": 11,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 278,
-   "seq": 278,
-   "grade": "#",
+   "grade": "=",
    "player_id": null,
    "sub_out": null,
    "sub_in": null,
    "skill": "opp"
   },
   {
+   "id": 277,
+   "seq": 277,
+   "grade": "-",
+   "player_id": 12,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "S"
+  },
+  {
+   "id": 278,
+   "seq": 278,
+   "grade": null,
+   "player_id": null,
+   "sub_out": 12,
+   "sub_in": 18,
+   "skill": "sub"
+  },
+  {
    "id": 279,
    "seq": 279,
-   "grade": "#",
+   "grade": "+",
    "player_id": 13,
    "sub_out": null,
    "sub_in": null,
-   "skill": "E"
+   "skill": "D"
   },
   {
    "id": 280,
    "seq": 280,
-   "grade": "-",
-   "player_id": 16,
+   "grade": "!",
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
-   "skill": "E"
+   "skill": "R"
   },
   {
    "id": 281,
    "seq": 281,
    "grade": "#",
-   "player_id": 13,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "R"
-  },
-  {
-   "id": 282,
-   "seq": 282,
-   "grade": "#",
-   "player_id": 17,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "R"
-  },
-  {
-   "id": 283,
-   "seq": 283,
-   "grade": "-",
-   "player_id": 17,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "E"
-  },
-  {
-   "id": 284,
-   "seq": 284,
-   "grade": "!",
-   "player_id": 11,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "R"
-  },
-  {
-   "id": 285,
-   "seq": 285,
-   "grade": "#",
    "player_id": null,
    "sub_out": null,
    "sub_in": null,
    "skill": "opp"
   },
   {
+   "id": 282,
+   "seq": 282,
+   "grade": "!",
+   "player_id": 14,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 283,
+   "seq": 283,
+   "grade": null,
+   "player_id": null,
+   "sub_out": 11,
+   "sub_in": 18,
+   "skill": "sub"
+  },
+  {
+   "id": 284,
+   "seq": 284,
+   "grade": "!",
+   "player_id": 18,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "D"
+  },
+  {
+   "id": 285,
+   "seq": 285,
+   "grade": "!",
+   "player_id": 14,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
    "id": 286,
    "seq": 286,
    "grade": "!",
-   "player_id": 14,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 287,
-   "seq": 287,
-   "grade": null,
-   "player_id": null,
-   "sub_out": 16,
-   "sub_in": 17,
-   "skill": "lib"
-  },
-  {
-   "id": 288,
-   "seq": 288,
-   "grade": "+",
-   "player_id": 17,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 289,
-   "seq": 289,
-   "grade": "!",
-   "player_id": 14,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 290,
-   "seq": 290,
-   "grade": "!",
-   "player_id": 11,
+   "player_id": 18,
    "sub_out": null,
    "sub_in": null,
    "skill": "R"
   },
   {
-   "id": 291,
-   "seq": 291,
+   "id": 287,
+   "seq": 287,
    "grade": "!",
    "player_id": 16,
    "sub_out": null,
@@ -2697,8 +2661,8 @@
    "skill": "E"
   },
   {
-   "id": 292,
-   "seq": 292,
+   "id": 288,
+   "seq": 288,
    "grade": "#",
    "player_id": 16,
    "sub_out": null,
@@ -2706,8 +2670,8 @@
    "skill": "B"
   },
   {
-   "id": 293,
-   "seq": 293,
+   "id": 289,
+   "seq": 289,
    "grade": "!",
    "player_id": 13,
    "sub_out": null,
@@ -2715,13 +2679,49 @@
    "skill": "S"
   },
   {
-   "id": 294,
-   "seq": 294,
+   "id": 290,
+   "seq": 290,
    "grade": "#",
    "player_id": null,
    "sub_out": null,
    "sub_in": null,
    "skill": "opp"
+  },
+  {
+   "id": 291,
+   "seq": 291,
+   "grade": "+",
+   "player_id": 17,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "D"
+  },
+  {
+   "id": 292,
+   "seq": 292,
+   "grade": "-",
+   "player_id": 18,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "D"
+  },
+  {
+   "id": 293,
+   "seq": 293,
+   "grade": "#",
+   "player_id": 15,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "B"
+  },
+  {
+   "id": 294,
+   "seq": 294,
+   "grade": null,
+   "player_id": null,
+   "sub_out": 15,
+   "sub_in": 18,
+   "skill": "sub"
   },
   {
    "id": 295,
@@ -2735,29 +2735,29 @@
   {
    "id": 296,
    "seq": 296,
-   "grade": "-",
-   "player_id": 12,
+   "grade": "=",
+   "player_id": 18,
    "sub_out": null,
    "sub_in": null,
-   "skill": "D"
+   "skill": "A"
   },
   {
    "id": 297,
    "seq": 297,
    "grade": "#",
-   "player_id": 15,
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
-   "skill": "B"
+   "skill": "S"
   },
   {
    "id": 298,
    "seq": 298,
-   "grade": null,
-   "player_id": null,
-   "sub_out": 15,
-   "sub_in": 18,
-   "skill": "sub"
+   "grade": "-",
+   "player_id": 12,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "S"
   },
   {
    "id": 299,
@@ -2766,112 +2766,112 @@
    "player_id": 17,
    "sub_out": null,
    "sub_in": null,
-   "skill": "D"
+   "skill": "B"
   },
   {
    "id": 300,
    "seq": 300,
-   "grade": "=",
-   "player_id": 18,
+   "grade": "-",
+   "player_id": 17,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "R"
+  },
+  {
+   "id": 301,
+   "seq": 301,
+   "grade": "/",
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
   },
   {
-   "id": 301,
-   "seq": 301,
-   "grade": "!",
+   "id": 302,
+   "seq": 302,
+   "grade": "=",
+   "player_id": null,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "opp"
+  },
+  {
+   "id": 303,
+   "seq": 303,
+   "grade": "-",
+   "player_id": 13,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "S"
+  },
+  {
+   "id": 304,
+   "seq": 304,
+   "grade": "-",
+   "player_id": 17,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "E"
+  },
+  {
+   "id": 305,
+   "seq": 305,
+   "grade": "#",
+   "player_id": 17,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "B"
+  },
+  {
+   "id": 306,
+   "seq": 306,
+   "grade": "=",
+   "player_id": 13,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "S"
+  },
+  {
+   "id": 307,
+   "seq": 307,
+   "grade": "#",
+   "player_id": null,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "opp"
+  },
+  {
+   "id": 308,
+   "seq": 308,
+   "grade": "=",
    "player_id": 14,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
   },
   {
-   "id": 302,
-   "seq": 302,
-   "grade": "#",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "E"
-  },
-  {
-   "id": 303,
-   "seq": 303,
-   "grade": "!",
-   "player_id": 13,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "R"
-  },
-  {
-   "id": 304,
-   "seq": 304,
-   "grade": "#",
-   "player_id": 16,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 305,
-   "seq": 305,
-   "grade": "!",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "S"
-  },
-  {
-   "id": 306,
-   "seq": 306,
-   "grade": "#",
-   "player_id": 13,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 307,
-   "seq": 307,
-   "grade": null,
-   "player_id": null,
-   "sub_out": null,
-   "sub_in": 17,
-   "skill": "lib"
-  },
-  {
-   "id": 308,
-   "seq": 308,
-   "grade": "#",
-   "player_id": 17,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "D"
-  },
-  {
    "id": 309,
    "seq": 309,
-   "grade": "=",
-   "player_id": 13,
+   "grade": "+",
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
-   "skill": "E"
+   "skill": "A"
   },
   {
    "id": 310,
    "seq": 310,
-   "grade": "+",
-   "player_id": 11,
+   "grade": "!",
+   "player_id": 17,
    "sub_out": null,
    "sub_in": null,
-   "skill": "A"
+   "skill": "E"
   },
   {
    "id": 311,
    "seq": 311,
    "grade": "!",
-   "player_id": 17,
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
@@ -2879,78 +2879,69 @@
   {
    "id": 312,
    "seq": 312,
-   "grade": "!",
-   "player_id": 16,
+   "grade": "-",
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
-   "skill": "E"
+   "skill": "A"
   },
   {
    "id": 313,
    "seq": 313,
-   "grade": "-",
-   "player_id": 11,
+   "grade": "+",
+   "player_id": 16,
    "sub_out": null,
    "sub_in": null,
-   "skill": "A"
+   "skill": "R"
   },
   {
    "id": 314,
    "seq": 314,
    "grade": "+",
-   "player_id": 12,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "R"
-  },
-  {
-   "id": 315,
-   "seq": 315,
-   "grade": "+",
-   "player_id": 16,
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
   },
   {
-   "id": 316,
-   "seq": 316,
+   "id": 315,
+   "seq": 315,
    "grade": "#",
    "player_id": null,
    "sub_out": null,
    "sub_in": null,
    "skill": "opp"
+  },
+  {
+   "id": 316,
+   "seq": 316,
+   "grade": "!",
+   "player_id": 16,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "R"
   },
   {
    "id": 317,
    "seq": 317,
    "grade": "!",
-   "player_id": 12,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "R"
-  },
-  {
-   "id": 318,
-   "seq": 318,
-   "grade": "!",
-   "player_id": 14,
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
    "skill": "D"
   },
   {
-   "id": 319,
-   "seq": 319,
+   "id": 318,
+   "seq": 318,
    "grade": "#",
-   "player_id": 12,
+   "player_id": 16,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
   },
   {
-   "id": 320,
-   "seq": 320,
+   "id": 319,
+   "seq": 319,
    "grade": "-",
    "player_id": 17,
    "sub_out": null,
@@ -2958,107 +2949,107 @@
    "skill": "B"
   },
   {
-   "id": 321,
-   "seq": 321,
+   "id": 320,
+   "seq": 320,
    "grade": "!",
-   "player_id": 13,
+   "player_id": 14,
    "sub_out": null,
    "sub_in": null,
    "skill": "R"
   },
   {
-   "id": 322,
-   "seq": 322,
+   "id": 321,
+   "seq": 321,
    "grade": null,
    "player_id": null,
-   "sub_out": 13,
+   "sub_out": 14,
    "sub_in": 18,
    "skill": "sub"
   },
   {
-   "id": 323,
-   "seq": 323,
+   "id": 322,
+   "seq": 322,
    "grade": "+",
-   "player_id": 11,
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
    "skill": "B"
   },
   {
-   "id": 324,
-   "seq": 324,
+   "id": 323,
+   "seq": 323,
    "grade": "-",
-   "player_id": 18,
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
+  },
+  {
+   "id": 324,
+   "seq": 324,
+   "grade": "=",
+   "player_id": 11,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
   },
   {
    "id": 325,
    "seq": 325,
    "grade": "=",
-   "player_id": 16,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 326,
-   "seq": 326,
-   "grade": "=",
    "player_id": null,
    "sub_out": null,
    "sub_in": null,
    "skill": "opp"
   },
   {
-   "id": 327,
-   "seq": 327,
+   "id": 326,
+   "seq": 326,
    "grade": "!",
-   "player_id": 16,
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
    "skill": "S"
   },
   {
-   "id": 328,
-   "seq": 328,
+   "id": 327,
+   "seq": 327,
    "grade": "=",
-   "player_id": 12,
+   "player_id": 16,
    "sub_out": null,
    "sub_in": null,
    "skill": "D"
   },
   {
-   "id": 329,
-   "seq": 329,
+   "id": 328,
+   "seq": 328,
    "grade": null,
    "player_id": null,
-   "sub_out": 11,
+   "sub_out": null,
    "sub_in": 17,
    "skill": "lib"
   },
   {
-   "id": 330,
-   "seq": 330,
+   "id": 329,
+   "seq": 329,
    "grade": "-",
-   "player_id": 12,
+   "player_id": 16,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
   },
   {
-   "id": 331,
-   "seq": 331,
+   "id": 330,
+   "seq": 330,
    "grade": "#",
-   "player_id": 14,
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
    "skill": "R"
   },
   {
-   "id": 332,
-   "seq": 332,
+   "id": 331,
+   "seq": 331,
    "grade": "#",
    "player_id": 17,
    "sub_out": null,
@@ -3066,35 +3057,35 @@
    "skill": "A"
   },
   {
-   "id": 333,
-   "seq": 333,
+   "id": 332,
+   "seq": 332,
    "grade": "=",
-   "player_id": 14,
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
    "skill": "S"
   },
   {
-   "id": 334,
-   "seq": 334,
+   "id": 333,
+   "seq": 333,
    "grade": "#",
-   "player_id": 18,
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
   },
   {
-   "id": 335,
-   "seq": 335,
+   "id": 334,
+   "seq": 334,
    "grade": "!",
-   "player_id": 12,
+   "player_id": 16,
    "sub_out": null,
    "sub_in": null,
    "skill": "S"
   },
   {
-   "id": 336,
-   "seq": 336,
+   "id": 335,
+   "seq": 335,
    "grade": "+",
    "player_id": 17,
    "sub_out": null,
@@ -3102,8 +3093,8 @@
    "skill": "A"
   },
   {
-   "id": 337,
-   "seq": 337,
+   "id": 336,
+   "seq": 336,
    "grade": "#",
    "player_id": 18,
    "sub_out": null,
@@ -3111,8 +3102,8 @@
    "skill": "D"
   },
   {
-   "id": 338,
-   "seq": 338,
+   "id": 337,
+   "seq": 337,
    "grade": "#",
    "player_id": null,
    "sub_out": null,
@@ -3120,9 +3111,18 @@
    "skill": "opp"
   },
   {
+   "id": 338,
+   "seq": 338,
+   "grade": "/",
+   "player_id": 13,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
    "id": 339,
    "seq": 339,
-   "grade": "/",
+   "grade": "!",
    "player_id": 18,
    "sub_out": null,
    "sub_in": null,
@@ -3131,8 +3131,8 @@
   {
    "id": 340,
    "seq": 340,
-   "grade": "!",
-   "player_id": 18,
+   "grade": "#",
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -3141,41 +3141,32 @@
    "id": 341,
    "seq": 341,
    "grade": "#",
-   "player_id": 18,
+   "player_id": null,
    "sub_out": null,
    "sub_in": null,
-   "skill": "A"
+   "skill": "opp"
   },
   {
    "id": 342,
    "seq": 342,
    "grade": "#",
-   "player_id": null,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "opp"
-  },
-  {
-   "id": 343,
-   "seq": 343,
-   "grade": "#",
-   "player_id": 16,
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
   },
   {
-   "id": 344,
-   "seq": 344,
+   "id": 343,
+   "seq": 343,
    "grade": "+",
-   "player_id": 11,
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
    "skill": "S"
   },
   {
-   "id": 345,
-   "seq": 345,
+   "id": 344,
+   "seq": 344,
    "grade": "=",
    "player_id": null,
    "sub_out": null,
@@ -3183,17 +3174,17 @@
    "skill": "opp"
   },
   {
-   "id": 346,
-   "seq": 346,
+   "id": 345,
+   "seq": 345,
    "grade": "+",
-   "player_id": 11,
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
    "skill": "S"
   },
   {
-   "id": 347,
-   "seq": 347,
+   "id": 346,
+   "seq": 346,
    "grade": "#",
    "player_id": null,
    "sub_out": null,
@@ -3201,44 +3192,44 @@
    "skill": "opp"
   },
   {
-   "id": 348,
-   "seq": 348,
+   "id": 347,
+   "seq": 347,
    "grade": "+",
-   "player_id": 18,
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
   },
   {
-   "id": 349,
-   "seq": 349,
+   "id": 348,
+   "seq": 348,
    "grade": "/",
-   "player_id": 16,
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
   },
   {
-   "id": 350,
-   "seq": 350,
+   "id": 349,
+   "seq": 349,
    "grade": "!",
-   "player_id": 18,
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
    "skill": "D"
   },
   {
-   "id": 351,
-   "seq": 351,
+   "id": 350,
+   "seq": 350,
    "grade": "=",
-   "player_id": 16,
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
   },
   {
-   "id": 352,
-   "seq": 352,
+   "id": 351,
+   "seq": 351,
    "grade": "+",
    "player_id": 17,
    "sub_out": null,
@@ -3246,10 +3237,19 @@
    "skill": "E"
   },
   {
-   "id": 353,
-   "seq": 353,
+   "id": 352,
+   "seq": 352,
    "grade": "-",
    "player_id": 18,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 353,
+   "seq": 353,
+   "grade": "!",
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -3258,23 +3258,14 @@
    "id": 354,
    "seq": 354,
    "grade": "!",
-   "player_id": 14,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 355,
-   "seq": 355,
-   "grade": "!",
-   "player_id": 11,
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
    "skill": "R"
   },
   {
-   "id": 356,
-   "seq": 356,
+   "id": 355,
+   "seq": 355,
    "grade": "=",
    "player_id": null,
    "sub_out": null,
@@ -3282,10 +3273,19 @@
    "skill": "opp"
   },
   {
+   "id": 356,
+   "seq": 356,
+   "grade": "#",
+   "player_id": 13,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "S"
+  },
+  {
    "id": 357,
    "seq": 357,
-   "grade": "#",
-   "player_id": 18,
+   "grade": "!",
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
    "skill": "S"
@@ -3293,17 +3293,17 @@
   {
    "id": 358,
    "seq": 358,
-   "grade": "!",
-   "player_id": 18,
+   "grade": "+",
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
-   "skill": "S"
+   "skill": "A"
   },
   {
    "id": 359,
    "seq": 359,
-   "grade": "+",
-   "player_id": 18,
+   "grade": "!",
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -3311,33 +3311,24 @@
   {
    "id": 360,
    "seq": 360,
-   "grade": "!",
-   "player_id": 16,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 361,
-   "seq": 361,
    "grade": "#",
-   "player_id": 16,
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
    "skill": "B"
   },
   {
-   "id": 362,
-   "seq": 362,
+   "id": 361,
+   "seq": 361,
    "grade": "=",
-   "player_id": 18,
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
    "skill": "S"
   },
   {
-   "id": 363,
-   "seq": 363,
+   "id": 362,
+   "seq": 362,
    "grade": "=",
    "player_id": null,
    "sub_out": null,
@@ -3345,10 +3336,19 @@
    "skill": "opp"
   },
   {
+   "id": 363,
+   "seq": 363,
+   "grade": "#",
+   "player_id": 11,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "S"
+  },
+  {
    "id": 364,
    "seq": 364,
    "grade": "#",
-   "player_id": 16,
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
    "skill": "S"
@@ -3356,51 +3356,42 @@
   {
    "id": 365,
    "seq": 365,
-   "grade": "#",
-   "player_id": 16,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "S"
-  },
-  {
-   "id": 366,
-   "seq": 366,
    "grade": null,
    "player_id": null,
-   "sub_out": 11,
+   "sub_out": 12,
    "sub_in": 18,
    "skill": "sub"
   },
   {
-   "id": 367,
-   "seq": 367,
+   "id": 366,
+   "seq": 366,
    "grade": "-",
-   "player_id": 14,
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
    "skill": "D"
   },
   {
-   "id": 368,
-   "seq": 368,
+   "id": 367,
+   "seq": 367,
    "grade": "#",
-   "player_id": 16,
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
   },
   {
-   "id": 369,
-   "seq": 369,
+   "id": 368,
+   "seq": 368,
    "grade": "!",
-   "player_id": 16,
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
    "skill": "S"
   },
   {
-   "id": 370,
-   "seq": 370,
+   "id": 369,
+   "seq": 369,
    "grade": "=",
    "player_id": null,
    "sub_out": null,
@@ -3408,37 +3399,46 @@
    "skill": "opp"
   },
   {
-   "id": 371,
-   "seq": 371,
+   "id": 370,
+   "seq": 370,
    "grade": "-",
-   "player_id": 16,
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
    "skill": "S"
   },
   {
-   "id": 372,
-   "seq": 372,
+   "id": 371,
+   "seq": 371,
    "grade": "#",
-   "player_id": 18,
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
   },
   {
-   "id": 373,
-   "seq": 373,
+   "id": 372,
+   "seq": 372,
    "grade": "!",
-   "player_id": 12,
+   "player_id": 16,
    "sub_out": null,
    "sub_in": null,
    "skill": "B"
   },
   {
+   "id": 373,
+   "seq": 373,
+   "grade": "#",
+   "player_id": 17,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "R"
+  },
+  {
    "id": 374,
    "seq": 374,
    "grade": "#",
-   "player_id": 17,
+   "player_id": 18,
    "sub_out": null,
    "sub_in": null,
    "skill": "R"
@@ -3446,51 +3446,42 @@
   {
    "id": 375,
    "seq": 375,
-   "grade": "#",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "R"
-  },
-  {
-   "id": 376,
-   "seq": 376,
    "grade": "!",
    "player_id": 18,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
+  },
+  {
+   "id": 376,
+   "seq": 376,
+   "grade": "+",
+   "player_id": 16,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "E"
   },
   {
    "id": 377,
    "seq": 377,
    "grade": "+",
-   "player_id": 12,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "E"
-  },
-  {
-   "id": 378,
-   "seq": 378,
-   "grade": "+",
-   "player_id": 18,
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
    "skill": "R"
   },
   {
-   "id": 379,
-   "seq": 379,
+   "id": 378,
+   "seq": 378,
    "grade": "!",
-   "player_id": 14,
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
    "skill": "B"
   },
   {
-   "id": 380,
-   "seq": 380,
+   "id": 379,
+   "seq": 379,
    "grade": "#",
    "player_id": 18,
    "sub_out": null,
@@ -3498,8 +3489,8 @@
    "skill": "R"
   },
   {
-   "id": 381,
-   "seq": 381,
+   "id": 380,
+   "seq": 380,
    "grade": "#",
    "player_id": 17,
    "sub_out": null,
@@ -3507,17 +3498,17 @@
    "skill": "A"
   },
   {
-   "id": 382,
-   "seq": 382,
+   "id": 381,
+   "seq": 381,
    "grade": "!",
-   "player_id": 16,
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
    "skill": "S"
   },
   {
-   "id": 383,
-   "seq": 383,
+   "id": 382,
+   "seq": 382,
    "grade": "!",
    "player_id": 17,
    "sub_out": null,
@@ -3525,8 +3516,8 @@
    "skill": "A"
   },
   {
-   "id": 384,
-   "seq": 384,
+   "id": 383,
+   "seq": 383,
    "grade": "+",
    "player_id": 17,
    "sub_out": null,
@@ -3534,17 +3525,17 @@
    "skill": "R"
   },
   {
-   "id": 385,
-   "seq": 385,
+   "id": 384,
+   "seq": 384,
    "grade": "=",
-   "player_id": 16,
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
   },
   {
-   "id": 386,
-   "seq": 386,
+   "id": 385,
+   "seq": 385,
    "grade": null,
    "player_id": null,
    "sub_out": 18,
@@ -3552,19 +3543,28 @@
    "skill": "sub"
   },
   {
-   "id": 387,
-   "seq": 387,
+   "id": 386,
+   "seq": 386,
    "grade": "#",
-   "player_id": 16,
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
    "skill": "B"
   },
   {
+   "id": 387,
+   "seq": 387,
+   "grade": "#",
+   "player_id": 15,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "S"
+  },
+  {
    "id": 388,
    "seq": 388,
-   "grade": "#",
-   "player_id": 14,
+   "grade": "+",
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
    "skill": "S"
@@ -3573,23 +3573,14 @@
    "id": 389,
    "seq": 389,
    "grade": "+",
-   "player_id": 14,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "S"
-  },
-  {
-   "id": 390,
-   "seq": 390,
-   "grade": "+",
-   "player_id": 12,
+   "player_id": 16,
    "sub_out": null,
    "sub_in": null,
    "skill": "D"
   },
   {
-   "id": 391,
-   "seq": 391,
+   "id": 390,
+   "seq": 390,
    "grade": "!",
    "player_id": 18,
    "sub_out": null,
@@ -3597,17 +3588,17 @@
    "skill": "A"
   },
   {
-   "id": 392,
-   "seq": 392,
+   "id": 391,
+   "seq": 391,
    "grade": "+",
-   "player_id": 18,
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
    "skill": "R"
   },
   {
-   "id": 393,
-   "seq": 393,
+   "id": 392,
+   "seq": 392,
    "grade": "!",
    "player_id": 17,
    "sub_out": null,
@@ -3615,18 +3606,27 @@
    "skill": "R"
   },
   {
-   "id": 394,
-   "seq": 394,
+   "id": 393,
+   "seq": 393,
    "grade": "-",
-   "player_id": 16,
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
    "skill": "B"
   },
   {
+   "id": 394,
+   "seq": 394,
+   "grade": "-",
+   "player_id": 17,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
    "id": 395,
    "seq": 395,
-   "grade": "-",
+   "grade": "#",
    "player_id": 17,
    "sub_out": null,
    "sub_in": null,
@@ -3636,16 +3636,16 @@
    "id": 396,
    "seq": 396,
    "grade": "#",
-   "player_id": 17,
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
-   "skill": "A"
+   "skill": "S"
   },
   {
    "id": 397,
    "seq": 397,
    "grade": "#",
-   "player_id": 14,
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
    "skill": "S"
@@ -3653,8 +3653,8 @@
   {
    "id": 398,
    "seq": 398,
-   "grade": "#",
-   "player_id": 14,
+   "grade": "!",
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
    "skill": "S"
@@ -3662,11 +3662,11 @@
   {
    "id": 399,
    "seq": 399,
-   "grade": "!",
-   "player_id": 14,
+   "grade": "=",
+   "player_id": 17,
    "sub_out": null,
    "sub_in": null,
-   "skill": "S"
+   "skill": "E"
   },
   {
    "id": 400,
@@ -3675,20 +3675,11 @@
    "player_id": 17,
    "sub_out": null,
    "sub_in": null,
-   "skill": "E"
+   "skill": "A"
   },
   {
    "id": 401,
    "seq": 401,
-   "grade": "=",
-   "player_id": 17,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 402,
-   "seq": 402,
    "grade": "=",
    "player_id": null,
    "sub_out": null,
@@ -3696,19 +3687,28 @@
    "skill": "opp"
   },
   {
-   "id": 403,
-   "seq": 403,
-   "grade": "=",
+   "id": 402,
+   "seq": 402,
+   "grade": "#",
    "player_id": 16,
    "sub_out": null,
    "sub_in": null,
-   "skill": "R"
+   "skill": "S"
+  },
+  {
+   "id": 403,
+   "seq": 403,
+   "grade": "-",
+   "player_id": 11,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "E"
   },
   {
    "id": 404,
    "seq": 404,
-   "grade": "+",
-   "player_id": 15,
+   "grade": "!",
+   "player_id": 16,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -3716,53 +3716,53 @@
   {
    "id": 405,
    "seq": 405,
-   "grade": "#",
-   "player_id": 17,
+   "grade": null,
+   "player_id": null,
    "sub_out": null,
    "sub_in": null,
-   "skill": "A"
+   "skill": "lib"
   },
   {
    "id": 406,
    "seq": 406,
-   "grade": "+",
+   "grade": "#",
    "player_id": 13,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "S"
-  },
-  {
-   "id": 407,
-   "seq": 407,
-   "grade": "=",
-   "player_id": null,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "opp"
-  },
-  {
-   "id": 408,
-   "seq": 408,
-   "grade": "!",
-   "player_id": 13,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "S"
-  },
-  {
-   "id": 409,
-   "seq": 409,
-   "grade": "+",
-   "player_id": 17,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
   },
   {
+   "id": 407,
+   "seq": 407,
+   "grade": "+",
+   "player_id": 12,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "B"
+  },
+  {
+   "id": 408,
+   "seq": 408,
+   "grade": "+",
+   "player_id": 11,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "E"
+  },
+  {
+   "id": 409,
+   "seq": 409,
+   "grade": "!",
+   "player_id": 11,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
    "id": 410,
    "seq": 410,
-   "grade": "+",
-   "player_id": 15,
+   "grade": "=",
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
@@ -3770,24 +3770,6 @@
   {
    "id": 411,
    "seq": 411,
-   "grade": "!",
-   "player_id": 15,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 412,
-   "seq": 412,
-   "grade": "=",
-   "player_id": 13,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "E"
-  },
-  {
-   "id": 413,
-   "seq": 413,
    "grade": "#",
    "player_id": 17,
    "sub_out": null,
@@ -3795,10 +3777,28 @@
    "skill": "E"
   },
   {
+   "id": 412,
+   "seq": 412,
+   "grade": "+",
+   "player_id": 12,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "E"
+  },
+  {
+   "id": 413,
+   "seq": 413,
+   "grade": "+",
+   "player_id": 16,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "E"
+  },
+  {
    "id": 414,
    "seq": 414,
-   "grade": "+",
-   "player_id": 13,
+   "grade": "#",
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
@@ -3806,29 +3806,29 @@
   {
    "id": 415,
    "seq": 415,
-   "grade": "+",
-   "player_id": 14,
+   "grade": "#",
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
-   "skill": "E"
+   "skill": "R"
   },
   {
    "id": 416,
    "seq": 416,
-   "grade": "#",
-   "player_id": 13,
+   "grade": null,
+   "player_id": null,
    "sub_out": null,
-   "sub_in": null,
-   "skill": "E"
+   "sub_in": 17,
+   "skill": "lib"
   },
   {
    "id": 417,
    "seq": 417,
-   "grade": "#",
-   "player_id": 15,
+   "grade": "+",
+   "player_id": 17,
    "sub_out": null,
    "sub_in": null,
-   "skill": "R"
+   "skill": "E"
   },
   {
    "id": 418,
@@ -3843,41 +3843,14 @@
    "id": 419,
    "seq": 419,
    "grade": "+",
-   "player_id": 17,
+   "player_id": 14,
    "sub_out": null,
    "sub_in": null,
-   "skill": "E"
+   "skill": "D"
   },
   {
    "id": 420,
    "seq": 420,
-   "grade": null,
-   "player_id": null,
-   "sub_out": 15,
-   "sub_in": 18,
-   "skill": "sub"
-  },
-  {
-   "id": 421,
-   "seq": 421,
-   "grade": "#",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 422,
-   "seq": 422,
-   "grade": "=",
-   "player_id": 11,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "S"
-  },
-  {
-   "id": 423,
-   "seq": 423,
    "grade": "#",
    "player_id": 17,
    "sub_out": null,
@@ -3885,8 +3858,8 @@
    "skill": "E"
   },
   {
-   "id": 424,
-   "seq": 424,
+   "id": 421,
+   "seq": 421,
    "grade": "=",
    "player_id": 17,
    "sub_out": null,
@@ -3894,37 +3867,64 @@
    "skill": "D"
   },
   {
-   "id": 425,
-   "seq": 425,
+   "id": 422,
+   "seq": 422,
    "grade": null,
    "player_id": null,
    "sub_out": 14,
-   "sub_in": 18,
-   "skill": "sub"
+   "sub_in": 17,
+   "skill": "lib"
   },
   {
-   "id": 426,
-   "seq": 426,
+   "id": 423,
+   "seq": 423,
    "grade": "#",
-   "player_id": 17,
+   "player_id": null,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "opp"
+  },
+  {
+   "id": 424,
+   "seq": 424,
+   "grade": "!",
+   "player_id": 15,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "E"
+  },
+  {
+   "id": 425,
+   "seq": 425,
+   "grade": "!",
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
    "skill": "B"
   },
   {
-   "id": 427,
-   "seq": 427,
-   "grade": "+",
-   "player_id": 18,
+   "id": 426,
+   "seq": 426,
+   "grade": null,
+   "player_id": null,
    "sub_out": null,
    "sub_in": null,
-   "skill": "S"
+   "skill": "lib"
+  },
+  {
+   "id": 427,
+   "seq": 427,
+   "grade": "#",
+   "player_id": null,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "opp"
   },
   {
    "id": 428,
    "seq": 428,
-   "grade": "!",
-   "player_id": 13,
+   "grade": "+",
+   "player_id": 17,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
@@ -3932,7 +3932,7 @@
   {
    "id": 429,
    "seq": 429,
-   "grade": "!",
+   "grade": "#",
    "player_id": 17,
    "sub_out": null,
    "sub_in": null,
@@ -3941,17 +3941,17 @@
   {
    "id": 430,
    "seq": 430,
-   "grade": "+",
-   "player_id": 16,
+   "grade": "-",
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
-   "skill": "R"
+   "skill": "E"
   },
   {
    "id": 431,
    "seq": 431,
-   "grade": "-",
-   "player_id": 18,
+   "grade": "#",
+   "player_id": 17,
    "sub_out": null,
    "sub_in": null,
    "skill": "R"
@@ -3959,44 +3959,44 @@
   {
    "id": 432,
    "seq": 432,
-   "grade": "=",
-   "player_id": null,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "opp"
-  },
-  {
-   "id": 433,
-   "seq": 433,
-   "grade": "-",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "S"
-  },
-  {
-   "id": 434,
-   "seq": 434,
-   "grade": "!",
-   "player_id": 17,
+   "grade": "+",
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
    "skill": "R"
   },
   {
-   "id": 435,
-   "seq": 435,
-   "grade": "#",
-   "player_id": null,
+   "id": 433,
+   "seq": 433,
+   "grade": "!",
+   "player_id": 16,
    "sub_out": null,
    "sub_in": null,
-   "skill": "opp"
+   "skill": "B"
+  },
+  {
+   "id": 434,
+   "seq": 434,
+   "grade": "+",
+   "player_id": 11,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "B"
+  },
+  {
+   "id": 435,
+   "seq": 435,
+   "grade": "+",
+   "player_id": 12,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "D"
   },
   {
    "id": 436,
    "seq": 436,
-   "grade": "+",
-   "player_id": 12,
+   "grade": "!",
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
    "skill": "R"
@@ -4004,44 +4004,44 @@
   {
    "id": 437,
    "seq": 437,
-   "grade": "!",
-   "player_id": 13,
+   "grade": "-",
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
-   "skill": "B"
+   "skill": "E"
   },
   {
    "id": 438,
    "seq": 438,
-   "grade": "+",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "B"
-  },
-  {
-   "id": 439,
-   "seq": 439,
-   "grade": "+",
-   "player_id": 18,
+   "grade": "-",
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
    "skill": "D"
   },
   {
-   "id": 440,
-   "seq": 440,
+   "id": 439,
+   "seq": 439,
    "grade": "!",
-   "player_id": 16,
+   "player_id": 14,
    "sub_out": null,
    "sub_in": null,
-   "skill": "R"
+   "skill": "E"
+  },
+  {
+   "id": 440,
+   "seq": 440,
+   "grade": "+",
+   "player_id": 12,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
   },
   {
    "id": 441,
    "seq": 441,
-   "grade": "-",
-   "player_id": 18,
+   "grade": "!",
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
@@ -4049,15 +4049,24 @@
   {
    "id": 442,
    "seq": 442,
-   "grade": "-",
-   "player_id": 12,
+   "grade": "#",
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
-   "skill": "D"
+   "skill": "A"
   },
   {
    "id": 443,
    "seq": 443,
+   "grade": "-",
+   "player_id": 13,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "S"
+  },
+  {
+   "id": 444,
+   "seq": 444,
    "grade": "!",
    "player_id": 11,
    "sub_out": null,
@@ -4065,58 +4074,49 @@
    "skill": "E"
   },
   {
-   "id": 444,
-   "seq": 444,
-   "grade": "+",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
    "id": 445,
    "seq": 445,
-   "grade": "!",
-   "player_id": 16,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "E"
-  },
-  {
-   "id": 446,
-   "seq": 446,
-   "grade": "#",
-   "player_id": 16,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 447,
-   "seq": 447,
-   "grade": "-",
-   "player_id": 16,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "S"
-  },
-  {
-   "id": 448,
-   "seq": 448,
-   "grade": "!",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "E"
-  },
-  {
-   "id": 449,
-   "seq": 449,
    "grade": "=",
    "player_id": null,
    "sub_out": null,
    "sub_in": null,
    "skill": "opp"
+  },
+  {
+   "id": 446,
+   "seq": 446,
+   "grade": "+",
+   "player_id": 13,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "S"
+  },
+  {
+   "id": 447,
+   "seq": 447,
+   "grade": "!",
+   "player_id": 17,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "D"
+  },
+  {
+   "id": 448,
+   "seq": 448,
+   "grade": "=",
+   "player_id": 11,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "D"
+  },
+  {
+   "id": 449,
+   "seq": 449,
+   "grade": "=",
+   "player_id": 12,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "D"
   },
   {
    "id": 450,
@@ -4125,58 +4125,58 @@
    "player_id": 16,
    "sub_out": null,
    "sub_in": null,
-   "skill": "S"
+   "skill": "E"
   },
   {
    "id": 451,
    "seq": 451,
-   "grade": "!",
-   "player_id": 17,
+   "grade": "+",
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
-   "skill": "D"
+   "skill": "E"
   },
   {
    "id": 452,
    "seq": 452,
-   "grade": "=",
-   "player_id": 18,
+   "grade": "+",
+   "player_id": 16,
    "sub_out": null,
    "sub_in": null,
-   "skill": "D"
+   "skill": "A"
   },
   {
    "id": 453,
    "seq": 453,
-   "grade": "=",
-   "player_id": 18,
+   "grade": "+",
+   "player_id": 16,
    "sub_out": null,
    "sub_in": null,
-   "skill": "D"
+   "skill": "B"
   },
   {
    "id": 454,
    "seq": 454,
-   "grade": "+",
+   "grade": "!",
    "player_id": 13,
    "sub_out": null,
    "sub_in": null,
-   "skill": "E"
+   "skill": "A"
   },
   {
    "id": 455,
    "seq": 455,
-   "grade": "+",
-   "player_id": 18,
+   "grade": "=",
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
-   "skill": "E"
+   "skill": "A"
   },
   {
    "id": 456,
    "seq": 456,
-   "grade": "+",
-   "player_id": 13,
+   "grade": "=",
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -4184,26 +4184,26 @@
   {
    "id": 457,
    "seq": 457,
-   "grade": "+",
-   "player_id": 13,
+   "grade": "#",
+   "player_id": 16,
    "sub_out": null,
    "sub_in": null,
-   "skill": "B"
+   "skill": "E"
   },
   {
    "id": 458,
    "seq": 458,
-   "grade": "!",
-   "player_id": 16,
+   "grade": "+",
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
-   "skill": "A"
+   "skill": "E"
   },
   {
    "id": 459,
    "seq": 459,
-   "grade": "=",
-   "player_id": 12,
+   "grade": "#",
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -4211,62 +4211,62 @@
   {
    "id": 460,
    "seq": 460,
-   "grade": "=",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 461,
-   "seq": 461,
-   "grade": "#",
-   "player_id": 13,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "E"
-  },
-  {
-   "id": 462,
-   "seq": 462,
    "grade": "+",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "E"
-  },
-  {
-   "id": 463,
-   "seq": 463,
-   "grade": "#",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 464,
-   "seq": 464,
-   "grade": "+",
-   "player_id": 18,
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
    "skill": "S"
   },
   {
-   "id": 465,
-   "seq": 465,
+   "id": 461,
+   "seq": 461,
    "grade": "!",
-   "player_id": 16,
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
   },
   {
+   "id": 462,
+   "seq": 462,
+   "grade": "#",
+   "player_id": 12,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 463,
+   "seq": 463,
+   "grade": "!",
+   "player_id": 11,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "S"
+  },
+  {
+   "id": 464,
+   "seq": 464,
+   "grade": "#",
+   "player_id": 16,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "E"
+  },
+  {
+   "id": 465,
+   "seq": 465,
+   "grade": "#",
+   "player_id": 17,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "R"
+  },
+  {
    "id": 466,
    "seq": 466,
-   "grade": "#",
-   "player_id": 18,
+   "grade": "!",
+   "player_id": 17,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -4274,17 +4274,17 @@
   {
    "id": 467,
    "seq": 467,
-   "grade": "!",
-   "player_id": 18,
+   "grade": "#",
+   "player_id": 17,
    "sub_out": null,
    "sub_in": null,
-   "skill": "S"
+   "skill": "E"
   },
   {
    "id": 468,
    "seq": 468,
-   "grade": "#",
-   "player_id": 13,
+   "grade": "-",
+   "player_id": 17,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
@@ -4293,24 +4293,24 @@
    "id": 469,
    "seq": 469,
    "grade": "#",
-   "player_id": 17,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "R"
-  },
-  {
-   "id": 470,
-   "seq": 470,
-   "grade": "!",
-   "player_id": 17,
+   "player_id": 16,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
   },
   {
+   "id": 470,
+   "seq": 470,
+   "grade": "+",
+   "player_id": 11,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "S"
+  },
+  {
    "id": 471,
    "seq": 471,
-   "grade": "#",
+   "grade": "+",
    "player_id": 17,
    "sub_out": null,
    "sub_in": null,
@@ -4319,17 +4319,17 @@
   {
    "id": 472,
    "seq": 472,
-   "grade": "-",
+   "grade": "=",
    "player_id": 17,
    "sub_out": null,
    "sub_in": null,
-   "skill": "E"
+   "skill": "A"
   },
   {
    "id": 473,
    "seq": 473,
-   "grade": "#",
-   "player_id": 13,
+   "grade": "+",
+   "player_id": 14,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -4337,26 +4337,26 @@
   {
    "id": 474,
    "seq": 474,
-   "grade": "+",
-   "player_id": 18,
+   "grade": "#",
+   "player_id": 16,
    "sub_out": null,
    "sub_in": null,
-   "skill": "S"
+   "skill": "R"
   },
   {
    "id": 475,
    "seq": 475,
-   "grade": "+",
-   "player_id": 17,
+   "grade": "/",
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
-   "skill": "E"
+   "skill": "A"
   },
   {
    "id": 476,
    "seq": 476,
-   "grade": "=",
-   "player_id": 17,
+   "grade": "#",
+   "player_id": 16,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -4364,60 +4364,24 @@
   {
    "id": 477,
    "seq": 477,
-   "grade": "+",
-   "player_id": 11,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 478,
-   "seq": 478,
-   "grade": "#",
-   "player_id": 13,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "R"
-  },
-  {
-   "id": 479,
-   "seq": 479,
-   "grade": "/",
-   "player_id": 12,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 480,
-   "seq": 480,
-   "grade": "#",
-   "player_id": 13,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 481,
-   "seq": 481,
    "grade": "-",
-   "player_id": 12,
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
    "skill": "S"
   },
   {
-   "id": 482,
-   "seq": 482,
+   "id": 478,
+   "seq": 478,
    "grade": "!",
-   "player_id": 11,
+   "player_id": 14,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
   },
   {
-   "id": 483,
-   "seq": 483,
+   "id": 479,
+   "seq": 479,
    "grade": "#",
    "player_id": 17,
    "sub_out": null,
@@ -4425,28 +4389,64 @@
    "skill": "B"
   },
   {
-   "id": 484,
-   "seq": 484,
+   "id": 480,
+   "seq": 480,
    "grade": "!",
-   "player_id": 12,
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
    "skill": "S"
   },
   {
-   "id": 485,
-   "seq": 485,
+   "id": 481,
+   "seq": 481,
    "grade": "!",
-   "player_id": 18,
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
   },
   {
+   "id": 482,
+   "seq": 482,
+   "grade": "!",
+   "player_id": 13,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 483,
+   "seq": 483,
+   "grade": "+",
+   "player_id": 12,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "D"
+  },
+  {
+   "id": 484,
+   "seq": 484,
+   "grade": "+",
+   "player_id": 15,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 485,
+   "seq": 485,
+   "grade": "+",
+   "player_id": 15,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "B"
+  },
+  {
    "id": 486,
    "seq": 486,
-   "grade": "!",
-   "player_id": 16,
+   "grade": "#",
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -4454,69 +4454,33 @@
   {
    "id": 487,
    "seq": 487,
-   "grade": "+",
-   "player_id": 18,
+   "grade": "#",
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
-   "skill": "D"
+   "skill": "S"
   },
   {
    "id": 488,
    "seq": 488,
-   "grade": "+",
-   "player_id": 12,
+   "grade": "#",
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
-   "skill": "A"
+   "skill": "S"
   },
   {
    "id": 489,
    "seq": 489,
-   "grade": "+",
-   "player_id": 12,
+   "grade": "!",
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
-   "skill": "B"
+   "skill": "S"
   },
   {
    "id": 490,
    "seq": 490,
-   "grade": "#",
-   "player_id": 16,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 491,
-   "seq": 491,
-   "grade": "#",
-   "player_id": 12,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "S"
-  },
-  {
-   "id": 492,
-   "seq": 492,
-   "grade": "#",
-   "player_id": 12,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "S"
-  },
-  {
-   "id": 493,
-   "seq": 493,
-   "grade": "!",
-   "player_id": 12,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "S"
-  },
-  {
-   "id": 494,
-   "seq": 494,
    "grade": "=",
    "player_id": 17,
    "sub_out": null,
@@ -4524,35 +4488,35 @@
    "skill": "R"
   },
   {
-   "id": 495,
-   "seq": 495,
+   "id": 491,
+   "seq": 491,
    "grade": "-",
-   "player_id": 12,
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
    "skill": "R"
   },
   {
-   "id": 496,
-   "seq": 496,
+   "id": 492,
+   "seq": 492,
    "grade": "=",
-   "player_id": 18,
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
    "skill": "D"
   },
   {
-   "id": 497,
-   "seq": 497,
+   "id": 493,
+   "seq": 493,
    "grade": "-",
-   "player_id": 18,
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
   },
   {
-   "id": 498,
-   "seq": 498,
+   "id": 494,
+   "seq": 494,
    "grade": "!",
    "player_id": 17,
    "sub_out": null,
@@ -4560,8 +4524,8 @@
    "skill": "E"
   },
   {
-   "id": 499,
-   "seq": 499,
+   "id": 495,
+   "seq": 495,
    "grade": "!",
    "player_id": 17,
    "sub_out": null,
@@ -4569,8 +4533,8 @@
    "skill": "E"
   },
   {
-   "id": 500,
-   "seq": 500,
+   "id": 496,
+   "seq": 496,
    "grade": "=",
    "player_id": null,
    "sub_out": null,
@@ -4578,91 +4542,127 @@
    "skill": "opp"
   },
   {
-   "id": 501,
-   "seq": 501,
+   "id": 497,
+   "seq": 497,
    "grade": "+",
-   "player_id": 13,
+   "player_id": 16,
    "sub_out": null,
    "sub_in": null,
    "skill": "S"
   },
   {
-   "id": 502,
-   "seq": 502,
+   "id": 498,
+   "seq": 498,
    "grade": "=",
-   "player_id": 16,
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
    "skill": "D"
   },
   {
-   "id": 503,
-   "seq": 503,
+   "id": 499,
+   "seq": 499,
    "grade": "!",
-   "player_id": 12,
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
    "skill": "D"
   },
   {
-   "id": 504,
-   "seq": 504,
+   "id": 500,
+   "seq": 500,
    "grade": "+",
-   "player_id": 16,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "R"
-  },
-  {
-   "id": 505,
-   "seq": 505,
-   "grade": "!",
    "player_id": 13,
    "sub_out": null,
    "sub_in": null,
    "skill": "R"
   },
   {
-   "id": 506,
-   "seq": 506,
+   "id": 501,
+   "seq": 501,
+   "grade": "!",
+   "player_id": 16,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "R"
+  },
+  {
+   "id": 502,
+   "seq": 502,
    "grade": "-",
-   "player_id": 18,
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
   },
   {
-   "id": 507,
-   "seq": 507,
+   "id": 503,
+   "seq": 503,
    "grade": null,
    "player_id": null,
-   "sub_out": 16,
+   "sub_out": 13,
    "sub_in": 18,
    "skill": "sub"
   },
   {
-   "id": 508,
-   "seq": 508,
+   "id": 504,
+   "seq": 504,
    "grade": "#",
-   "player_id": 18,
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
   },
   {
-   "id": 509,
-   "seq": 509,
+   "id": 505,
+   "seq": 505,
    "grade": null,
    "player_id": null,
-   "sub_out": 12,
+   "sub_out": 11,
    "sub_in": 17,
    "skill": "lib"
   },
   {
+   "id": 506,
+   "seq": 506,
+   "grade": "=",
+   "player_id": 15,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "E"
+  },
+  {
+   "id": 507,
+   "seq": 507,
+   "grade": "!",
+   "player_id": 12,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 508,
+   "seq": 508,
+   "grade": "!",
+   "player_id": 17,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "B"
+  },
+  {
+   "id": 509,
+   "seq": 509,
+   "grade": "+",
+   "player_id": 15,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
    "id": 510,
    "seq": 510,
-   "grade": "#",
-   "player_id": 18,
+   "grade": "-",
+   "player_id": 16,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -4670,11 +4670,11 @@
   {
    "id": 511,
    "seq": 511,
-   "grade": "#",
-   "player_id": 11,
+   "grade": "=",
+   "player_id": 17,
    "sub_out": null,
    "sub_in": null,
-   "skill": "S"
+   "skill": "A"
   },
   {
    "id": 512,
@@ -4683,16 +4683,16 @@
    "player_id": 11,
    "sub_out": null,
    "sub_in": null,
-   "skill": "S"
+   "skill": "E"
   },
   {
    "id": 513,
    "seq": 513,
    "grade": "+",
-   "player_id": 12,
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
-   "skill": "E"
+   "skill": "A"
   },
   {
    "id": 514,
@@ -4707,7 +4707,7 @@
    "id": 515,
    "seq": 515,
    "grade": "+",
-   "player_id": 11,
+   "player_id": 14,
    "sub_out": null,
    "sub_in": null,
    "skill": "S"
@@ -4715,62 +4715,62 @@
   {
    "id": 516,
    "seq": 516,
-   "grade": "-",
-   "player_id": 12,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "D"
-  },
-  {
-   "id": 517,
-   "seq": 517,
-   "grade": "-",
-   "player_id": 13,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "R"
-  },
-  {
-   "id": 518,
-   "seq": 518,
-   "grade": null,
-   "player_id": null,
-   "sub_out": 18,
-   "sub_in": 18,
-   "skill": "sub"
-  },
-  {
-   "id": 519,
-   "seq": 519,
    "grade": "!",
-   "player_id": 13,
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
   },
   {
-   "id": 520,
-   "seq": 520,
+   "id": 517,
+   "seq": 517,
    "grade": "!",
-   "player_id": 11,
+   "player_id": 18,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
   },
   {
-   "id": 521,
-   "seq": 521,
+   "id": 518,
+   "seq": 518,
    "grade": "+",
-   "player_id": 12,
+   "player_id": 17,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "R"
+  },
+  {
+   "id": 519,
+   "seq": 519,
+   "grade": "!",
+   "player_id": 14,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "R"
+  },
+  {
+   "id": 520,
+   "seq": 520,
+   "grade": "#",
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
   },
   {
+   "id": 521,
+   "seq": 521,
+   "grade": "+",
+   "player_id": 14,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "S"
+  },
+  {
    "id": 522,
    "seq": 522,
-   "grade": "-",
-   "player_id": 18,
+   "grade": "!",
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -4778,8 +4778,8 @@
   {
    "id": 523,
    "seq": 523,
-   "grade": "+",
-   "player_id": 11,
+   "grade": "=",
+   "player_id": 18,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -4787,8 +4787,8 @@
   {
    "id": 524,
    "seq": 524,
-   "grade": "!",
-   "player_id": 17,
+   "grade": "+",
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
    "skill": "R"
@@ -4796,26 +4796,26 @@
   {
    "id": 525,
    "seq": 525,
-   "grade": "#",
-   "player_id": 12,
+   "grade": "+",
+   "player_id": 18,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "R"
+  },
+  {
+   "id": 526,
+   "seq": 526,
+   "grade": "!",
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
   },
   {
-   "id": 526,
-   "seq": 526,
-   "grade": "#",
-   "player_id": null,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "opp"
-  },
-  {
    "id": 527,
    "seq": 527,
-   "grade": "+",
-   "player_id": 18,
+   "grade": "-",
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
@@ -4823,8 +4823,8 @@
   {
    "id": 528,
    "seq": 528,
-   "grade": "!",
-   "player_id": 18,
+   "grade": "#",
+   "player_id": 14,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -4833,34 +4833,34 @@
    "id": 529,
    "seq": 529,
    "grade": "+",
-   "player_id": 17,
+   "player_id": 12,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "S"
+  },
+  {
+   "id": 530,
+   "seq": 530,
+   "grade": "=",
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
   },
   {
-   "id": 530,
-   "seq": 530,
-   "grade": "!",
-   "player_id": 13,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "E"
-  },
-  {
    "id": 531,
    "seq": 531,
-   "grade": "#",
-   "player_id": null,
+   "grade": "+",
+   "player_id": 18,
    "sub_out": null,
    "sub_in": null,
-   "skill": "opp"
+   "skill": "R"
   },
   {
    "id": 532,
    "seq": 532,
-   "grade": "-",
-   "player_id": 13,
+   "grade": "=",
+   "player_id": 17,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -4869,24 +4869,24 @@
    "id": 533,
    "seq": 533,
    "grade": "+",
-   "player_id": 12,
+   "player_id": 14,
    "sub_out": null,
    "sub_in": null,
-   "skill": "B"
+   "skill": "D"
   },
   {
    "id": 534,
    "seq": 534,
-   "grade": "!",
+   "grade": "+",
    "player_id": 18,
    "sub_out": null,
    "sub_in": null,
-   "skill": "B"
+   "skill": "D"
   },
   {
    "id": 535,
    "seq": 535,
-   "grade": "-",
+   "grade": "#",
    "player_id": 12,
    "sub_out": null,
    "sub_in": null,
@@ -4895,44 +4895,44 @@
   {
    "id": 536,
    "seq": 536,
-   "grade": "!",
+   "grade": "+",
+   "player_id": 15,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 537,
+   "seq": 537,
+   "grade": "#",
+   "player_id": null,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "opp"
+  },
+  {
+   "id": 538,
+   "seq": 538,
+   "grade": "-",
+   "player_id": 15,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 539,
+   "seq": 539,
+   "grade": "#",
    "player_id": 11,
    "sub_out": null,
    "sub_in": null,
    "skill": "D"
   },
   {
-   "id": 537,
-   "seq": 537,
-   "grade": "!",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "E"
-  },
-  {
-   "id": 538,
-   "seq": 538,
-   "grade": "#",
-   "player_id": 13,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "D"
-  },
-  {
-   "id": 539,
-   "seq": 539,
-   "grade": "=",
-   "player_id": 13,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
    "id": 540,
    "seq": 540,
-   "grade": "#",
-   "player_id": 18,
+   "grade": "!",
+   "player_id": 14,
    "sub_out": null,
    "sub_in": null,
    "skill": "B"
@@ -4940,35 +4940,35 @@
   {
    "id": 541,
    "seq": 541,
-   "grade": "#",
-   "player_id": null,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "opp"
-  },
-  {
-   "id": 542,
-   "seq": 542,
-   "grade": null,
-   "player_id": null,
-   "sub_out": 13,
-   "sub_in": 18,
-   "skill": "sub"
-  },
-  {
-   "id": 543,
-   "seq": 543,
-   "grade": "-",
-   "player_id": 18,
+   "grade": "+",
+   "player_id": 17,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
   },
   {
+   "id": 542,
+   "seq": 542,
+   "grade": "!",
+   "player_id": 12,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "E"
+  },
+  {
+   "id": 543,
+   "seq": 543,
+   "grade": "!",
+   "player_id": 17,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
    "id": 544,
    "seq": 544,
-   "grade": "+",
-   "player_id": 18,
+   "grade": "#",
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -4976,42 +4976,15 @@
   {
    "id": 545,
    "seq": 545,
-   "grade": "=",
-   "player_id": 17,
+   "grade": "#",
+   "player_id": 18,
    "sub_out": null,
    "sub_in": null,
-   "skill": "A"
+   "skill": "S"
   },
   {
    "id": 546,
    "seq": 546,
-   "grade": "+",
-   "player_id": 12,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "E"
-  },
-  {
-   "id": 547,
-   "seq": 547,
-   "grade": "=",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "D"
-  },
-  {
-   "id": 548,
-   "seq": 548,
-   "grade": "=",
-   "player_id": null,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "opp"
-  },
-  {
-   "id": 549,
-   "seq": 549,
    "grade": "!",
    "player_id": 18,
    "sub_out": null,
@@ -5019,10 +4992,37 @@
    "skill": "S"
   },
   {
+   "id": 547,
+   "seq": 547,
+   "grade": "#",
+   "player_id": null,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "opp"
+  },
+  {
+   "id": 548,
+   "seq": 548,
+   "grade": "+",
+   "player_id": 16,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "E"
+  },
+  {
+   "id": 549,
+   "seq": 549,
+   "grade": "=",
+   "player_id": 14,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "E"
+  },
+  {
    "id": 550,
    "seq": 550,
    "grade": "!",
-   "player_id": 12,
+   "player_id": 17,
    "sub_out": null,
    "sub_in": null,
    "skill": "R"
@@ -5030,7 +5030,7 @@
   {
    "id": 551,
    "seq": 551,
-   "grade": "#",
+   "grade": "=",
    "player_id": null,
    "sub_out": null,
    "sub_in": null,
@@ -5039,38 +5039,38 @@
   {
    "id": 552,
    "seq": 552,
+   "grade": "!",
+   "player_id": 11,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "S"
+  },
+  {
+   "id": 553,
+   "seq": 553,
    "grade": "+",
+   "player_id": 18,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 554,
+   "seq": 554,
+   "grade": "#",
    "player_id": 17,
    "sub_out": null,
    "sub_in": null,
    "skill": "R"
   },
   {
-   "id": 553,
-   "seq": 553,
-   "grade": "#",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "R"
-  },
-  {
-   "id": 554,
-   "seq": 554,
-   "grade": "+",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
    "id": 555,
    "seq": 555,
    "grade": "+",
-   "player_id": 11,
+   "player_id": 18,
    "sub_out": null,
    "sub_in": null,
-   "skill": "A"
+   "skill": "E"
   },
   {
    "id": 556,
@@ -5079,31 +5079,31 @@
    "player_id": 18,
    "sub_out": null,
    "sub_in": null,
-   "skill": "D"
+   "skill": "A"
   },
   {
    "id": 557,
    "seq": 557,
    "grade": "=",
+   "player_id": 11,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "S"
+  },
+  {
+   "id": 558,
+   "seq": 558,
+   "grade": "#",
    "player_id": null,
    "sub_out": null,
    "sub_in": null,
    "skill": "opp"
   },
   {
-   "id": 558,
-   "seq": 558,
-   "grade": "!",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "S"
-  },
-  {
    "id": 559,
    "seq": 559,
-   "grade": "+",
-   "player_id": 18,
+   "grade": "#",
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -5111,26 +5111,26 @@
   {
    "id": 560,
    "seq": 560,
-   "grade": "#",
-   "player_id": 17,
+   "grade": "+",
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
-   "skill": "R"
+   "skill": "S"
   },
   {
    "id": 561,
    "seq": 561,
    "grade": "+",
-   "player_id": 18,
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
-   "skill": "E"
+   "skill": "R"
   },
   {
    "id": 562,
    "seq": 562,
-   "grade": "#",
-   "player_id": 18,
+   "grade": "!",
+   "player_id": 17,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -5138,78 +5138,24 @@
   {
    "id": 563,
    "seq": 563,
-   "grade": "=",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "S"
-  },
-  {
-   "id": 564,
-   "seq": 564,
-   "grade": "#",
-   "player_id": null,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "opp"
-  },
-  {
-   "id": 565,
-   "seq": 565,
-   "grade": "#",
-   "player_id": 12,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 566,
-   "seq": 566,
-   "grade": "+",
-   "player_id": 12,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "S"
-  },
-  {
-   "id": 567,
-   "seq": 567,
-   "grade": "+",
-   "player_id": 12,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "R"
-  },
-  {
-   "id": 568,
-   "seq": 568,
    "grade": "!",
-   "player_id": 17,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 569,
-   "seq": 569,
-   "grade": "!",
-   "player_id": 11,
+   "player_id": 14,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
   },
   {
-   "id": 570,
-   "seq": 570,
+   "id": 564,
+   "seq": 564,
    "grade": "-",
-   "player_id": 18,
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
    "skill": "R"
   },
   {
-   "id": 571,
-   "seq": 571,
+   "id": 565,
+   "seq": 565,
    "grade": "!",
    "player_id": 18,
    "sub_out": null,
@@ -5217,8 +5163,8 @@
    "skill": "D"
   },
   {
-   "id": 572,
-   "seq": 572,
+   "id": 566,
+   "seq": 566,
    "grade": "+",
    "player_id": 17,
    "sub_out": null,
@@ -5226,8 +5172,8 @@
    "skill": "R"
   },
   {
-   "id": 573,
-   "seq": 573,
+   "id": 567,
+   "seq": 567,
    "grade": "#",
    "player_id": null,
    "sub_out": null,
@@ -5235,26 +5181,26 @@
    "skill": "opp"
   },
   {
-   "id": 574,
-   "seq": 574,
+   "id": 568,
+   "seq": 568,
    "grade": "-",
-   "player_id": 18,
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
    "skill": "B"
   },
   {
-   "id": 575,
-   "seq": 575,
+   "id": 569,
+   "seq": 569,
    "grade": "!",
-   "player_id": 11,
+   "player_id": 14,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
   },
   {
-   "id": 576,
-   "seq": 576,
+   "id": 570,
+   "seq": 570,
    "grade": "+",
    "player_id": 18,
    "sub_out": null,
@@ -5262,19 +5208,73 @@
    "skill": "A"
   },
   {
-   "id": 577,
-   "seq": 577,
+   "id": 571,
+   "seq": 571,
    "grade": "#",
-   "player_id": 18,
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
   },
   {
+   "id": 572,
+   "seq": 572,
+   "grade": "!",
+   "player_id": 16,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "S"
+  },
+  {
+   "id": 573,
+   "seq": 573,
+   "grade": "#",
+   "player_id": 17,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "R"
+  },
+  {
+   "id": 574,
+   "seq": 574,
+   "grade": "#",
+   "player_id": 12,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 575,
+   "seq": 575,
+   "grade": "=",
+   "player_id": 16,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "S"
+  },
+  {
+   "id": 576,
+   "seq": 576,
+   "grade": "#",
+   "player_id": 12,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "S"
+  },
+  {
+   "id": 577,
+   "seq": 577,
+   "grade": "#",
+   "player_id": 12,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "S"
+  },
+  {
    "id": 578,
    "seq": 578,
-   "grade": "!",
-   "player_id": 18,
+   "grade": "#",
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
    "skill": "S"
@@ -5282,80 +5282,80 @@
   {
    "id": 579,
    "seq": 579,
-   "grade": "#",
-   "player_id": 17,
+   "grade": "=",
+   "player_id": null,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "opp"
+  },
+  {
+   "id": 580,
+   "seq": 580,
+   "grade": "!",
+   "player_id": 12,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "S"
+  },
+  {
+   "id": 581,
+   "seq": 581,
+   "grade": "+",
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
    "skill": "R"
   },
   {
-   "id": 580,
-   "seq": 580,
-   "grade": "#",
-   "player_id": 18,
+   "id": 582,
+   "seq": 582,
+   "grade": "/",
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
   },
   {
-   "id": 581,
-   "seq": 581,
-   "grade": "=",
-   "player_id": 12,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "S"
-  },
-  {
-   "id": 582,
-   "seq": 582,
-   "grade": "!",
-   "player_id": 17,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "R"
-  },
-  {
    "id": 583,
    "seq": 583,
-   "grade": "#",
-   "player_id": 16,
+   "grade": "-",
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
-   "skill": "R"
+   "skill": "E"
   },
   {
    "id": 584,
    "seq": 584,
-   "grade": "#",
-   "player_id": 14,
+   "grade": "-",
+   "player_id": 17,
    "sub_out": null,
    "sub_in": null,
-   "skill": "B"
+   "skill": "D"
   },
   {
    "id": 585,
    "seq": 585,
-   "grade": "=",
-   "player_id": 13,
+   "grade": "!",
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
-   "skill": "S"
+   "skill": "R"
   },
   {
    "id": 586,
    "seq": 586,
    "grade": "!",
-   "player_id": 12,
+   "player_id": 16,
    "sub_out": null,
    "sub_in": null,
-   "skill": "B"
+   "skill": "A"
   },
   {
    "id": 587,
    "seq": 587,
-   "grade": "-",
-   "player_id": 15,
+   "grade": "+",
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -5363,60 +5363,24 @@
   {
    "id": 588,
    "seq": 588,
-   "grade": "#",
-   "player_id": 11,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 589,
-   "seq": 589,
-   "grade": "+",
-   "player_id": 11,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "S"
-  },
-  {
-   "id": 590,
-   "seq": 590,
-   "grade": "!",
-   "player_id": 12,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 591,
-   "seq": 591,
-   "grade": "!",
-   "player_id": 16,
+   "grade": "-",
+   "player_id": 14,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
   },
   {
-   "id": 592,
-   "seq": 592,
+   "id": 589,
+   "seq": 589,
    "grade": "+",
-   "player_id": 15,
+   "player_id": 17,
    "sub_out": null,
    "sub_in": null,
-   "skill": "D"
+   "skill": "B"
   },
   {
-   "id": 593,
-   "seq": 593,
-   "grade": "/",
-   "player_id": 15,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "R"
-  },
-  {
-   "id": 594,
-   "seq": 594,
+   "id": 590,
+   "seq": 590,
    "grade": "!",
    "player_id": 17,
    "sub_out": null,
@@ -5424,10 +5388,46 @@
    "skill": "D"
   },
   {
+   "id": 591,
+   "seq": 591,
+   "grade": "+",
+   "player_id": 12,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 592,
+   "seq": 592,
+   "grade": "!",
+   "player_id": 15,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "R"
+  },
+  {
+   "id": 593,
+   "seq": 593,
+   "grade": "+",
+   "player_id": 14,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "D"
+  },
+  {
+   "id": 594,
+   "seq": 594,
+   "grade": "+",
+   "player_id": 11,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "E"
+  },
+  {
    "id": 595,
    "seq": 595,
    "grade": "+",
-   "player_id": 11,
+   "player_id": 17,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -5435,35 +5435,35 @@
   {
    "id": 596,
    "seq": 596,
-   "grade": "!",
-   "player_id": 14,
+   "grade": "-",
+   "player_id": 17,
    "sub_out": null,
    "sub_in": null,
-   "skill": "R"
+   "skill": "A"
   },
   {
    "id": 597,
    "seq": 597,
-   "grade": "+",
-   "player_id": 13,
+   "grade": "#",
+   "player_id": 17,
    "sub_out": null,
    "sub_in": null,
-   "skill": "D"
+   "skill": "A"
   },
   {
    "id": 598,
    "seq": 598,
    "grade": "+",
-   "player_id": 16,
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
-   "skill": "E"
+   "skill": "S"
   },
   {
    "id": 599,
    "seq": 599,
    "grade": "+",
-   "player_id": 17,
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -5471,8 +5471,8 @@
   {
    "id": 600,
    "seq": 600,
-   "grade": "-",
-   "player_id": 17,
+   "grade": "#",
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -5480,60 +5480,24 @@
   {
    "id": 601,
    "seq": 601,
-   "grade": "#",
-   "player_id": 17,
+   "grade": "-",
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
-   "skill": "A"
+   "skill": "S"
   },
   {
    "id": 602,
    "seq": 602,
-   "grade": "+",
-   "player_id": 11,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "S"
-  },
-  {
-   "id": 603,
-   "seq": 603,
-   "grade": "+",
-   "player_id": 16,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 604,
-   "seq": 604,
    "grade": "#",
-   "player_id": 11,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 605,
-   "seq": 605,
-   "grade": "-",
-   "player_id": 11,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "S"
-  },
-  {
-   "id": 606,
-   "seq": 606,
-   "grade": "#",
-   "player_id": 13,
+   "player_id": 12,
    "sub_out": null,
    "sub_in": null,
    "skill": "R"
   },
   {
-   "id": 607,
-   "seq": 607,
+   "id": 603,
+   "seq": 603,
    "grade": "#",
    "player_id": null,
    "sub_out": null,
@@ -5541,19 +5505,55 @@
    "skill": "opp"
   },
   {
-   "id": 608,
-   "seq": 608,
+   "id": 604,
+   "seq": 604,
    "grade": "+",
-   "player_id": 12,
+   "player_id": 14,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
   },
   {
+   "id": 605,
+   "seq": 605,
+   "grade": "=",
+   "player_id": 11,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "R"
+  },
+  {
+   "id": 606,
+   "seq": 606,
+   "grade": "+",
+   "player_id": 14,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "R"
+  },
+  {
+   "id": 607,
+   "seq": 607,
+   "grade": "!",
+   "player_id": 15,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 608,
+   "seq": 608,
+   "grade": "#",
+   "player_id": 11,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "R"
+  },
+  {
    "id": 609,
    "seq": 609,
-   "grade": "=",
-   "player_id": 15,
+   "grade": "+",
+   "player_id": 17,
    "sub_out": null,
    "sub_in": null,
    "skill": "R"
@@ -5561,71 +5561,71 @@
   {
    "id": 610,
    "seq": 610,
-   "grade": "+",
-   "player_id": 12,
+   "grade": "#",
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
-   "skill": "R"
+   "skill": "A"
   },
   {
    "id": 611,
    "seq": 611,
    "grade": "!",
-   "player_id": 16,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 612,
-   "seq": 612,
-   "grade": "#",
-   "player_id": 15,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "R"
-  },
-  {
-   "id": 613,
-   "seq": 613,
-   "grade": "+",
-   "player_id": 17,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "R"
-  },
-  {
-   "id": 614,
-   "seq": 614,
-   "grade": "#",
-   "player_id": 16,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 615,
-   "seq": 615,
-   "grade": "!",
-   "player_id": 15,
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
    "skill": "S"
   },
   {
-   "id": 616,
-   "seq": 616,
+   "id": 612,
+   "seq": 612,
    "grade": "+",
-   "player_id": 12,
+   "player_id": 14,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
   },
   {
+   "id": 613,
+   "seq": 613,
+   "grade": "+",
+   "player_id": 15,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 614,
+   "seq": 614,
+   "grade": null,
+   "player_id": null,
+   "sub_out": 12,
+   "sub_in": 18,
+   "skill": "sub"
+  },
+  {
+   "id": 615,
+   "seq": 615,
+   "grade": "=",
+   "player_id": 11,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 616,
+   "seq": 616,
+   "grade": "=",
+   "player_id": 16,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "R"
+  },
+  {
    "id": 617,
    "seq": 617,
-   "grade": "+",
-   "player_id": 16,
+   "grade": "!",
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -5633,35 +5633,35 @@
   {
    "id": 618,
    "seq": 618,
-   "grade": null,
-   "player_id": null,
-   "sub_out": 13,
-   "sub_in": 18,
-   "skill": "sub"
-  },
-  {
-   "id": 619,
-   "seq": 619,
-   "grade": "=",
-   "player_id": 15,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 620,
-   "seq": 620,
-   "grade": "=",
-   "player_id": 14,
+   "grade": "+",
+   "player_id": 18,
    "sub_out": null,
    "sub_in": null,
    "skill": "R"
   },
   {
-   "id": 621,
-   "seq": 621,
+   "id": 619,
+   "seq": 619,
+   "grade": "=",
+   "player_id": 13,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "D"
+  },
+  {
+   "id": 620,
+   "seq": 620,
    "grade": "!",
    "player_id": 11,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 621,
+   "seq": 621,
+   "grade": "+",
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -5669,60 +5669,24 @@
   {
    "id": 622,
    "seq": 622,
-   "grade": "+",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "R"
-  },
-  {
-   "id": 623,
-   "seq": 623,
-   "grade": "=",
-   "player_id": 11,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "D"
-  },
-  {
-   "id": 624,
-   "seq": 624,
    "grade": "!",
    "player_id": 15,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 625,
-   "seq": 625,
-   "grade": "+",
-   "player_id": 11,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 626,
-   "seq": 626,
-   "grade": "!",
-   "player_id": 16,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
   },
   {
-   "id": 627,
-   "seq": 627,
+   "id": 623,
+   "seq": 623,
    "grade": "+",
-   "player_id": 14,
+   "player_id": 16,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
   },
   {
-   "id": 628,
-   "seq": 628,
+   "id": 624,
+   "seq": 624,
    "grade": "!",
    "player_id": 17,
    "sub_out": null,
@@ -5730,8 +5694,8 @@
    "skill": "A"
   },
   {
-   "id": 629,
-   "seq": 629,
+   "id": 625,
+   "seq": 625,
    "grade": "!",
    "player_id": 18,
    "sub_out": null,
@@ -5739,10 +5703,46 @@
    "skill": "R"
   },
   {
+   "id": 626,
+   "seq": 626,
+   "grade": "+",
+   "player_id": 15,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "E"
+  },
+  {
+   "id": 627,
+   "seq": 627,
+   "grade": "#",
+   "player_id": 15,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "E"
+  },
+  {
+   "id": 628,
+   "seq": 628,
+   "grade": "#",
+   "player_id": 11,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "E"
+  },
+  {
+   "id": 629,
+   "seq": 629,
+   "grade": "+",
+   "player_id": 18,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "E"
+  },
+  {
    "id": 630,
    "seq": 630,
-   "grade": "+",
-   "player_id": 16,
+   "grade": "#",
+   "player_id": 18,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
@@ -5750,17 +5750,17 @@
   {
    "id": 631,
    "seq": 631,
-   "grade": "#",
+   "grade": "+",
    "player_id": 16,
    "sub_out": null,
    "sub_in": null,
-   "skill": "E"
+   "skill": "A"
   },
   {
    "id": 632,
    "seq": 632,
-   "grade": "#",
-   "player_id": 15,
+   "grade": "!",
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
@@ -5769,34 +5769,34 @@
    "id": 633,
    "seq": 633,
    "grade": "+",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "E"
-  },
-  {
-   "id": 634,
-   "seq": 634,
-   "grade": "#",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "E"
-  },
-  {
-   "id": 635,
-   "seq": 635,
-   "grade": "+",
-   "player_id": 14,
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
   },
   {
+   "id": 634,
+   "seq": 634,
+   "grade": "!",
+   "player_id": 17,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "B"
+  },
+  {
+   "id": 635,
+   "seq": 635,
+   "grade": "+",
+   "player_id": 18,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "E"
+  },
+  {
    "id": 636,
    "seq": 636,
-   "grade": "!",
-   "player_id": 15,
+   "grade": "-",
+   "player_id": 13,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
@@ -5804,74 +5804,74 @@
   {
    "id": 637,
    "seq": 637,
-   "grade": "+",
+   "grade": "-",
    "player_id": 15,
    "sub_out": null,
    "sub_in": null,
-   "skill": "A"
+   "skill": "R"
   },
   {
    "id": 638,
    "seq": 638,
-   "grade": "!",
-   "player_id": 17,
+   "grade": null,
+   "player_id": null,
    "sub_out": null,
-   "sub_in": null,
-   "skill": "B"
+   "sub_in": 17,
+   "skill": "lib"
   },
   {
    "id": 639,
    "seq": 639,
    "grade": "+",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "E"
-  },
-  {
-   "id": 640,
-   "seq": 640,
-   "grade": "-",
-   "player_id": 11,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "E"
-  },
-  {
-   "id": 641,
-   "seq": 641,
-   "grade": "-",
    "player_id": 16,
    "sub_out": null,
    "sub_in": null,
    "skill": "R"
   },
   {
-   "id": 642,
-   "seq": 642,
-   "grade": null,
-   "player_id": null,
-   "sub_out": 18,
-   "sub_in": 17,
-   "skill": "lib"
-  },
-  {
-   "id": 643,
-   "seq": 643,
-   "grade": "+",
-   "player_id": 14,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "R"
-  },
-  {
-   "id": 644,
-   "seq": 644,
+   "id": 640,
+   "seq": 640,
    "grade": "!",
    "player_id": 17,
    "sub_out": null,
    "sub_in": null,
    "skill": "B"
+  },
+  {
+   "id": 641,
+   "seq": 641,
+   "grade": "#",
+   "player_id": 17,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 642,
+   "seq": 642,
+   "grade": "=",
+   "player_id": 15,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "S"
+  },
+  {
+   "id": 643,
+   "seq": 643,
+   "grade": "+",
+   "player_id": 17,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 644,
+   "seq": 644,
+   "grade": "!",
+   "player_id": 15,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "D"
   },
   {
    "id": 645,
@@ -5880,76 +5880,76 @@
    "player_id": 17,
    "sub_out": null,
    "sub_in": null,
-   "skill": "A"
+   "skill": "E"
   },
   {
    "id": 646,
    "seq": 646,
    "grade": "=",
+   "player_id": 11,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "D"
+  },
+  {
+   "id": 647,
+   "seq": 647,
+   "grade": "#",
+   "player_id": 15,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "R"
+  },
+  {
+   "id": 648,
+   "seq": 648,
+   "grade": "=",
+   "player_id": 14,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "E"
+  },
+  {
+   "id": 649,
+   "seq": 649,
+   "grade": "#",
+   "player_id": 14,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 650,
+   "seq": 650,
+   "grade": "=",
+   "player_id": null,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "opp"
+  },
+  {
+   "id": 651,
+   "seq": 651,
+   "grade": "+",
    "player_id": 16,
    "sub_out": null,
    "sub_in": null,
    "skill": "S"
   },
   {
-   "id": 647,
-   "seq": 647,
-   "grade": "+",
-   "player_id": 17,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 648,
-   "seq": 648,
+   "id": 652,
+   "seq": 652,
    "grade": "!",
-   "player_id": 16,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "D"
-  },
-  {
-   "id": 649,
-   "seq": 649,
-   "grade": "#",
-   "player_id": 17,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "E"
-  },
-  {
-   "id": 650,
-   "seq": 650,
-   "grade": "=",
    "player_id": 15,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "D"
-  },
-  {
-   "id": 651,
-   "seq": 651,
-   "grade": "#",
-   "player_id": 16,
    "sub_out": null,
    "sub_in": null,
    "skill": "R"
   },
   {
-   "id": 652,
-   "seq": 652,
-   "grade": "=",
-   "player_id": 12,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "E"
-  },
-  {
    "id": 653,
    "seq": 653,
-   "grade": "#",
-   "player_id": 12,
+   "grade": "-",
+   "player_id": 18,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -5957,35 +5957,35 @@
   {
    "id": 654,
    "seq": 654,
-   "grade": "=",
+   "grade": "#",
+   "player_id": 15,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "D"
+  },
+  {
+   "id": 655,
+   "seq": 655,
+   "grade": "#",
    "player_id": null,
    "sub_out": null,
    "sub_in": null,
    "skill": "opp"
   },
   {
-   "id": 655,
-   "seq": 655,
-   "grade": "+",
-   "player_id": 14,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "S"
-  },
-  {
    "id": 656,
    "seq": 656,
-   "grade": "!",
-   "player_id": 16,
+   "grade": "#",
+   "player_id": 18,
    "sub_out": null,
    "sub_in": null,
-   "skill": "R"
+   "skill": "E"
   },
   {
    "id": 657,
    "seq": 657,
-   "grade": "-",
-   "player_id": 18,
+   "grade": "=",
+   "player_id": 11,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -5993,15 +5993,42 @@
   {
    "id": 658,
    "seq": 658,
-   "grade": "#",
-   "player_id": 16,
+   "grade": null,
+   "player_id": null,
    "sub_out": null,
    "sub_in": null,
-   "skill": "D"
+   "skill": "lib"
   },
   {
    "id": 659,
    "seq": 659,
+   "grade": "-",
+   "player_id": 15,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "R"
+  },
+  {
+   "id": 660,
+   "seq": 660,
+   "grade": "#",
+   "player_id": 17,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "A"
+  },
+  {
+   "id": 661,
+   "seq": 661,
+   "grade": "-",
+   "player_id": 14,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "S"
+  },
+  {
+   "id": 662,
+   "seq": 662,
    "grade": "#",
    "player_id": null,
    "sub_out": null,
@@ -6009,46 +6036,19 @@
    "skill": "opp"
   },
   {
-   "id": 660,
-   "seq": 660,
-   "grade": "#",
-   "player_id": 18,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "E"
-  },
-  {
-   "id": 661,
-   "seq": 661,
-   "grade": "=",
-   "player_id": 15,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 662,
-   "seq": 662,
-   "grade": null,
-   "player_id": null,
-   "sub_out": null,
-   "sub_in": 17,
-   "skill": "lib"
-  },
-  {
    "id": 663,
    "seq": 663,
-   "grade": "-",
-   "player_id": 16,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "R"
+   "grade": null,
+   "player_id": null,
+   "sub_out": 11,
+   "sub_in": 18,
+   "skill": "sub"
   },
   {
    "id": 664,
    "seq": 664,
-   "grade": "#",
-   "player_id": 17,
+   "grade": "!",
+   "player_id": 15,
    "sub_out": null,
    "sub_in": null,
    "skill": "A"
@@ -6056,51 +6056,15 @@
   {
    "id": 665,
    "seq": 665,
-   "grade": "-",
-   "player_id": 12,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "S"
-  },
-  {
-   "id": 666,
-   "seq": 666,
-   "grade": "#",
-   "player_id": null,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "opp"
-  },
-  {
-   "id": 667,
-   "seq": 667,
-   "grade": null,
-   "player_id": null,
-   "sub_out": 15,
-   "sub_in": 18,
-   "skill": "sub"
-  },
-  {
-   "id": 668,
-   "seq": 668,
    "grade": "!",
-   "player_id": 16,
-   "sub_out": null,
-   "sub_in": null,
-   "skill": "A"
-  },
-  {
-   "id": 669,
-   "seq": 669,
-   "grade": "!",
-   "player_id": 12,
+   "player_id": 14,
    "sub_out": null,
    "sub_in": null,
    "skill": "D"
   },
   {
-   "id": 670,
-   "seq": 670,
+   "id": 666,
+   "seq": 666,
    "grade": "!",
    "player_id": 17,
    "sub_out": null,
@@ -6108,8 +6072,8 @@
    "skill": "R"
   },
   {
-   "id": 671,
-   "seq": 671,
+   "id": 667,
+   "seq": 667,
    "grade": "+",
    "player_id": 18,
    "sub_out": null,
@@ -6117,17 +6081,17 @@
    "skill": "A"
   },
   {
-   "id": 672,
-   "seq": 672,
+   "id": 668,
+   "seq": 668,
    "grade": "+",
-   "player_id": 14,
+   "player_id": 16,
    "sub_out": null,
    "sub_in": null,
    "skill": "E"
   },
   {
-   "id": 673,
-   "seq": 673,
+   "id": 669,
+   "seq": 669,
    "grade": "#",
    "player_id": null,
    "sub_out": null,
@@ -6135,8 +6099,8 @@
    "skill": "opp"
   },
   {
-   "id": 674,
-   "seq": 674,
+   "id": 670,
+   "seq": 670,
    "grade": "#",
    "player_id": 18,
    "sub_out": null,
@@ -6144,129 +6108,148 @@
    "skill": "E"
   },
   {
-   "id": 675,
-   "seq": 675,
+   "id": 671,
+   "seq": 671,
    "grade": null,
    "player_id": null,
-   "sub_out": 14,
+   "sub_out": 15,
    "sub_in": 17,
    "skill": "lib"
   },
   {
-   "id": 676,
-   "seq": 676,
+   "id": 672,
+   "seq": 672,
    "grade": "=",
-   "player_id": 14,
+   "player_id": null,
    "sub_out": null,
    "sub_in": null,
-   "skill": "R"
+   "skill": "opp"
+  },
+  {
+   "id": 673,
+   "seq": 673,
+   "grade": "=",
+   "player_id": 18,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "S"
+  },
+  {
+   "id": 674,
+   "seq": 674,
+   "grade": "=",
+   "player_id": 15,
+   "sub_out": null,
+   "sub_in": null,
+   "skill": "E"
   }
  ],
  "expected": {
   "set": 5,
-  "us": 9,
+  "us": 12,
   "them": 15,
   "lineup": [
-   12,
    18,
-   11,
+   13,
    18,
+   15,
    16,
    14
   ],
   "serving": false,
   "sets": [
    {
-    "us": 20,
+    "us": 27,
     "them": 25
    },
    {
-    "us": 14,
+    "us": 12,
     "them": 25
    },
    {
     "us": 25,
-    "them": 19
+    "them": 18
    },
    {
-    "us": 26,
-    "them": 24
+    "us": 21,
+    "them": 25
    },
    {
-    "us": 9,
+    "us": 12,
     "them": 15
    }
   ],
-  "libero_for": 14,
+  "libero_for": 15,
+  "libero_off": false,
   "sideout": {
-   "won": 50,
+   "won": 47,
    "n": 107
   },
   "brk": {
-   "won": 44,
-   "n": 95
+   "won": 50,
+   "n": 98
   },
   "ptsBy": {
-   "A": 43,
-   "S": 16,
-   "B": 9,
-   "opp": 26
+   "A": 39,
+   "S": 23,
+   "B": 7,
+   "opp": 28
   },
   "players": [
    {
     "id": 12,
-    "pts": 6,
-    "k": 2,
+    "pts": 11,
+    "k": 4,
     "rsum": 14,
-    "ast": 4
+    "ast": 0
    },
    {
     "id": 13,
-    "pts": 3,
-    "k": 3,
-    "rsum": 14,
-    "ast": 0
-   },
-   {
-    "id": 11,
-    "pts": 3,
-    "k": 2,
-    "rsum": 3,
-    "ast": 0
-   },
-   {
-    "id": 15,
-    "pts": 4,
-    "k": 2,
-    "rsum": 6,
+    "pts": 11,
+    "k": 9,
+    "rsum": 16,
     "ast": 2
    },
    {
-    "id": 16,
-    "pts": 11,
-    "k": 6,
+    "id": 11,
+    "pts": 7,
+    "k": 3,
+    "rsum": 8,
+    "ast": 2
+   },
+   {
+    "id": 15,
+    "pts": 12,
+    "k": 5,
     "rsum": 23,
     "ast": 2
    },
    {
+    "id": 16,
+    "pts": 4,
+    "k": 2,
+    "rsum": 13,
+    "ast": 2
+   },
+   {
     "id": 14,
-    "pts": 7,
-    "k": 1,
+    "pts": 5,
+    "k": 3,
     "rsum": 9,
-    "ast": 0
+    "ast": 1
    },
    {
     "id": 17,
-    "pts": 15,
-    "k": 13,
+    "pts": 12,
+    "k": 10,
     "rsum": 30,
     "ast": 1
    },
    {
     "id": 18,
-    "pts": 19,
-    "k": 14,
-    "rsum": 27,
+    "pts": 7,
+    "k": 3,
+    "rsum": 16,
     "ast": 4
    }
   ]
