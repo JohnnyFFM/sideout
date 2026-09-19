@@ -78,6 +78,6 @@
         {#if mode !== 'join'}<a href="/login" onclick={(e) => { e.preventDefault(); mode = 'join'; error = ''; }}>Team-Code eingeben</a>{/if}
       </p>
     {/if}
-    <p class="login-foot">Sideout ist Open Source. Sitzungen gelten 12 Monate pro Gerät.</p>
+    <p class="login-foot">Sideout ist Open Source. Sitzungen gelten 12 Monate pro Gerät. <a href="/hilfe/">Anleitung</a></p>
   </div>
 </div>

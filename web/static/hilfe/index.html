@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0F131B" />
+  <title>Sideout — Anleitung</title>
+  <meta name="description" content="So scoutest du mit Sideout: Team anlegen, Kader, Spiel, Live-Scouting, Bewertungsskala, Auswertung." />
+  <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow+Semi+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="theme.js"></script>
+  <style>
+    .doc { max-width: 1100px; margin: 0 auto; padding: 16px; display: grid; grid-template-columns: 1fr; gap: 24px; }
+    @media (min-width: 1000px) { .doc { grid-template-columns: 220px minmax(0, 760px); } }
+    .toc { display: none; }
+    @media (min-width: 1000px) {
+      .toc { display: block; position: sticky; top: 68px; align-self: start; font-size: 13px; }
+      .toc a { display: block; padding: 5px 8px; border-radius: 6px; color: var(--ink-2); text-decoration: none; }
+      .toc a:hover { background: var(--raised); color: var(--ink); }
+      .toc a.sub { padding-left: 20px; font-size: 12px; color: var(--ink-3); }
+    }
+    .toc-inline { background: var(--panel); border: 1px solid var(--line-soft); border-radius: var(--r-l); padding: 12px 16px; font-size: 14px; }
+    .toc-inline a { display: block; padding: 4px 0; text-decoration: none; }
+    @media (min-width: 1000px) { .toc-inline { display: none; } }
+    article { min-width: 0; }
+    article h1 { font-size: 30px; font-family: var(--disp); letter-spacing: 0.01em; margin-bottom: 4px; }
+    article .lead { color: var(--ink-2); font-size: 16px; margin: 0 0 20px; }
+    article h2 { font-size: 22px; margin: 36px 0 10px; padding-top: 12px; border-top: 1px solid var(--line-soft); }
+    article h3 { font-size: 16px; color: var(--ink); font-weight: 600; margin: 20px 0 6px; }
+    article p, article li { font-size: 15px; line-height: 1.55; }
+    article p { margin: 0 0 10px; }
+    article ul, article ol { padding-left: 20px; margin: 0 0 12px; }
+    article li { margin-bottom: 4px; }
+    article code, .ui { font-family: var(--ui); font-weight: 600; background: var(--raised); border: 1px solid var(--line-soft); border-radius: 4px; padding: 0 5px; font-size: 13px; white-space: nowrap; }
+    .note { background: var(--accent-soft); border-left: 3px solid var(--accent); border-radius: 6px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+    .tbl-wrap { margin: 10px 0 14px; }
+    table.tbl th, table.tbl td { white-space: normal; text-align: left; vertical-align: top; }
+    table.tbl td.g { text-align: center; white-space: nowrap; }
+    .gcode { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 6px; font-family: var(--disp); font-weight: 700; font-size: 16px; }
+    .courtdemo { position: relative; background: var(--court-soft); border: 2px solid var(--court-line); border-top: 6px solid var(--ink-2); border-radius: 4px; padding: 8px; display: grid; gap: 8px; max-width: 360px; margin: 22px 0 14px; }
+    .courtdemo::before { content: "Netz"; position: absolute; top: -20px; left: 50%; transform: translateX(-50%); font-size: 11px; color: var(--ink-3); }
+    .courtdemo .r { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .courtdemo .s { background: var(--panel); border-radius: 8px; padding: 8px; font-size: 12px; color: var(--ink-2); min-height: 52px; }
+    .courtdemo .s b { display: block; font-family: var(--disp); font-size: 20px; color: var(--ink); }
+    .courtdemo .s.lib { border: 2px dashed var(--court-line); }
+    .paddemo { display: grid; grid-template-columns: 62px repeat(6, 1fr); gap: 4px; margin: 10px 0 14px; }
+    .paddemo .l { font-size: 12px; font-weight: 600; color: var(--ink-2); align-self: center; }
+    .paddemo .c { min-height: 40px; border-radius: 6px; display: grid; place-items: center; font-size: 9px; gap: 0; }
+    .paddemo .c b { font-family: var(--disp); font-size: 15px; line-height: 1; }
+    .paddemo .c.none { background: var(--raised); opacity: .35; }
+    .paddemo .h { font-size: 10px; color: var(--ink-3); text-align: center; }
+    .faq dt { font-weight: 600; margin-top: 12px; }
+    .faq dd { margin: 4px 0 0; color: var(--ink-2); font-size: 14px; }
+    footer.docfoot { margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--line-soft); font-size: 13px; color: var(--ink-3); }
+    kbd { font-family: var(--ui); font-size: 12px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--raised); }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/"><span class="tick">▲</span>SIDEOUT</a>
+    <nav class="nav"><a class="active" href="/hilfe/">Anleitung</a><a href="/team">Zur App</a></nav>
+    <span class="spacer"></span>
+    <button class="icon-btn" data-theme-btn title="Theme wechseln">☀</button>
+  </header>
+
+  <div class="doc">
+    <nav class="toc">
+      <a href="#was">Was ist Sideout</a>
+      <a href="#install">Als App installieren</a>
+      <a href="#team">Team und Rollen</a>
+      <a href="#kader">Kader</a>
+      <a href="#spiel">Spiel anlegen</a>
+      <a href="#live">Live scouten</a>
+      <a class="sub" href="#feld">Das Feld</a>
+      <a class="sub" href="#pad">Das Pad</a>
+      <a class="sub" href="#automatik">Was automatisch passiert</a>
+      <a class="sub" href="#helfer">Schneller tippen</a>
+      <a class="sub" href="#offline">Ohne Empfang</a>
+      <a href="#skala">Bewertungsskala</a>
+      <a href="#auswertung">Auswertung</a>
+      <a href="#saison">Team und Saison</a>
+      <a href="#einstellungen">Einstellungen</a>
+      <a href="#faq">Häufige Fragen</a>
+    </nav>
+
+    <article>
+      <h1>Sideout Anleitung</h1>
+      <p class="lead">Live-Scouting für Volleyball-Teams. Spielerin tippen, Aktion tippen, den Rest rechnet Sideout.</p>
+
+      <div class="toc-inline">
+        <a href="#was">Was ist Sideout</a><a href="#install">Als App installieren</a><a href="#team">Team und Rollen</a><a href="#kader">Kader</a><a href="#spiel">Spiel anlegen</a><a href="#live">Live scouten</a><a href="#skala">Bewertungsskala</a><a href="#auswertung">Auswertung</a><a href="#saison">Team und Saison</a><a href="#einstellungen">Einstellungen</a><a href="#faq">Häufige Fragen</a>
+      </div>
+
+      <h2 id="was">Was ist Sideout</h2>
+      <p>Sideout ist eine App, mit der du dein eigenes Team während des Spiels von der Bank aus scoutest. Jede Ballberührung ist zwei Tipps: die Spielerin auf dem Feld, dann die Aktion mit Bewertung. Aus diesem Protokoll berechnet Sideout Spielstand, Rotation, Aufschlagrecht, Sideout-Quote und alle Statistiken, live, pro Satz, pro Spiel und über die Saison.</p>
+      <p>Sideout ist Open Source unter der MIT-Lizenz. Der Verein betreibt die App auf einem eigenen Server, die Daten bleiben beim Verein.</p>
+
+      <h2 id="install">Als App installieren</h2>
+      <p>Sideout ist eine Web-App und läuft in jedem Browser. Für das Scouten in der Halle installierst du sie am besten auf dem Home-Bildschirm: Dann läuft sie im Vollbild ohne Browserleiste, und sie funktioniert auch ohne Empfang.</p>
+      <ul>
+        <li><b>iPhone, iPad (Safari):</b> Seite öffnen, unten <span class="ui">Teilen</span> tippen, dann <span class="ui">Zum Home-Bildschirm</span>.</li>
+        <li><b>Android (Chrome):</b> Browser-Menü öffnen, dann <span class="ui">App installieren</span> oder <span class="ui">Zum Startbildschirm hinzufügen</span>.</li>
+        <li><b>Laptop:</b> geht ohne Installation. Chrome und Edge bieten zusätzlich <span class="ui">App installieren</span> in der Adressleiste an.</li>
+      </ul>
+      <p>Der Hinweis dazu steht auch in der App unter <span class="ui">Einstellungen</span>, Abschnitt <span class="ui">Als App installieren</span>.</p>
+
+      <h2 id="team">Team und Rollen</h2>
+      <p>Beim ersten Öffnen siehst du die Anmeldung. Darunter gibt es zwei Wege ins Team:</p>
+      <ul>
+        <li><span class="ui">Team anlegen</span>: Teamname, dein Name, Benutzername und Passwort (mindestens 8 Zeichen). Du wirst Trainer:in des neuen Teams.</li>
+        <li><span class="ui">Team-Code eingeben</span>: Mit dem Code, den die Trainer:in unter Einstellungen findet, trittst du einem bestehenden Team bei. Du wirst Co-Trainer:in.</li>
+      </ul>
+      <p>Wer sich einmal anmeldet, bleibt auf diesem Gerät 12 Monate angemeldet.</p>
+      <h3>Rollen</h3>
+      <div class="tbl-wrap"><table class="tbl">
+        <tr><th>Rolle</th><th>Darf</th></tr>
+        <tr><td><b>Trainer:in</b></td><td>Alles: Team-Daten, Team-Code, Mitglieder und Rollen, Spiele löschen, scouten.</td></tr>
+        <tr><td><b>Co-Trainer:in / Scout</b></td><td>Kader pflegen, Spiele anlegen und bearbeiten, scouten.</td></tr>
+        <tr><td><b>Nur lesen</b></td><td>Alles sehen, live mitverfolgen, Auswertung öffnen. Nichts ändern.</td></tr>
+      </table></div>
+      <p>Falls die Anmeldung keine Links zum Anlegen oder Beitreten zeigt, ist die Instanz geschlossen. Dann legt die Person, die den Server betreibt, die Konten an.</p>
+
+      <h2 id="kader">Kader</h2>
+      <p>Unter <span class="ui">Kader</span> trägst du deine Spielerinnen ein: Nummer, Name und Position. Mindestens sechs Feldspielerinnen brauchst du für die erste Aufstellung.</p>
+      <div class="tbl-wrap"><table class="tbl">
+        <tr><th>Position</th><th>Bedeutung</th></tr>
+        <tr><td><b>Z</b> Zuspiel</td><td>Zuspielerin. Die Plausibilitätsprüfung erwartet genau eine in der Startsechs.</td></tr>
+        <tr><td><b>A</b> Außen</td><td>Außenangreiferin, Annahme und Angriff.</td></tr>
+        <tr><td><b>M</b> Mitte</td><td>Mittelblockerin. Für sie steht die Libera in der Hinterzone.</td></tr>
+        <tr><td><b>D</b> Diagonal</td><td>Diagonalangreiferin.</td></tr>
+        <tr><td><b>L</b> Libero</td><td>Libera. Kann nicht in der Startsechs stehen, wird separat gewählt.</td></tr>
+      </table></div>
+      <p>Die Position steuert zwei Dinge: die automatische Libera-Anzeige im Live-Feld und die Plausibilitätsprüfung der Aufstellung. Auf die Statistik hat sie keinen Einfluss. Eine Zuspielerin, die angreift, bekommt ganz normal Angriffspunkte.</p>
+      <p>Neben jeder Spielerin gibt es drei Knöpfe: bearbeiten, deaktivieren (Pause-Symbol) und entfernen. Eine Spielerin, die schon in gescouteten Spielen vorkommt, wird beim Entfernen nur deaktiviert. Sie behält ihre Statistik und taucht mit <span class="ui">Ehemalige zeigen</span> wieder auf. Ihre Nummer ist danach wieder frei.</p>
+
+      <h2 id="spiel">Spiel anlegen</h2>
+      <p>Unter <span class="ui">Spiele</span> tippst du <span class="ui">+ Spiel anlegen</span>. Links stehen die Rahmendaten, rechts die Startaufstellung.</p>
+      <ul>
+        <li><span class="ui">Gegner</span>, <span class="ui">Datum</span>, <span class="ui">Anpfiff</span>, <span class="ui">Halle</span>, <span class="ui">Notizen</span>.</li>
+        <li><span class="ui">Heim / Auswärts</span>: nur zur Information.</li>
+        <li><span class="ui">Erster Aufschlag</span>: <span class="ui">Wir</span> oder <span class="ui">Gegner</span>. Davon hängt ab, ob der erste Ballwechsel mit einem Aufschlag oder einer Annahme beginnt. Ab dem zweiten Satz wechselt das Aufschlagrecht automatisch.</li>
+      </ul>
+      <h3>Startaufstellung Satz 1</h3>
+      <p>Das Feld zeigt deine Hälfte von hinten, das Netz ist oben. Die Positionen sind wie auf dem Aufstellungszettel nummeriert: vorne IV, III, II, hinten V, VI, I. Position I schlägt auf. Wähle für jede Position eine Spielerin, darunter die <span class="ui">Libera</span>.</p>
+      <p>Unter der Aufstellung steht eine Prüfung: Sie meldet doppelte Spielerinnen, eine fehlende oder doppelte Zuspielerin und Mittelblockerinnen, die sich nicht gegenüberstehen. Warnungen darfst du ignorieren, nur leere oder doppelte Positionen blockieren das Speichern.</p>
+      <p><span class="ui">Spiel anlegen &amp; starten</span> führt direkt ins Live-Scouting. Das Spiel bleibt <b>geplant</b>, bis die erste Aktion getippt ist.</p>
+      <h3>Aufstellung für weitere Sätze</h3>
+      <p>Ein neuer Satz übernimmt die Aufstellung des vorigen Satzes. Wenn du wechselst, öffnest du das Spiel über <span class="ui">Spiele</span> oder über den Hinweis oben im Live-Bildschirm, wählst dort den Satz und speicherst die neue Startsechs. Bereits gescoutete Sätze ändern sich dadurch nicht.</p>
+
+      <h2 id="live">Live scouten</h2>
+      <p>Der Live-Bildschirm ist für das Handy in einer Hand gebaut. Oben der Spielstand, darunter das Feld, darunter das Pad. Auf dem Tablet oder Laptop stehen Feld und Pad nebeneinander, rechts kommen Live-Werte und der Verlauf dazu.</p>
+
+      <h3 id="feld">Das Feld</h3>
+      <div class="courtdemo">
+        <div class="r"><div class="s">IV<b>7</b>Nele</div><div class="s">III<b>1</b>Lena</div><div class="s">II<b>4</b>Sara</div></div>
+        <div class="r"><div class="s">V<b>3</b>Mia</div><div class="s lib">VI<b>12</b>Jo für 8</div><div class="s">I<b>5</b>Jule ●</div></div>
+      </div>
+      <p>Du siehst deine Hälfte von hinter der Grundlinie: vorne IV, III, II am Netz, hinten V, VI, I. Der Ball markiert die aufschlagende Position I, wenn wir Aufschlag haben. Die Libera steht automatisch für die Mittelblockerin, sobald diese auf V oder VI rotiert; auf Position I bleibt die Mittelblockerin, weil sie aufschlägt. Die gestrichelte Karte zeigt, für wen die Libera steht.</p>
+      <p><b>So geht ein Tipp:</b> Spielerin auf dem Feld antippen (die Karte wird blau), dann im Pad die Zelle für Aktion und Bewertung. Danach ist die Auswahl wieder leer. Nochmal auf dieselbe Karte tippen hebt die Auswahl auf.</p>
+
+      <h3 id="pad">Das Pad</h3>
+      <p>Die Zeilen sind die sechs Aktionen, die Spalten die sechs Bewertungen. Jede Zelle zeigt den Code und das passende Wort. Zellen, die es für eine Aktion nicht gibt, sind leer.</p>
+      <div class="paddemo">
+        <span></span><span class="h">Punkt</span><span class="h">Positiv</span><span class="h">Neutral</span><span class="h">Negativ</span><span class="h">Halb</span><span class="h">Fehler</span>
+        <span class="l">Aufschlag</span><span class="c g-win"><b>#</b>Ass</span><span class="c g-pos"><b>+</b>Gut</span><span class="c g-mid"><b>!</b>OK</span><span class="c g-neg"><b>-</b>Schwach</span><span class="c none"></span><span class="c g-err"><b>=</b>Fehler</span>
+        <span class="l">Annahme</span><span class="c g-win"><b>#</b>Perfekt</span><span class="c g-pos"><b>+</b>Gut</span><span class="c g-mid"><b>!</b>OK</span><span class="c g-neg"><b>-</b>Schwach</span><span class="c g-half"><b>/</b>Overpass</span><span class="c g-err"><b>=</b>Fehler</span>
+        <span class="l">Zuspiel</span><span class="c g-win"><b>#</b>Perfekt</span><span class="c g-pos"><b>+</b>Gut</span><span class="c g-mid"><b>!</b>OK</span><span class="c g-neg"><b>-</b>Schwach</span><span class="c none"></span><span class="c g-err"><b>=</b>Fehler</span>
+        <span class="l">Angriff</span><span class="c g-win"><b>#</b>Punkt</span><span class="c g-pos"><b>+</b>Gut</span><span class="c g-mid"><b>!</b>Rally</span><span class="c g-neg"><b>-</b>Schwach</span><span class="c g-half"><b>/</b>Geblockt</span><span class="c g-err"><b>=</b>Fehler</span>
+        <span class="l">Block</span><span class="c g-win"><b>#</b>Punkt</span><span class="c g-pos"><b>+</b>Touch+</span><span class="c g-mid"><b>!</b>Touch</span><span class="c g-neg"><b>-</b>Touch−</span><span class="c none"></span><span class="c g-err"><b>=</b>Fehler</span>
+        <span class="l">Abwehr</span><span class="c g-win"><b>#</b>Perfekt</span><span class="c g-pos"><b>+</b>Gut</span><span class="c g-mid"><b>!</b>OK</span><span class="c g-neg"><b>-</b>Schwach</span><span class="c none"></span><span class="c g-err"><b>=</b>Fehler</span>
+      </div>
+      <p><b>Diese Zellen beenden den Ballwechsel:</b></p>
+      <ul>
+        <li>Punkt für uns: <span class="ui">#</span> bei Aufschlag (Ass), Angriff (Punkt) und Block (Punkt).</li>
+        <li>Punkt für den Gegner: <span class="ui">=</span> Fehler bei jeder Aktion, und <span class="ui">/</span> Geblockt beim Angriff.</li>
+      </ul>
+      <p>Alle anderen Zellen lassen den Ballwechsel weiterlaufen. Was du nicht siehst oder nicht bewerten willst, lässt du einfach weg. Wenn der Gegner den Ballwechsel beendet, tippst du unter dem Pad <span class="ui">Fehler Gegner</span> (Punkt für uns) oder <span class="ui">Punkt Gegner</span>.</p>
+      <p>Die Zeile, die als Nächstes wahrscheinlich ist, wird blau markiert und heißt <span class="ui">erwartet</span>: nach dem Aufschlag Block oder Abwehr, nach der Annahme das Zuspiel, nach dem Zuspiel der Angriff. Das ist nur eine Hilfe, jede Zelle bleibt tippbar.</p>
+
+      <h3 id="automatik">Was automatisch passiert</h3>
+      <ul>
+        <li><b>Punkte</b> aus den Zellen, die einen Ballwechsel beenden.</li>
+        <li><b>Rotation:</b> Gewinnen wir einen Ballwechsel, in dem der Gegner aufgeschlagen hat, rotiert das Feld um eine Position.</li>
+        <li><b>Aufschlagrecht:</b> Wer den Ballwechsel gewinnt, schlägt auf. Der Ball im Spielstand und auf Position I zeigt es an.</li>
+        <li><b>Satzende</b> bei 25 Punkten, im fünften Satz bei 15, immer mit zwei Punkten Vorsprung. Der nächste Satz beginnt mit der übernommenen Aufstellung und dem anderen Aufschlagrecht.</li>
+        <li><b>Spielende</b> nach drei gewonnenen Sätzen. Danach führt ein Knopf zur Auswertung.</li>
+        <li>Das Spiel wird beim ersten Tipp <b>live</b> und beim letzten <b>gespielt</b>. Der Bildschirm bleibt während des Scoutens an.</li>
+      </ul>
+
+      <h3 id="helfer">Schneller tippen</h3>
+      <ul>
+        <li><b>Aufschlag ohne Auswahl:</b> Haben wir Aufschlag, kannst du direkt eine Aufschlag-Zelle tippen. Sideout bucht sie auf die Spielerin auf Position I.</li>
+        <li><b>Wechsel:</b> <span class="ui">⇄ Wechsel</span> unter dem Feld öffnet ein Blatt mit <span class="ui">Raus</span> (die sechs auf dem Feld) und <span class="ui">Rein</span> (die Bank). <span class="ui">Wechsel eintragen</span> tauscht die Position.</li>
+        <li><b>Rückgängig:</b> Der Knopf <span class="ui">↶ Rückgängig</span> nimmt die letzte Aktion zurück, beliebig oft. Punkte, Rotation und Aufschlagrecht folgen automatisch.</li>
+        <li><b>Laptop:</b> Tasten <kbd>1</kbd> bis <kbd>6</kbd> wählen die Positionen I bis VI, <kbd>Strg</kbd>+<kbd>Z</kbd> macht rückgängig, <kbd>Esc</kbd> hebt die Auswahl auf.</li>
+        <li><b>Live-Werte:</b> Rechts (oder auf dem Handy unter dem Pad) stehen Sideout, Break und Angriff-Effizienz mit einer kleinen Tabelle, umschaltbar zwischen <span class="ui">Satz</span> und <span class="ui">Spiel</span>. Darunter der Verlauf der letzten Aktionen.</li>
+      </ul>
+
+      <h3 id="offline">Ohne Empfang</h3>
+      <p>Hallen haben schlechten Empfang. Sideout speichert jede Aktion sofort auf dem Gerät und rechnet den Spielstand lokal. Ist keine Verbindung da, erscheint oben ein gelber Balken, und neben der letzten Aktion steht <span class="ui">n ausstehend</span>. Sobald die Verbindung zurück ist, werden die Aktionen in der richtigen Reihenfolge gesendet, auch nach dem Schließen der App.</p>
+      <p>Scoutet ein zweites Gerät dasselbe Spiel, gewinnt die Aktion, die zuerst beim Server ankommt. Das andere Gerät meldet <span class="ui">Ein anderes Gerät hat gescoutet, neu geladen</span> und verwirft seine ausstehenden Aktionen. Für ein Spiel also ein Gerät zum Scouten; mitlesen dürfen beliebig viele.</p>
+
+      <h2 id="skala">Bewertungsskala</h2>
+      <p>Sideout benutzt die Skala von Data Volley, dem Standard im Profi- und Verbandsvolleyball. Sechs Codes, für jede Aktion mit einem eigenen Wort:</p>
+      <div class="tbl-wrap"><table class="tbl">
+        <tr><th>Code</th><th>Aufschlag</th><th>Annahme</th><th>Zuspiel</th><th>Angriff</th><th>Block</th><th>Abwehr</th></tr>
+        <tr><td class="g"><span class="gcode g-win">#</span></td><td>Ass, direkter Punkt</td><td>Perfekt, alle Angriffsoptionen offen</td><td>Perfekt, Angreiferin frei</td><td>Punkt</td><td>Punkt, Ball im Gegnerfeld</td><td>Perfekt, Ball direkt zur Zuspielerin</td></tr>
+        <tr><td class="g"><span class="gcode g-pos">+</span></td><td>Gut, Gegner ohne schnellen Angriff</td><td>Gut, Zuspiel am Netz möglich</td><td>Gut</td><td>Gut, Gegner nur Notabwehr</td><td>Touch+, Ball bleibt bei uns spielbar</td><td>Gut, geordneter Angriff möglich</td></tr>
+        <tr><td class="g"><span class="gcode g-mid">!</span></td><td>OK, neutraler Aufschlag</td><td>OK, Zuspiel weg vom Netz</td><td>OK</td><td>Rally, Ball geht weiter</td><td>Touch, abgefälscht</td><td>OK, hoher Ball</td></tr>
+        <tr><td class="g"><span class="gcode g-neg">-</span></td><td>Schwach, Gegner greift frei an</td><td>Schwach, nur hoher Ball möglich</td><td>Schwach, Angreiferin gegen Doppelblock</td><td>Schwach, leicht abgewehrt</td><td>Touch−, Ball für uns kaum spielbar</td><td>Schwach, kein Angriff mehr möglich</td></tr>
+        <tr><td class="g"><span class="gcode g-half">/</span></td><td>–</td><td>Overpass, Ball direkt zum Gegner</td><td>–</td><td>Geblockt, Punkt für den Gegner</td><td>–</td><td>–</td></tr>
+        <tr><td class="g"><span class="gcode g-err">=</span></td><td>Fehler</td><td>Fehler, Ass für den Gegner</td><td>Fehler, Netz oder Doppelberührung</td><td>Fehler, Aus oder Netz</td><td>Fehler, Netzberührung oder Übertreten</td><td>Fehler, Ball nicht spielbar</td></tr>
+      </table></div>
+      <p>Für die Annahme leitet Sideout daraus die bekannte 0-bis-3-Skala ab: Perfekt 3, Gut 2, OK 1, alles andere 0.</p>
+
+      <h2 id="auswertung">Auswertung</h2>
+      <p>Unter <span class="ui">Auswertung</span> wählst du ein Spiel. Oben schaltest du zwischen <span class="ui">Gesamt</span> und den einzelnen Sätzen um, alles darunter folgt der Auswahl. Während ein Spiel läuft, aktualisiert sich die Seite live.</p>
+      <h3>Kacheln</h3>
+      <ul>
+        <li><b>Punkte:</b> eigene und gegnerische Punkte im gewählten Bereich.</li>
+        <li><b>Sideout:</b> Anteil der Ballwechsel bei gegnerischem Aufschlag, die wir gewonnen haben.</li>
+        <li><b>Break:</b> Anteil der Ballwechsel bei eigenem Aufschlag, die wir gewonnen haben.</li>
+        <li><b>Angriff Eff.:</b> Effizienz des Teams, siehe Box Score.</li>
+        <li><b>Annahme Ø:</b> Durchschnitt auf der 0-bis-3-Skala.</li>
+        <li><b>Eigene Fehler:</b> wie viele Gegnerpunkte wir selbst verschenkt haben.</li>
+      </ul>
+      <h3>Box Score</h3>
+      <div class="tbl-wrap"><table class="tbl">
+        <tr><th>Spalte</th><th>Bedeutung</th></tr>
+        <tr><td><b>Pkt</b></td><td>Punkte der Spielerin: Angriffspunkte + Asse + Blockpunkte.</td></tr>
+        <tr><td><b>Angriff Vers, Pkt, Feh, Blk</b></td><td>Versuche, Punkte, Fehler, geblockte Bälle.</td></tr>
+        <tr><td><b>Angriff Eff</b></td><td>(Punkte − Fehler − geblockt) / Versuche. Grün ab .300, rot unter .100.</td></tr>
+        <tr><td><b>Angriff Quote</b></td><td>Punkte / Versuche in Prozent.</td></tr>
+        <tr><td><b>Aufschlag Vers, Ass, Feh</b></td><td>Versuche, Asse, Fehler.</td></tr>
+        <tr><td><b>Annahme Vers, Ø, Pos%, Feh</b></td><td>Versuche, Durchschnitt 0 bis 3 (Perfekt 3, Gut 2, OK 1, sonst 0), Anteil Perfekt + Gut, Fehler.</td></tr>
+        <tr><td><b>Block Pkt, Touch, Feh</b></td><td>Blockpunkte, Berührungen ohne Punkt, Fehler.</td></tr>
+        <tr><td><b>Abwehr Abw, Vers, Feh</b></td><td>Gelungene Abwehren (Perfekt, Gut, OK), Versuche, Fehler.</td></tr>
+        <tr><td><b>Zuspiel Vers, Vorl, Feh</b></td><td>Zuspiele, Vorlagen (ein Zuspiel, auf das direkt ein Angriffspunkt folgt), Fehler.</td></tr>
+      </table></div>
+      <p>Die Zeile <b>Team</b> summiert alles. Die Reihenfolge folgt der Aufstellung: erst die Startsechs nach Position, dann die Libera, dann die Bank.</p>
+      <h3>Diagramme</h3>
+      <ul>
+        <li><b>Spielverlauf:</b> unser Vorsprung nach jedem Ballwechsel des gewählten Satzes. Grün über der Null führen wir, rot darunter der Gegner.</li>
+        <li><b>Sideout nach Rotation:</b> eine Kachel pro Rotation. Rotation heißt, wer auf Position I steht; darüber steht, wo die Zuspielerin dabei ist (<span class="ui">Zuspiel auf I</span> bis <span class="ui">VI</span>). So siehst du, in welcher Rotation die Annahme hakt.</li>
+        <li><b>Woher die Punkte kommen:</b> Angriff, Aufschlag, Block, Gegnerfehler.</li>
+        <li><b>Wie Punkte verloren gehen:</b> Gegner-Punkt, Angriffsfehler, Aufschlagfehler, andere Fehler.</li>
+        <li><b>Punkte pro Spielerin</b> als Balken.</li>
+        <li><b>Annahme-, Angriff- und Aufschlag-Qualität:</b> pro Spielerin die Verteilung der Bewertungen als farbiger Balken, mit der Zahl der Versuche rechts. Fahre mit dem Finger oder der Maus über ein Segment für die genaue Zahl.</li>
+      </ul>
+      <h3>Export CSV</h3>
+      <p><span class="ui">Export CSV</span> lädt das komplette Aktionsprotokoll als Tabelle: eine Zeile pro Aktion mit Satz, Ballwechsel, Spielstand davor, Aufschlagrecht, Rotation (Nummer auf Position I), Spielerin, Aktion, Bewertung, Ausgang und Wechsel. Damit kannst du in Excel oder in Statistik-Tools weiterrechnen.</p>
+
+      <h2 id="saison">Team und Saison</h2>
+      <p>Die Seite <span class="ui">Team</span> ist die Startseite. Die große Karte zeigt das laufende Spiel mit <span class="ui">Weiter scouten</span>, sonst das nächste geplante oder das letzte gespielte Spiel.</p>
+      <p>Daneben die Saison über alle gescouteten Spiele: <b>Bilanz</b> in Spielen und Sätzen, <b>Sideout</b> und <b>Break</b>, <b>Angriff Eff.</b> und <b>Annahme Ø</b>. Darunter die letzten Spiele, die <b>Beste Werte der Saison</b> (Punkte, Angriff-Effizienz ab 20 Versuchen, Annahme ab 15 Annahmen) und die Trends von Sideout und Angriff-Effizienz je Spiel.</p>
+
+      <h2 id="einstellungen">Einstellungen</h2>
+      <p>Über die Initialen oben rechts kommst du zu den Einstellungen.</p>
+      <ul>
+        <li><b>Team:</b> Name, Kürzel (steht im Spielstand), Liga und Saison. Ändern kann das die Trainer:in.</li>
+        <li><b>Team-Code:</b> zum Beitreten von Co-Trainer:innen. <span class="ui">Neu erzeugen</span> macht den alten Code ungültig.</li>
+        <li><b>Mitglieder:</b> Rolle pro Person ändern oder Mitglied entfernen. Die eigene Trainer-Rolle lässt sich nicht abgeben.</li>
+        <li><b>Abmelden</b> oben rechts beendet die Sitzung auf diesem Gerät.</li>
+        <li><b>Hell oder dunkel:</b> die Sonne bzw. der Mond oben in der Leiste wechselt das Farbschema, pro Gerät gespeichert.</li>
+      </ul>
+
+      <h2 id="faq">Häufige Fragen</h2>
+      <dl class="faq">
+        <dt>Ich habe falsch getippt.</dt>
+        <dd><span class="ui">↶ Rückgängig</span>, so oft du willst. Es gibt keine Bearbeitung mitten im Protokoll; du gehst zurück und tippst neu.</dd>
+        <dt>Der Satz wurde falsch beendet.</dt>
+        <dd>Satzende ist nur gerechnet, nicht gespeichert. Rückgängig nimmt die letzte Aktion zurück, und der Satz läuft weiter.</dd>
+        <dt>Die falsche Spielerin steht auf dem Feld.</dt>
+        <dd>Während des Satzes: <span class="ui">⇄ Wechsel</span>. Für den nächsten Satz: Aufstellung unter Spiele bearbeiten. Ist der Satz noch nicht gescoutet, kannst du seine Aufstellung frei ändern.</dd>
+        <dt>Kein Empfang in der Halle.</dt>
+        <dd>Weiter tippen. Alles wird lokal gespeichert und später gesendet. Die App vorher einmal mit Verbindung öffnen, damit das Spiel geladen ist.</dd>
+        <dt>Wem gehören die Daten?</dt>
+        <dd>Dem Verein. Sideout läuft auf eurem eigenen Server, es gibt keinen Anbieter dazwischen.</dd>
+        <dt>Wo liegen die Daten?</dt>
+        <dd>In einer SQLite-Datei auf dem Server, auf dem Sideout läuft. Ein Backup ist eine Kopie dieser Datei.</dd>
+        <dt>Kann ich den Gegner mit scouten?</dt>
+        <dd>Noch nicht. Sideout zählt das eigene Team; Gegnerpunkte und Gegnerfehler kommen über die beiden Knöpfe unter dem Pad.</dd>
+      </dl>
+
+      <footer class="docfoot">
+        <p>Sideout ist Open Source (MIT). Quellcode und Fehlermeldungen: <a href="https://github.com/&lt;owner&gt;/sideout">github.com/&lt;owner&gt;/sideout</a>.</p>
+        <p>Anleitung für Sideout 0.1, Stand September 2026. <a href="/team">Zur App</a></p>
+      </footer>
+    </article>
+  </div>
+</body>
+</html>

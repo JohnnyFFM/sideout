@@ -62,6 +62,10 @@
         </section>
       {/if}
       <section class="panel">
+        <div class="panel-head"><h2>Anleitung</h2></div>
+        <p class="small" style="margin:0">Alles zum Scouten, zur Bewertungsskala und zur Auswertung: <a href="/hilfe/">Anleitung öffnen</a>.</p>
+      </section>
+      <section class="panel">
         <div class="panel-head"><h2>Als App installieren</h2></div>
         <p class="small" style="margin:0">{installHint()} Danach läuft Sideout im Vollbild, auch ohne Empfang in der Halle: Aktionen werden lokal gespeichert und später gesendet.</p>
       </section>
