@@ -61,7 +61,9 @@ disables self-registration and join-by-code), `SO_BASE` (path prefix such
 as `/sideout` when the app shares a host with other apps; it is baked into
 the web build, so pass it as the Docker build arg `SO_BASE` and set the
 same value at runtime; the workflow reads it from the repo variable
-`SO_BASE`).
+`SO_BASE`). For a local prefixed build next to the plain one, set
+`SO_OUTDIR` (e.g. `SO_BASE=/sideout SO_OUTDIR=build-base npm run build`) and
+point `SO_STATIC` at that directory.
 
 A gated instance seeds accounts with the CLI:
 
