@@ -304,7 +304,7 @@
               <button onclick={() => queue({ skill: 'adj', grade: '#' })}>+1 wir</button>
               <button onclick={() => queue({ skill: 'adj', grade: '=' })}>+1 Gegner</button>
               <button onclick={() => queue({ skill: 'rot' })}>⟳ Rotieren</button>
-              <button onclick={() => queue({ skill: 'srv', grade: st.serving ? '=' : '#' })}>Aufschlag {st.serving ? 'Gegner' : 'wir'}</button>
+              <button onclick={() => queue({ skill: 'srv', grade: st.serving ? '=' : '#' })} title="Aufschlagrecht setzen"><span class="ballico"></span>→ {st.serving ? 'Gegner' : 'wir'}</button>
             </div>
           {/if}
         </section>
@@ -415,18 +415,23 @@
   :global(.score .catch) { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 4px; }
   :global(.score .catch button) { height: 30px; border-radius: 6px; border: 1px dashed var(--line); background: transparent; color: var(--ink-2); font-size: 12px; font-weight: 600; cursor: pointer; }
   :global(.score .catch button:hover) { background: var(--raised); color: var(--ink); }
+  :global(.score .catch .ballico) { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--g-neg); box-shadow: inset -2px -2px 0 #0003; margin-right: 3px; vertical-align: -1px; }
   /* desktop: one screen. Row 1 = three cards of equal height (each scrolls
      inside if it must), row 2 = the timeline across the full width. */
+  /* desktop: the row takes its natural height (the taller of the left and
+     middle columns), the three cards stretch to that height and no further;
+     the stats card scrolls inside. Wide screens get a wider page, not
+     taller cards. */
   @media (min-width: 1100px) {
-    .live-page { padding-bottom: 16px; }
-    .live { grid-template-columns: 340px 1fr 360px; grid-template-rows: minmax(0, 1fr) auto; height: calc(100dvh - 52px - 32px); align-items: stretch; }
+    .live-page { padding-bottom: 16px; max-width: 1500px; }
+    .live { grid-template-columns: 360px 1fr 380px; grid-template-rows: auto auto; align-items: stretch; }
     .col { display: flex; flex-direction: column; min-height: 0; }
     .col > :global(*) { flex: 0 0 auto; }
     .col.left .court-wrap { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
-  .col.left :global(.catch) { grid-column: 1 / -1; }
-    .col.left .court-wrap :global(.court) { flex: 1 1 auto; }
-    .col.mid :global(.pad) { flex: 1 1 auto; grid-template-rows: auto repeat(6, minmax(0, 1fr)); }
-    .col.right .stats-panel { flex: 1 1 auto; min-height: 0; overflow: auto; }
+    .col.left :global(.catch) { grid-column: 1 / -1; }
+    .col.left .court-wrap :global(.court) { flex: 1 1 auto; min-height: 250px; }
+    .col.mid :global(.pad) { flex: 1 1 auto; grid-template-rows: auto repeat(6, minmax(64px, 1fr)); }
+    .col.right .stats-panel { flex: 1 1 0; min-height: 0; overflow: auto; }
     .timeline { grid-column: 1 / -1; }
   }
   /* timeline */
