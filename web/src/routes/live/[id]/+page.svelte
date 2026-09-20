@@ -321,16 +321,9 @@
               {/each}
             </div>
           {/if}
-          {#if drag?.moved}
-            <div class="dragghost" style="left:{drag.x}px; top:{drag.y}px">{byId[drag.id]?.number} {firstName(byId[drag.id])}</div>
-          {/if}
-          {#if drag?.moved || selected}
+          {#if selected && !drag?.moved}
             <div class="court-foot">
-              {#if drag?.moved}
-                <span class="chip pos-{byId[drag.id]?.position}">{byId[drag.id]?.number} {firstName(byId[drag.id])}</span><span>{drag.id === st.libero ? 'auf eine markierte Karte hinten ziehen' : liberoCard?.replaced === drag.id ? 'auf ihre eigene Karte ziehen, dann geht die Libera raus' : 'auf die Karte ziehen, die sie übernimmt'}</span>
-              {:else}
-                <span class="chip pos-{byId[selected]?.position}">{byId[selected]?.number} {firstName(byId[selected])}</span><span>ausgewählt, jetzt Aktion tippen</span>
-              {/if}
+              <span class="chip pos-{byId[selected]?.position}">{byId[selected]?.number} {firstName(byId[selected])}</span><span>ausgewählt, jetzt Aktion tippen</span>
             </div>
           {/if}
         </section>
@@ -464,12 +457,8 @@
   .chipb.libero { border-color: var(--court-line); background: var(--court-soft); }
   .chipb.libero small { color: var(--court-line); }
   .chipb.out { border-style: dashed; }
-  .chipb.dragging { opacity: 0.4; }
+  .chipb.dragging { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 2px var(--accent-soft); }
   .chipb:disabled { opacity: 0.4; cursor: default; }
-  .dragghost {
-    position: fixed; z-index: 50; transform: translate(-50%, -120%); pointer-events: none;
-    padding: 6px 12px; border-radius: 18px; background: var(--accent); color: #fff; font-weight: 700; box-shadow: 0 6px 20px #0008;
-  }
   .btn.sm { height: 28px; padding: 0 10px; font-size: 12px; }
   .hint { padding: 8px 12px; font-size: 13px; color: var(--ink-2); }
   .pad-foot { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
