@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0F131B" />
+  <title>SIDEOUT — Einstellungen</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow+Semi+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="theme.js"></script>
+  <style>
+    /* ---- concept ----
+       Avatar (initials) in the top bar opens a menu, kursbude-style:
+         Konto (the login: name, password, later e-mail) · Einstellungen (this device) · Abmelden
+       Teams (menu only): anlegen / beitreten first, then one collapsed card per team with
+       Stammdaten, Kader summary, Trainer:innen & Helfer, Team-Code.
+       Every view is ONE column. Switch views via the menu or #konto #app #teams. */
+
+    /* ---------- avatar + menu ---------- */
+    .avatar-btn { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: var(--accent-soft); color: var(--accent-text); font-family: var(--disp); font-weight: 700; font-size: 14px; display: grid; place-items: center; cursor: pointer; padding: 0; }
+    .avatar-btn:hover { filter: brightness(1.15); }
+    .avatar-btn.on { box-shadow: 0 0 0 2px var(--accent); }
+    .menu { position: fixed; z-index: 1000; min-width: 240px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-l); box-shadow: 0 16px 48px #00000059; padding: 6px; display: none; }
+    .menu.open { display: block; }
+    .menu .head { padding: 9px 12px 8px; }
+    .menu .head b { display: block; font-size: 14px; }
+    .menu .head .sub { display: block; font-size: 11.5px; color: var(--ink-3); margin-top: 1px; }
+    .menu .sep { border-top: 1px solid var(--line-soft); margin: 6px 4px; }
+    .menu a, .menu button.row-btn { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 9px 12px; border-radius: var(--r-m); color: var(--ink); font-size: 14px; text-decoration: none; background: none; border: 0; cursor: pointer; }
+    .menu a:hover, .menu button.row-btn:hover, .menu a.current { background: var(--raised); }
+    .menu .glyph { width: 28px; height: 28px; border-radius: 7px; flex: none; display: grid; place-items: center; background: var(--raised); border: 1px solid var(--line-soft); font-size: 14px; }
+    .menu .glyph.av { border-radius: 50%; background: var(--accent-soft); color: var(--accent-text); font-family: var(--disp); font-weight: 700; font-size: 12px; }
+    .menu .sub2 { display: block; font-size: 11px; color: var(--ink-3); }
+    .menu .out { color: var(--g-err); }
+
+    /* ---------- one-column pages ---------- */
+    .view { display: none; }
+    .view.on { display: block; }
+    .page.narrow { max-width: 640px; }
+    .page.mid { max-width: 760px; }
+    .toolbar .tsub { font-size: 12px; color: var(--ink-3); }
+    .chip.new { height: 20px; padding: 0 7px; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; border-style: dashed; color: var(--ink-3); }
+    .chip.aktiv { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    /* Konto */
+    .who { display: grid; grid-template-columns: 56px 1fr; gap: 14px; align-items: center; margin-bottom: 4px; }
+    .avatar { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent-text); font-family: var(--disp); font-weight: 700; font-size: 22px; border: 1px solid var(--line-soft); }
+    .who .nm { font-size: 19px; font-weight: 600; line-height: 1.15; }
+    .who .lg { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+    .hint { font-size: 12px; color: var(--ink-3); margin: 6px 0 0; }
+    input:read-only { color: var(--ink-3); background: transparent; }
+
+    /* App rows */
+    .seg { display: inline-grid; grid-auto-flow: column; background: var(--raised); padding: 3px; border-radius: 10px; }
+    .seg button { height: 32px; padding: 0 14px; border: 0; background: transparent; border-radius: 8px; color: var(--ink-2); font-weight: 600; cursor: pointer; }
+    .seg button.active { background: var(--panel); color: var(--ink); box-shadow: 0 1px 2px #0006; }
+    :root[data-theme="light"] .seg button.active { box-shadow: 0 1px 2px #161B2622; }
+    .app-row { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line-soft); }
+    .app-row:last-child { border-bottom: 0; }
+    .app-row .k { font-weight: 600; font-size: 14px; }
+    .app-row .d { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+    details.diag { display: block; }
+    details.diag summary { cursor: pointer; list-style: none; display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; }
+    details.diag summary::-webkit-details-marker { display: none; }
+    details.diag .caret { display: inline-block; color: var(--ink-3); font-size: 12px; transition: transform .15s; }
+    details.diag[open] .caret { transform: rotate(90deg); }
+    .diag-body { margin-top: 10px; }
+    .diag ul { list-style: none; margin: 0 0 10px; padding: 0; font-size: 12px; }
+    .diag li { padding: 4px 0; border-bottom: 1px solid var(--line-soft); }
+    .status { display: inline-flex; align-items: center; gap: 6px; }
+    .status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px #2EB87233; }
+    .foot { font-size: 12px; color: var(--ink-3); margin-top: 10px; }
+
+    /* Teams */
+    .team { padding: 0; overflow: hidden; }
+    .team + .team { margin-top: 10px; }
+    .team-head { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 12px 12px 12px 16px; cursor: pointer; }
+    .team-head:hover { background: var(--raised); }
+    .team-head .t { font-size: 16px; font-weight: 600; }
+    .team-head .s { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+    .team-head .s b { color: var(--ink-2); font-weight: 600; }
+    .team-head .fold { width: 34px; height: 34px; border-radius: var(--r-m); border: 1px solid var(--line-soft); background: var(--raised); color: var(--ink-2); display: grid; place-items: center; cursor: pointer; padding: 0; font-size: 18px; line-height: 1; }
+    .team-head .fold:hover { color: var(--ink); }
+    .team-head .fold i { display: inline-block; font-style: normal; transition: transform .15s; }
+    .team.open .team-head .fold i { transform: rotate(180deg); }
+    .team.open .team-head { border-bottom: 1px solid var(--line-soft); background: var(--raised); }
+    .team.cur { border-color: var(--accent); }
+    .team-body { display: none; padding: 4px 16px 16px; }
+    .team.open .team-body { display: block; }
+    .sub { margin-top: 16px; }
+    .sub-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+    .sub-head h3 { flex: 1; color: var(--ink); font-weight: 600; font-size: 14px; }
+    .kader { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; background: var(--raised); border-radius: var(--r-m); padding: 10px 12px; }
+    .kader .n { font-family: var(--disp); font-size: 30px; font-weight: 700; line-height: 1; }
+    .kader .n small { font-size: 12px; color: var(--ink-3); font-family: var(--ui); font-weight: 500; display: block; margin-top: 2px; }
+    .kader .pos { display: flex; flex-wrap: wrap; gap: 4px; }
+    .kader .pos .chip { height: 22px; font-size: 11px; padding: 0 8px; }
+    @media (max-width: 520px) { .kader { grid-template-columns: auto 1fr; } .kader .go { grid-column: 1 / -1; } }
+    .members { list-style: none; margin: 0; padding: 0; }
+    .members li { display: grid; grid-template-columns: 32px 1fr auto auto; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line-soft); font-size: 14px; }
+    .members li:last-child { border-bottom: 0; }
+    .members .av { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--raised); border: 1px solid var(--line-soft); font-family: var(--disp); font-weight: 700; font-size: 13px; color: var(--ink-2); }
+    .members .av.me { background: var(--accent-soft); color: var(--accent-text); }
+    .members .u { font-size: 12px; color: var(--ink-3); }
+    .members select { width: auto; height: 32px; font-size: 13px; padding: 0 6px; }
+    .members .icon-btn { width: 32px; height: 32px; font-size: 13px; }
+    @media (max-width: 520px) { .members select { max-width: 130px; } }
+    .invite { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; border: 1px dashed var(--line); border-radius: var(--r-m); padding: 10px 12px; margin-top: 10px; }
+    .invite .code { font-family: var(--disp); font-size: 26px; font-weight: 700; letter-spacing: 0.08em; }
+    .invite .small { line-height: 1.35; }
+    @media (max-width: 520px) { .invite { grid-template-columns: 1fr auto; grid-auto-flow: dense; } .invite .small { grid-column: 1 / -1; } }
+    .addteam { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 640px) { .addteam { grid-template-columns: 1fr; } }
+    .addteam form { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
+    .danger-link { color: var(--g-err); background: none; border: 0; font-weight: 600; cursor: pointer; font-size: 13px; padding: 0; }
+  </style>
+</head>
+<body class="has-tabbar">
+  <header class="topbar">
+    <a class="brand" href="index.html"><span class="tick">▲</span>SIDEOUT</a>
+    <nav class="nav">
+      <a href="index.html">Team</a>
+      <a href="live.html">Spiele</a>
+      <a href="auswertung.html">Auswertung</a>
+      <a href="spiel.html">Kader</a>
+    </nav>
+    <span class="spacer"></span>
+    <span class="sync-chip" title="Live verbunden"><span class="dot"></span><span class="desk">TSV Eintracht Damen 1</span></span>
+    <button class="icon-btn" data-theme-btn title="Theme wechseln">☀</button>
+    <button class="avatar-btn" id="avatarBtn" title="Jonas Steitz — Konto">JS</button>
+  </header>
+
+  <!-- account menu, floats on body under the avatar (kursbude pattern) -->
+  <div class="menu" id="acctMenu">
+    <div class="head"><b>Jonas Steitz</b><span class="sub">Trainer:in · TSV Eintracht Damen 1</span></div>
+    <div class="sep"></div>
+    <a href="#konto" data-view="konto"><span class="glyph av">JS</span><span>Konto<span class="sub2">Name, Passwort</span></span></a>
+    <a href="#app" data-view="app"><span class="glyph">⚙</span><span>Einstellungen<span class="sub2">Darstellung, App, Diagnose</span></span></a>
+    <a href="#teams" data-view="teams"><span class="glyph">⚑</span><span>Teams<span class="sub2">3 Teams · Stammdaten, Helfer, Team-Code</span></span></a>
+    <div class="sep"></div>
+    <button class="row-btn out"><span class="glyph">⏻</span><span>Abmelden</span></button>
+  </div>
+
+  <nav class="tabbar">
+    <a href="index.html"><span class="ico">⌂</span>Team</a>
+    <a href="live.html"><span class="ico">●</span>Spiele</a>
+    <a href="auswertung.html"><span class="ico">≡</span>Auswertung</a>
+    <a href="spiel.html"><span class="ico">☷</span>Kader</a>
+  </nav>
+
+  <!-- ===================== KONTO ===================== -->
+  <main class="page narrow view" id="v-konto">
+    <div class="toolbar"><div><h1>Konto</h1><div class="tsub">dein Login, gilt für alle Teams</div></div></div>
+    <section class="panel">
+      <div class="who">
+        <div class="avatar">JS</div>
+        <div><div class="nm">Jonas Steitz</div><div class="lg">Trainer:in in 2 Teams · Co-Trainer:in in 1</div></div>
+      </div>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><h2>Name</h2></div>
+      <form onsubmit="return false">
+        <label class="f">Login<input type="text" value="jonas" readonly /></label>
+        <label class="f" style="margin-top:10px">Anzeigename<input type="text" value="Jonas Steitz" placeholder="jonas" /></label>
+        <p class="hint">So siehst du für andere im Team aus. Leer lassen = Login.</p>
+        <div style="margin-top:12px"><button class="btn primary" type="submit">Speichern <span class="chip new">neu</span></button></div>
+      </form>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><h2>Passwort</h2></div>
+      <form onsubmit="return false">
+        <label class="f">Aktuelles Passwort<input type="text" placeholder="••••••••" /></label>
+        <div class="row" style="margin-top:10px">
+          <label class="f">Neues Passwort<input type="text" placeholder="mind. 8 Zeichen" /></label>
+          <label class="f">Wiederholen<input type="text" placeholder="" /></label>
+        </div>
+        <div style="margin-top:12px"><button class="btn primary" type="submit">Passwort ändern <span class="chip new">neu</span></button></div>
+      </form>
+    </section>
+    <section class="panel" style="border-style:dashed">
+      <div class="panel-head"><h2>E-Mail</h2><span class="chip new">später</span></div>
+      <p class="small muted" style="margin:0">Kommt mit dem Registrierungs-Konzept: Konto per E-Mail anlegen, Passwort zurücksetzen, Einladung per Link statt Code.</p>
+    </section>
+    <p class="foot">Abmelden findest du im Menü oben rechts.</p>
+  </main>
+
+  <!-- ===================== EINSTELLUNGEN (App) ===================== -->
+  <main class="page narrow view" id="v-app">
+    <div class="toolbar"><div><h1>Einstellungen</h1><div class="tsub">dieses Gerät, diese App</div></div></div>
+    <section class="panel">
+      <div class="app-row">
+        <div><div class="k">Darstellung</div><div class="d">Dunkel für die Halle, hell fürs Büro</div></div>
+        <div class="seg"><button class="active" onclick="setTheme('dark')">Dunkel</button><button onclick="setTheme('light')">Hell</button></div>
+      </div>
+      <div class="app-row">
+        <div><div class="k">Als App installieren</div><div class="d">Browser-Menü → „App installieren“ oder „Zum Startbildschirm“. Danach Vollbild, auch ohne Empfang in der Halle.</div></div>
+        <span class="chip">nicht installiert</span>
+      </div>
+      <div class="app-row">
+        <div><div class="k">Verbindung</div><div class="d">Live-Stream verbunden · dieser Tab hält den Stream</div></div>
+        <span class="status"><span class="dot"></span><span class="small">online</span></span>
+      </div>
+      <div class="app-row">
+        <div><div class="k">Anleitung</div><div class="d">Scouten, Bewertungsskala, Auswertung</div></div>
+        <a class="btn" href="#">Öffnen</a>
+      </div>
+      <details class="diag app-row">
+        <summary>
+          <div><div class="k">Diagnose <span class="caret">›</span></div><div class="d">Version 0.9.3 · bei Problemen kopieren und schicken</div></div>
+          <span class="chip">2 Fehler</span>
+        </summary>
+        <div class="diag-body">
+          <ul>
+            <li><span class="muted">14:02:11</span> <b>api</b> 502 Bad Gateway <span class="muted">/matches/12/actions</span></li>
+            <li><span class="muted">14:02:19</span> <b>sse</b> reconnect <span class="muted">/events</span></li>
+          </ul>
+          <div class="row"><button class="btn">Diagnose kopieren</button><button class="btn ghost">Leeren</button></div>
+        </div>
+      </details>
+    </section>
+    <p class="foot">Sideout 0.9.3 · Open Source (MIT)</p>
+  </main>
+
+  <!-- ===================== TEAMS ===================== -->
+  <main class="page mid view" id="v-teams">
+    <div class="toolbar"><div><h1>Teams</h1><div class="tsub">ein Login, mehrere Teams · Wechseln macht ein Team aktiv, ▾ klappt es auf</div></div></div>
+
+    <section class="panel">
+      <div class="panel-head"><h2>Team hinzufügen</h2><span class="small muted">neu anlegen oder per Code beitreten</span></div>
+      <div class="addteam">
+      <form onsubmit="return false"><label class="f">Neues Team anlegen<input type="text" placeholder="z. B. TSV Eintracht III" /></label><button class="btn" type="submit">Anlegen</button></form>
+      <form onsubmit="return false"><label class="f">Team beitreten<input type="text" placeholder="Team-Code XXX-0000" autocapitalize="characters" /></label><button class="btn" type="submit">Beitreten</button></form>
+    </div>
+      <p class="hint">Wer per Code beitritt, kann erst mal nur lesen. Trainer:innen befördern im Team zur Co-Trainer:in.</p>
+    </section>
+    <p class="foot" style="margin:14px 0 8px">Das aktive Team steht oben in der Leiste. Spiele, Auswertung und Kader gehören immer zum aktiven Team.</p>
+
+    <section class="panel team cur" id="t1">
+      <div class="team-head" role="button" tabindex="0" onclick="toggle('t1')">
+        <span>
+          <span class="t">TSV Eintracht Damen 1</span>
+          <div class="s">Landesliga Süd · 2026/27 · <b>Trainer:in</b> · 14 Spielerinnen · 3 Personen</div>
+        </span>
+        <span class="slot"><span class="chip aktiv">aktiv</span></span>
+        <button class="fold" title="Auf- / zuklappen" onclick="event.stopPropagation(); toggle(this.closest('.team').id)"><i>▾</i></button>
+      </div>
+      <div class="team-body">
+        <div class="sub">
+          <div class="sub-head"><h3>Stammdaten</h3></div>
+          <form onsubmit="return false">
+            <div class="row">
+              <label class="f" style="flex:2">Name<input type="text" value="TSV Eintracht Damen 1" /></label>
+              <label class="f" style="flex:0;min-width:90px">Kürzel<input type="text" value="TSVE" maxlength="4" /></label>
+            </div>
+            <div class="row" style="margin-top:10px">
+              <label class="f">Liga<input type="text" value="Landesliga Süd" /></label>
+              <label class="f">Saison<input type="text" value="2026/27" /></label>
+            </div>
+            <div style="margin-top:10px"><button class="btn primary" type="submit">Speichern</button></div>
+          </form>
+        </div>
+        <div class="sub">
+          <div class="sub-head"><h3>Kader</h3><span class="small muted">öffnet den Kader dieses Teams</span></div>
+          <div class="kader">
+            <div class="n">14<small>aktiv · 2 ehemalige</small></div>
+            <div class="pos"><span class="chip pos-Z">2 Zuspiel</span><span class="chip pos-A">4 Außen</span><span class="chip pos-M">3 Mitte</span><span class="chip pos-D">3 Diagonal</span><span class="chip pos-L">2 Libero</span></div>
+            <a class="btn go" href="spiel.html" title="wählt das Team und öffnet den Kader">Kader bearbeiten →</a>
+          </div>
+        </div>
+        <div class="sub">
+          <div class="sub-head"><h3>Trainer:innen &amp; Helfer</h3><span class="small muted">Rollen ändert nur die Trainer:in</span></div>
+          <ul class="members">
+            <li><span class="av me">JS</span><span><b>Jonas Steitz</b> <span class="muted small">(du)</span><div class="u">jonas</div></span><span class="chip">Trainer:in</span><span></span></li>
+            <li><span class="av">PK</span><span><b>Petra Kuhn</b><div class="u">petra.k</div></span>
+              <select><option>Trainer:in</option><option selected>Co-Trainer:in / Scout</option><option>Nur lesen</option></select>
+              <button class="icon-btn" title="Entfernen">🗑</button></li>
+            <li><span class="av">MV</span><span><b>Max Vogt</b><div class="u">maxv</div></span>
+              <select><option>Trainer:in</option><option>Co-Trainer:in / Scout</option><option selected>Nur lesen</option></select>
+              <button class="icon-btn" title="Entfernen">🗑</button></li>
+          </ul>
+          <div class="invite">
+            <div class="code">TSV-4821</div>
+            <div class="small muted">Team-Code zum Beitreten. Wer beitritt, kann erst mal nur lesen. Zum Scouten oben auf Co-Trainer:in setzen.</div>
+            <button class="btn">Neu erzeugen</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel team" id="t2">
+      <div class="team-head" role="button" tabindex="0" onclick="toggle('t2')">
+        <span>
+          <span class="t">TSV Eintracht Damen 2</span>
+          <div class="s">Bezirksliga · 2026/27 · <b>Co-Trainer:in</b> · 11 Spielerinnen · 2 Personen</div>
+        </span>
+        <span class="slot"><button class="btn" onclick="event.stopPropagation(); pick('t2')">Wechseln</button></span>
+        <button class="fold" title="Auf- / zuklappen" onclick="event.stopPropagation(); toggle(this.closest('.team').id)"><i>▾</i></button>
+      </div>
+      <div class="team-body">
+        <div class="sub">
+          <div class="sub-head"><h3>Stammdaten</h3><span class="small muted">nur die Trainer:in ändert das</span></div>
+          <div class="small">TSV Eintracht Damen 2 · TSV2 · Bezirksliga · 2026/27</div>
+        </div>
+        <div class="sub">
+          <div class="sub-head"><h3>Kader</h3></div>
+          <div class="kader"><div class="n">11<small>aktiv</small></div><div class="pos"><span class="chip pos-Z">2 Zuspiel</span><span class="chip pos-A">3 Außen</span><span class="chip pos-M">2 Mitte</span><span class="chip pos-D">2 Diagonal</span><span class="chip pos-L">2 Libero</span></div><a class="btn go" href="spiel.html" title="wählt das Team und öffnet den Kader">Kader bearbeiten →</a></div>
+        </div>
+        <div class="sub">
+          <div class="sub-head"><h3>Trainer:innen &amp; Helfer</h3></div>
+          <ul class="members">
+            <li><span class="av">AB</span><span><b>Anna Berger</b><div class="u">anna.b</div></span><span class="chip">Trainer:in</span><span></span></li>
+            <li><span class="av me">JS</span><span><b>Jonas Steitz</b> <span class="muted small">(du)</span><div class="u">jonas</div></span><span class="chip">Co-Trainer:in / Scout</span><span></span></li>
+          </ul>
+          <p class="small muted" style="margin:10px 0 0">Du bist Co-Trainer:in: Rollen und Team-Code verwaltet Anna Berger. <button class="danger-link">Team verlassen</button> <span class="chip new">neu</span></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel team" id="t3">
+      <div class="team-head" role="button" tabindex="0" onclick="toggle('t3')">
+        <span>
+          <span class="t">SV Blau-Weiß U18</span>
+          <div class="s">Jugend · 2026/27 · <b>Trainer:in</b> · 9 Spielerinnen · 1 Person</div>
+        </span>
+        <span class="slot"><button class="btn" onclick="event.stopPropagation(); pick('t3')">Wechseln</button></span>
+        <button class="fold" title="Auf- / zuklappen" onclick="event.stopPropagation(); toggle(this.closest('.team').id)"><i>▾</i></button>
+      </div>
+      <div class="team-body">
+        <div class="sub">
+          <div class="sub-head"><h3>Stammdaten</h3></div>
+          <form onsubmit="return false">
+            <div class="row">
+              <label class="f" style="flex:2">Name<input type="text" value="SV Blau-Weiß U18" /></label>
+              <label class="f" style="flex:0;min-width:90px">Kürzel<input type="text" value="SVBW" maxlength="4" /></label>
+            </div>
+            <div class="row" style="margin-top:10px">
+              <label class="f">Liga<input type="text" value="Jugend" /></label>
+              <label class="f">Saison<input type="text" value="2026/27" /></label>
+            </div>
+            <div style="margin-top:10px"><button class="btn primary" type="submit">Speichern</button></div>
+          </form>
+        </div>
+        <div class="sub">
+          <div class="sub-head"><h3>Kader</h3></div>
+          <div class="kader"><div class="n">9<small>aktiv</small></div><div class="pos"><span class="chip pos-Z">1 Zuspiel</span><span class="chip pos-A">3 Außen</span><span class="chip pos-M">2 Mitte</span><span class="chip pos-D">2 Diagonal</span><span class="chip pos-L">1 Libero</span></div><a class="btn go" href="spiel.html" title="wählt das Team und öffnet den Kader">Kader bearbeiten →</a></div>
+        </div>
+        <div class="sub">
+          <div class="sub-head"><h3>Trainer:innen &amp; Helfer</h3></div>
+          <ul class="members">
+            <li><span class="av me">JS</span><span><b>Jonas Steitz</b> <span class="muted small">(du)</span><div class="u">jonas</div></span><span class="chip">Trainer:in</span><span></span></li>
+          </ul>
+          <div class="invite"><div class="code">SVB-9037</div><div class="small muted">Noch niemand dabei. Code weitergeben; wer beitritt, kann erst mal nur lesen.</div><button class="btn">Neu erzeugen</button></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    /* ---- views (#konto #app #teams) ---- */
+    var VIEWS = ['konto', 'app', 'teams'];
+    function show(v) {
+      if (VIEWS.indexOf(v) < 0) v = 'app';
+      VIEWS.forEach(function (k) { document.getElementById('v-' + k).classList.toggle('on', k === v); });
+      document.querySelectorAll('[data-view]').forEach(function (a) { a.classList.toggle('active', a.dataset.view === v); a.classList.toggle('current', a.dataset.view === v && a.closest('.menu')); });
+      document.title = 'SIDEOUT — ' + { konto: 'Konto', app: 'Einstellungen', teams: 'Teams' }[v];
+    }
+    window.addEventListener('hashchange', function () { show(location.hash.slice(1)); closeMenu(); });
+    show(location.hash.slice(1));
+
+    /* ---- avatar menu ---- */
+    var btn = document.getElementById('avatarBtn'), menu = document.getElementById('acctMenu'), open = false;
+    function closeMenu() { open = false; menu.classList.remove('open'); btn.classList.remove('on'); }
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation(); open = !open;
+      if (open) { var r = btn.getBoundingClientRect(); menu.style.top = Math.round(r.bottom + 6) + 'px'; menu.style.right = Math.max(8, Math.round(innerWidth - r.right)) + 'px'; }
+      menu.classList.toggle('open', open); btn.classList.toggle('on', open);
+    });
+    menu.addEventListener('click', function (e) { e.stopPropagation(); });
+    document.addEventListener('click', closeMenu);
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeMenu(); });
+
+    /* ---- teams ---- */
+    function toggle(id) { document.getElementById(id).classList.toggle('open'); }
+    function pick(id) {
+      document.querySelectorAll('.team').forEach(function (t) {
+        var cur = t.id === id;
+        t.classList.toggle('cur', cur);
+        t.querySelector('.slot').innerHTML = cur
+          ? '<span class="chip aktiv">aktiv</span>'
+          : '<button class="btn" onclick="event.stopPropagation(); pick(\'' + t.id + '\')">Wechseln</button>';
+      });
+      var t = document.getElementById(id), name = t.querySelector('.t').firstChild.textContent.trim();
+      document.querySelector('.sync-chip .desk').textContent = name;
+      document.querySelector('#acctMenu .head .sub').textContent = 'Trainer:in · ' + name;
+    }
+
+    /* ---- theme segment ---- */
+    function syncSeg() {
+      var v = window.soTheme.get();
+      document.querySelectorAll('.seg button').forEach(function (b) { b.classList.toggle('active', b.textContent === (v === 'light' ? 'Hell' : 'Dunkel')); });
+    }
+    function setTheme(v) { window.soTheme.set(v); syncSeg(); }
+    document.addEventListener('DOMContentLoaded', function () {
+      syncSeg();
+      document.querySelector('[data-theme-btn]').addEventListener('click', function () { setTimeout(syncSeg, 0); });
+    });
+  </script>
+</body>
+</html>
