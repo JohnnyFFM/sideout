@@ -241,27 +241,41 @@
     drag = { id: pid, x: e.clientX, y: e.clientY, moved: false };
   }
   function chipCancel() { drag = null; over = null; } // pointer taken by the browser
-  // ‹ › buttons while the strip overflows: a tap scrolls one step, holding
-  // the button keeps scrolling
+  // the bench is paged: as many whole chips as fit between ‹ and ›, the
+  // next press shows the next set. Pages are measured from the rendered
+  // chips (names differ in width) and recomputed on resize or roster change.
   let benchEl = $state(null);
-  let benchOverflow = $state(false);
+  let pages = $state([0]);      // index of the first chip of each bpage
+  let bpage = $state(0);
+  const pageRange = $derived({ first: pages[bpage] ?? 0, last: pages[bpage + 1] ?? Infinity });
+  function layoutBench() {
+    const el = benchEl; if (!el) return;
+    const chips = [...el.querySelectorAll('.chipb')];
+    const W = el.clientWidth;
+    const starts = []; let i = 0;
+    while (i < chips.length) {
+      starts.push(i);
+      const left = chips[i].offsetLeft; let j = i;
+      while (j < chips.length && chips[j].offsetLeft + chips[j].offsetWidth - left <= W + 1) j++;
+      i = j > i ? j : i + 1;
+    }
+    pages = starts.length ? starts : [0];
+    if (bpage > pages.length - 1) bpage = Math.max(0, pages.length - 1);
+  }
   $effect(() => {
-    void benchChips.length; const el = benchEl; if (!el) return;
-    const check = () => (benchOverflow = el.scrollWidth > el.clientWidth + 2);
-    check();
-    const ro = new ResizeObserver(check); ro.observe(el);
+    void benchChips; const el = benchEl; if (!el) return;
+    tick().then(layoutBench);
+    const ro = new ResizeObserver(() => layoutBench()); ro.observe(el);
     return () => ro.disconnect();
   });
-  let holdTimer = null;
-  function benchPress(e, dir) {
-    e.preventDefault();
-    try { e.currentTarget.setPointerCapture?.(e.pointerId); } catch { /* ignore */ }
-    benchEl?.scrollBy({ left: dir * 90, behavior: 'smooth' });
-    clearInterval(holdTimer);
-    let held = 0;
-    holdTimer = setInterval(() => { if (++held > 20 && benchEl) benchEl.scrollLeft += dir * 6; }, 16); // after ~320 ms: continuous
-  }
-  function benchRelease() { clearInterval(holdTimer); holdTimer = null; }
+  // show the page: shift the row so the page's first chip sits at the left
+  // edge (a transform, not scrollLeft, which cannot go past the end)
+  let benchShift = $state(0);
+  $effect(() => {
+    const el = benchEl; const first = pages[bpage] ?? 0; if (!el) return;
+    const chips = el.querySelectorAll('.chipb');
+    benchShift = chips[first] ? chips[first].offsetLeft - chips[0].offsetLeft : 0;
+  });
   // grabbing cursor and no text selection while a chip is in flight
   $effect(() => {
     document.body.classList.toggle('dragging', !!drag?.moved);
@@ -391,14 +405,17 @@
           <Court {court} {byId} {selected} serving={st.serving} {suggested} {over} dragging={!!drag} {targets} onselect={slotTap} />
           {#if benchChips.length}
             <div class="benchwrap">
-            {#if benchOverflow}<button class="bscroll l" onpointerdown={(e) => benchPress(e, -1)} onpointerup={benchRelease} onpointercancel={benchRelease} onlostpointercapture={benchRelease} title="Bank nach links">‹</button><button class="bscroll r" onpointerdown={(e) => benchPress(e, 1)} onpointerup={benchRelease} onpointercancel={benchRelease} onlostpointercapture={benchRelease} title="Bank nach rechts">›</button>{/if}
+            {#if pages.length > 1}<button class="bscroll l" disabled={bpage === 0} onclick={() => (bpage = Math.max(0, bpage - 1))} title="Bank: vorherige">‹</button>{/if}
             <div class="bench" bind:this={benchEl} onpointermove={chipMove} onpointerup={chipUp} onpointercancel={chipCancel}>
-              {#each benchChips as p (p.id)}
-                <button class="chipb" class:libero={p.id === st.libero} class:out={liberoCard?.replaced === p.id} class:dragging={drag?.id === p.id} onpointerdown={(e) => chipDown(e, p.id)} disabled={!canScout || st.finished}>
+              <div class="benchrow" style="transform: translateX(-{benchShift}px)">
+              {#each benchChips as p, k (p.id)}
+                <button class="chipb" class:offpage={k < pageRange.first || k >= pageRange.last} class:libero={p.id === st.libero} class:out={liberoCard?.replaced === p.id} class:dragging={drag?.id === p.id} onpointerdown={(e) => chipDown(e, p.id)} disabled={!canScout || st.finished}>
                   <b>{p.number}</b><span>{firstName(p)}</span><small>{chipNote(p)}</small>
                 </button>
               {/each}
+              </div>
             </div>
+            {#if pages.length > 1}<button class="bscroll r" disabled={bpage >= pages.length - 1} onclick={() => (bpage = Math.min(pages.length - 1, bpage + 1))} title="Bank: nächste">›</button>{/if}
             </div>
           {/if}
           {#if drag?.moved}
@@ -553,12 +570,13 @@
   .tl-set { flex: 0 0 auto; align-self: stretch; display: grid; align-items: center; padding: 0 8px 0 10px; margin: 0 4px; border-left: 2px solid var(--line); font-size: 11px; font-weight: 600; color: var(--ink-3); white-space: nowrap; }
   .court-wrap { background: var(--panel); border: 1px solid var(--line-soft); border-radius: var(--r-l); padding: 10px; }
   .court-foot { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--ink-2); min-height: 22px; }
-  .benchwrap { position: relative; }
-  .bench { display: flex; gap: 6px; margin-top: 8px; overflow-x: auto; padding: 2px 0 4px; scrollbar-width: none; touch-action: none; }
-  .benchwrap:has(.bscroll) .bench { padding-left: 30px; padding-right: 30px; }
-  .bscroll { position: absolute; top: 0; bottom: 0; z-index: 2; width: 28px; border-radius: var(--r-m); border: 1px solid var(--line); background: var(--raised); color: var(--ink); font-size: 22px; line-height: 1; padding: 0 0 3px; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
-  .bscroll.l { left: 0; } .bscroll.r { right: 0; }
-  .bscroll:active { background: var(--accent); color: #fff; }
+  .benchwrap { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+  .bench { position: relative; flex: 1 1 auto; min-width: 0; overflow: hidden; padding: 2px 0 4px; touch-action: none; }
+  .benchrow { position: relative; display: flex; gap: 6px; width: max-content; }
+  .chipb.offpage { visibility: hidden; }
+  .bscroll { flex: 0 0 auto; width: 30px; height: 32px; border-radius: var(--r-m); border: 1px solid var(--line); background: var(--raised); color: var(--ink); font-size: 22px; line-height: 1; padding: 0 0 3px; cursor: pointer; user-select: none; -webkit-user-select: none; }
+  .bscroll:disabled { opacity: 0.3; cursor: default; }
+  .bscroll:not(:disabled):active { background: var(--accent); color: #fff; }
   .bench::-webkit-scrollbar { display: none; }
   .chipb {
     flex: 0 0 auto; display: grid; grid-template-columns: auto auto; align-items: baseline; column-gap: 5px;
@@ -622,7 +640,7 @@
     .col.left > .court-wrap :global(.slot) { min-height: 0; }
     .col.left > .court-wrap :global(.slot .jersey) { font-size: clamp(18px, 3.4dvh, 34px); }
     .col.left > .court-wrap :global(.slot .nm) { font-size: clamp(9px, 1.4dvh, 12px); }
-    .col.left > .court-wrap .bench { flex: 0 0 auto; }
+    .col.left > .court-wrap .benchwrap { flex: 0 0 auto; }
     .chipb { height: clamp(30px, 4.6dvh, 44px); }
     .chipb b { font-size: clamp(14px, 2.2dvh, 19px); }
     .col.mid > :global(.pad) { flex: 4 1 0; min-height: 0; overflow: hidden; grid-template-rows: auto repeat(6, minmax(0, 1fr)); }
@@ -649,7 +667,7 @@
     :global(.score .catch) { display: none; grid-template-columns: 1fr 1fr 1fr 1.25fr; margin-top: 8px; }
     :global(.score .catch button) { font-size: 11px; padding: 0 2px; white-space: nowrap; }
     .live.extras :global(.score .catch) { display: grid; }
-    .bench { display: flex; margin-top: 6px; }
+    .benchwrap { margin-top: 6px; }
     .chipb { height: 38px; }
     .court-wrap { padding: 6px; }
     .court-foot { margin-top: 4px; min-height: 18px; font-size: 11px; }
@@ -720,7 +738,7 @@
     .col.left > .court-wrap :global(.slot) { min-height: 0; padding: 2px 5px; }
     .col.left > .court-wrap :global(.slot .jersey) { font-size: clamp(14px, 5dvh, 24px); }
     .col.left > .court-wrap :global(.slot .nm) { display: none; }
-    .bench { display: flex; flex: 0 0 auto; margin-top: 4px; }
+    .benchwrap { flex: 0 0 auto; margin-top: 4px; }
     .chipb { height: 30px; } .chipb b { font-size: 14px; } .chipb small { display: none; }
     #lastBox { display: none; }
     .col.mid > :global(.pad) { grid-column: 2; grid-row: 1 / span 3; min-height: 0; overflow: hidden; padding: 6px; gap: 3px; grid-template-rows: repeat(6, minmax(0, 1fr)); }
