@@ -68,6 +68,8 @@
     .slot { min-height: 44px !important; }
     .slot .jersey { font-size: 19px !important; }
     .slot .nm { display: none; }
+    .slot.srv::after { bottom: 6px; right: 8px; }
+    .slot.hint::before { font-size: 8px; right: 4px; }
   }
   @media (max-width: 759px) {
     .court { padding: 5px; gap: 5px; border-top-width: 4px; }
