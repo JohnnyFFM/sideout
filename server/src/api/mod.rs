@@ -1,7 +1,10 @@
+pub mod account;
 pub mod auth_routes;
 pub mod events;
 pub mod matches;
 pub mod team;
+#[cfg(test)]
+mod tests;
 
 use axum::routing::{delete, get, patch, post, put};
 use axum::Router;
@@ -16,7 +19,8 @@ pub fn router(state: AppState) -> Router {
         .route("/auth/login", post(auth_routes::login))
         .route("/auth/logout", post(auth_routes::logout))
         .route("/config", get(auth_routes::config))
-        .route("/me", get(auth_routes::me))
+        .route("/me", get(auth_routes::me).patch(account::patch_me))
+        .route("/me/password", post(account::change_password))
         // team & roster
         .route("/team", patch(team::patch_team))
         .route("/team/rotate-code", post(team::rotate_code))
@@ -24,6 +28,11 @@ pub fn router(state: AppState) -> Router {
         .route("/teams", post(team::create_team))
         .route("/teams/join", post(team::join_team))
         .route("/teams/switch", post(team::switch_team))
+        // per-team (any of my teams, not only the active one): the Teams page
+        .route("/teams/{id}", get(account::get_team).patch(team::patch_team_by_id))
+        .route("/teams/{id}/membership", delete(account::leave_team))
+        .route("/teams/{id}/rotate-code", post(team::rotate_code_by_id))
+        .route("/teams/{id}/members/{uid}", patch(team::patch_member_by_id).delete(team::delete_member_by_id))
         .route("/players", get(team::list_players).post(team::create_player))
         .route("/players/{id}", patch(team::patch_player).delete(team::delete_player))
         // matches

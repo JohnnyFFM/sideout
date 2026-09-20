@@ -229,7 +229,7 @@ pub async fn join(
     let team_id: i64 = team.get("id");
     let hash = auth::hash_password(&body.password).map_err(ApiError::Internal)?;
     let res = sqlx::query(
-        "INSERT INTO users (team_id, username, display_name, password_hash, role) VALUES (?, ?, ?, ?, 'assistant')",
+        "INSERT INTO users (team_id, username, display_name, password_hash, role) VALUES (?, ?, ?, ?, 'viewer')",
     )
     .bind(team_id)
     .bind(&username)
@@ -244,9 +244,10 @@ pub async fn join(
         other => other.into(),
     })?;
     let user_id = res.last_insert_rowid();
-    sqlx::query("INSERT INTO memberships (user_id, team_id, role) VALUES (?, ?, 'assistant')")
+    // joiners start read-only; a coach promotes them to assistant or coach
+    sqlx::query("INSERT INTO memberships (user_id, team_id, role) VALUES (?, ?, 'viewer')")
         .bind(user_id).bind(team_id).execute(&state.dbw).await?;
-    audit(&state, team_id, "team", team_id, "member_joined", body.display_name.trim(), Some(user_id)).await?;
+    audit(&state, team_id, "team", team_id, "member_joined", &format!("{} (nur lesen)", body.display_name.trim()), Some(user_id)).await?;
     state.events.publish(crate::events::EventMsg {
         team_id, entity: "team".into(), id: team_id, version: 0,
         action: "member_joined".into(), actor: body.display_name.trim().to_string(),

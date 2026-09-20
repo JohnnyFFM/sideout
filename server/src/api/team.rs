@@ -22,11 +22,29 @@ pub struct PatchTeam {
     pub season: Option<String>,
 }
 
-pub async fn patch_team(
-    State(state): State<AppState>,
-    user: CurrentUser,
-    Json(body): Json<PatchTeam>,
-) -> ApiResult<Json<Value>> {
+/// my role in a team I belong to (Forbidden otherwise)
+async fn role_in(state: &AppState, user: &CurrentUser, team_id: i64) -> ApiResult<Role> {
+    let m = sqlx::query("SELECT role FROM memberships WHERE user_id = ? AND team_id = ?")
+        .bind(user.id).bind(team_id).fetch_optional(&state.db).await?
+        .ok_or(ApiError::Forbidden)?;
+    Ok(Role::parse(&m.get::<String, _>("role")))
+}
+
+/// the same user, seen as a member of another of their teams
+async fn as_member_of(state: &AppState, user: CurrentUser, team_id: i64) -> ApiResult<CurrentUser> {
+    let role = role_in(state, &user, team_id).await?;
+    Ok(CurrentUser { team_id, role, ..user })
+}
+
+pub async fn patch_team(State(state): State<AppState>, user: CurrentUser, Json(body): Json<PatchTeam>) -> ApiResult<Json<Value>> {
+    patch_team_in(state, user, body).await
+}
+pub async fn patch_team_by_id(State(state): State<AppState>, user: CurrentUser, Path(id): Path<i64>, Json(body): Json<PatchTeam>) -> ApiResult<Json<Value>> {
+    let u = as_member_of(&state, user, id).await?;
+    patch_team_in(state, u, body).await
+}
+
+async fn patch_team_in(state: AppState, user: CurrentUser, body: PatchTeam) -> ApiResult<Json<Value>> {
     user.require(Role::Coach)?;
     if let Some(n) = &body.name {
         if n.trim().is_empty() {
@@ -50,6 +68,13 @@ pub async fn patch_team(
 }
 
 pub async fn rotate_code(State(state): State<AppState>, user: CurrentUser) -> ApiResult<Json<Value>> {
+    rotate_code_in(state, user).await
+}
+pub async fn rotate_code_by_id(State(state): State<AppState>, user: CurrentUser, Path(id): Path<i64>) -> ApiResult<Json<Value>> {
+    let u = as_member_of(&state, user, id).await?;
+    rotate_code_in(state, u).await
+}
+async fn rotate_code_in(state: AppState, user: CurrentUser) -> ApiResult<Json<Value>> {
     user.require(Role::Coach)?;
     for _ in 0..5 {
         let code = new_join_code();
@@ -73,12 +98,14 @@ pub struct PatchMember {
     pub role: Option<String>,
 }
 
-pub async fn patch_member(
-    State(state): State<AppState>,
-    user: CurrentUser,
-    Path(id): Path<i64>,
-    Json(body): Json<PatchMember>,
-) -> ApiResult<Json<Value>> {
+pub async fn patch_member(State(state): State<AppState>, user: CurrentUser, Path(id): Path<i64>, Json(body): Json<PatchMember>) -> ApiResult<Json<Value>> {
+    patch_member_in(state, user, id, body).await
+}
+pub async fn patch_member_by_id(State(state): State<AppState>, user: CurrentUser, Path((team_id, id)): Path<(i64, i64)>, Json(body): Json<PatchMember>) -> ApiResult<Json<Value>> {
+    let u = as_member_of(&state, user, team_id).await?;
+    patch_member_in(state, u, id, body).await
+}
+async fn patch_member_in(state: AppState, user: CurrentUser, id: i64, body: PatchMember) -> ApiResult<Json<Value>> {
     user.require(Role::Coach)?;
     if let Some(r) = &body.role {
         if !matches!(r.as_str(), "coach" | "assistant" | "viewer") {
@@ -104,6 +131,13 @@ pub async fn patch_member(
 }
 
 pub async fn delete_member(State(state): State<AppState>, user: CurrentUser, Path(id): Path<i64>) -> ApiResult<Json<Value>> {
+    delete_member_in(state, user, id).await
+}
+pub async fn delete_member_by_id(State(state): State<AppState>, user: CurrentUser, Path((team_id, id)): Path<(i64, i64)>) -> ApiResult<Json<Value>> {
+    let u = as_member_of(&state, user, team_id).await?;
+    delete_member_in(state, u, id).await
+}
+async fn delete_member_in(state: AppState, user: CurrentUser, id: i64) -> ApiResult<Json<Value>> {
     user.require(Role::Coach)?;
     if id == user.id {
         return Err(ApiError::BadRequest("Du kannst dich nicht selbst entfernen".into()));
@@ -165,7 +199,7 @@ pub struct JoinCode {
     pub code: String,
 }
 
-/// A logged-in user joins another team by code (as assistant) and switches to it.
+/// A logged-in user joins another team by code (read-only until a coach promotes) and switches to it.
 pub async fn join_team(State(state): State<AppState>, user: CurrentUser, Json(body): Json<JoinCode>) -> ApiResult<Json<Value>> {
     if !state.config.signup_open {
         return Err(ApiError::BadRequest("Beitreten ist auf dieser Instanz geschlossen".into()));
@@ -176,7 +210,7 @@ pub async fn join_team(State(state): State<AppState>, user: CurrentUser, Json(bo
         .await?
         .ok_or_else(|| ApiError::BadRequest("Team-Code nicht gefunden".into()))?;
     let team_id: i64 = team.get("id");
-    sqlx::query("INSERT OR IGNORE INTO memberships (user_id, team_id, role) VALUES (?, ?, 'assistant')").bind(user.id).bind(team_id).execute(&state.dbw).await?;
+    sqlx::query("INSERT OR IGNORE INTO memberships (user_id, team_id, role) VALUES (?, ?, 'viewer')").bind(user.id).bind(team_id).execute(&state.dbw).await?;
     sqlx::query("UPDATE sessions SET team_id = ? WHERE id = ?").bind(team_id).bind(user.session_id).execute(&state.dbw).await?;
     audit(&state, team_id, "team", team_id, "member_joined", &user.display_name, Some(user.id)).await?;
     state.events.publish(EventMsg { team_id, entity: "team".into(), id: team_id, version: 0, action: "member_joined".into(), actor: user.display_name.clone() });
