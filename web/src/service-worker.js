@@ -50,7 +50,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // hashed assets: the browser's own cache handles them (immutable headers);
+  // the worker only steps in when the network is gone. Answering module
+  // preloads from the worker makes Chromium discard them ("cross-world
+  // service worker resource mismatch") and fetch twice.
   if (ASSETS.includes(url.pathname)) {
-    event.respondWith(caches.match(url.pathname).then((hit) => hit || fetch(request)));
+    event.respondWith(fetch(request).catch(() => caches.match(url.pathname)));
   }
 });
