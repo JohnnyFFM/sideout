@@ -78,7 +78,9 @@ jobs:
 
   deploy:
     needs: build
-    if: github.event_name == 'push'
+    # dev always deploys the test stack; master deploys live only once the
+    # repo variable LIVE_ENABLED is 'true' (i.e. a domain and Caddy site exist)
+    if: github.event_name == 'push' && (github.ref_name == 'dev' || vars.LIVE_ENABLED == 'true')
     runs-on: ubuntu-latest
     environment: vps
     permissions:
