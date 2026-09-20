@@ -10,8 +10,9 @@ services:
     environment:
       - SO_SIGNUP=open
       - RUST_LOG=sideout_server=info
-      # must match the SO_BASE the image was built with (repo variable SO_BASE)
-      - SO_BASE=/sideout
+      # must match the SO_BASE the image was built with (repo variable
+      # SO_BASE_TEST); set in .env, empty for a domain
+      - SO_BASE=${SO_BASE:-}
     volumes:
       - ./data:/data
     networks:

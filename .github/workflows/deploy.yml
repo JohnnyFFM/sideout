@@ -54,8 +54,10 @@ jobs:
           echo "image=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
           if [ "$GITHUB_REF_NAME" = "master" ]; then
             echo "stack=live" >> "$GITHUB_OUTPUT"
+            echo "base=${{ vars.SO_BASE_LIVE }}" >> "$GITHUB_OUTPUT"
           else
             echo "stack=test" >> "$GITHUB_OUTPUT"
+            echo "base=${{ vars.SO_BASE_TEST }}" >> "$GITHUB_OUTPUT"
           fi
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
@@ -67,9 +69,10 @@ jobs:
         with:
           context: .
           push: true
-          # path prefix for the SPA; repo variable SO_BASE (e.g. /sideout), empty for a domain
+          # path prefix baked into the SPA: repo variables SO_BASE_TEST / SO_BASE_LIVE
+          # (e.g. /sideout while a stack shares a host by IP; empty for a domain)
           build-args: |
-            SO_BASE=${{ vars.SO_BASE }}
+            SO_BASE=${{ steps.meta.outputs.base }}
           tags: |
             ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.stack }}
             ${{ steps.meta.outputs.image }}:${{ github.sha }}
