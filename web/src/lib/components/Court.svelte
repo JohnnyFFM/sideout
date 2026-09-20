@@ -68,8 +68,6 @@
   .slot.blocked { opacity: 0.3; filter: grayscale(1); }
   .slot.over { border-color: var(--accent); border-style: solid; background: var(--accent-soft); box-shadow: 0 0 0 3px var(--accent-soft); transform: scale(1.03); }
   @media (max-width: 759px) and (max-height: 700px) {
-    .slot { min-height: 44px !important; }
-    .slot .jersey { font-size: 19px !important; }
     .slot .nm { display: none; }
     .slot.srv::after { bottom: 6px; right: 8px; }
     .slot.hint::before { font-size: 8px; right: 4px; }

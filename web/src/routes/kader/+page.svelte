@@ -50,6 +50,18 @@
   {:else if !players}<div class="panel empty">Lade…</div>
   {:else}
     <div class="grid2">
+      {#if canEdit}
+        <section class="panel">
+          <div class="panel-head"><h2>Hinzufügen</h2></div>
+          <form onsubmit={add} class="addrow">
+            <label class="f">Nr.<input type="number" min="0" max="99" bind:value={number} placeholder="7" required /></label>
+            <label class="f">Name<input type="text" bind:value={name} placeholder="Vorname Nachname" required /></label>
+            <label class="f">Position<select bind:value={position}>{#each Object.entries(POS_NAME) as [k, v]}<option value={k}>{v}</option>{/each}</select></label>
+            <button class="btn primary" type="submit">Hinzufügen</button>
+          </form>
+          <p class="small muted" style="margin:12px 0 0">Z Zuspiel · A Außen · M Mitte · D Diagonal · L Libero. Die Positionen steuern die Libera-Anzeige und die Plausibilitätsprüfung der Aufstellung, nicht die Statistik.</p>
+        </section>
+      {/if}
       <section class="panel">
         <div class="panel-head"><h2>Spielerinnen</h2><span class="small muted">{players.filter((p) => p.active).length} aktiv</span></div>
         {#if !shown.length}<div class="empty">Noch niemand im Kader. Rechts hinzufügen.</div>{/if}
@@ -79,18 +91,6 @@
           {/each}
         </div>
       </section>
-      {#if canEdit}
-        <section class="panel">
-          <div class="panel-head"><h2>Hinzufügen</h2></div>
-          <form onsubmit={add} class="addrow">
-            <label class="f">Nr.<input type="number" min="0" max="99" bind:value={number} placeholder="7" required /></label>
-            <label class="f">Name<input type="text" bind:value={name} placeholder="Vorname Nachname" required /></label>
-            <label class="f">Position<select bind:value={position}>{#each Object.entries(POS_NAME) as [k, v]}<option value={k}>{v}</option>{/each}</select></label>
-            <button class="btn primary" type="submit">Hinzufügen</button>
-          </form>
-          <p class="small muted" style="margin:12px 0 0">Z Zuspiel · A Außen · M Mitte · D Diagonal · L Libero. Die Positionen steuern die Libera-Anzeige und die Plausibilitätsprüfung der Aufstellung, nicht die Statistik.</p>
-        </section>
-      {/if}
     </div>
   {/if}
 </main>

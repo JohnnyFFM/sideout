@@ -492,8 +492,17 @@
     .live { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 6px; }
     .col { display: contents; }
     .col.left > :global(.score), .timeline, .col.left > .hint, .col.left > .court-wrap { flex: 0 0 auto; }
-    .col.left > .court-wrap { flex: 0 1 auto; min-height: 0; overflow: hidden; }
-    .col.mid > :global(.pad) { flex: 1 1 0; min-height: 0; overflow: hidden; grid-template-rows: auto repeat(6, minmax(0, 1fr)); }
+    /* court and pad share the remaining height 3:4; everything else scales
+       its type with the viewport height */
+    .col.left > .court-wrap { flex: 3 1 0; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+    .col.left > .court-wrap :global(.court) { flex: 1 1 auto; min-height: 0; }
+    .col.left > .court-wrap :global(.slot) { min-height: 0; }
+    .col.left > .court-wrap :global(.slot .jersey) { font-size: clamp(18px, 3.4dvh, 34px); }
+    .col.left > .court-wrap :global(.slot .nm) { font-size: clamp(9px, 1.4dvh, 12px); }
+    .col.left > .court-wrap .bench { flex: 0 0 auto; }
+    .chipb { height: clamp(30px, 4.6dvh, 44px); }
+    .chipb b { font-size: clamp(14px, 2.2dvh, 19px); }
+    .col.mid > :global(.pad) { flex: 4 1 0; min-height: 0; overflow: hidden; grid-template-rows: auto repeat(6, minmax(0, 1fr)); }
     .col.mid > :global(.pad .cell) { min-height: 0; }
     .col.mid > :global(.pad .cell b) { font-size: clamp(12px, 2.2dvh, 18px); }
     .col.mid > :global(.pad .cell span) { font-size: clamp(8px, 1.15dvh, 10px); }
@@ -535,30 +544,25 @@
     .tl-undo:disabled { opacity: 0.4; }
     .tl-undo i { position: absolute; top: -5px; right: -5px; min-width: 16px; height: 16px; border-radius: 8px; background: var(--g-neg); color: var(--g-neg-ink); font-size: 10px; font-style: normal; font-weight: 700; display: grid; place-items: center; padding: 0 3px; }
     .tl { flex: 1 1 auto; min-width: 0; padding: 2px 0; gap: 4px; }
-    .tl-item { width: 46px; padding: 4px 0 3px; }
-    .tl-item b { font-size: 17px; }
-    .tl-score { font-size: 12px; padding: 1px 6px; }
+    .tl-item { width: clamp(40px, 6dvh, 56px); padding: clamp(3px, 0.5dvh, 6px) 0; }
+    .tl-item b { font-size: clamp(14px, 2.3dvh, 21px); }
+    .tl-item small { font-size: clamp(8px, 1.1dvh, 10px); }
+    .tl-score { font-size: clamp(11px, 1.6dvh, 14px); padding: 1px 6px; }
+    .tl-undo { width: clamp(30px, 4.6dvh, 42px); height: clamp(30px, 4.6dvh, 42px); }
   }
   @media (max-width: 759px) and (max-height: 700px) {
-    :global(.score) { padding: 6px 42px 6px !important; }
-    :global(.score .pts) { font-size: 32px !important; }
-    :global(.score .colon) { font-size: 22px !important; }
     :global(.score .meta) { display: none; }
-    .board-btn { width: 28px; height: 28px; top: 6px; }
-    .chipb { height: 32px; }
-    .chipb b { font-size: 15px; }
+    .board-btn { top: 6px; }
     .pad-foot .btn { height: 36px; font-size: 14px; }
     .live-page { padding-top: calc(4px + env(safe-area-inset-top)); }
-    .tl-item { width: 40px; padding: 3px 0 2px; }
-    .tl-item b { font-size: 15px; }
-    .tl-undo { width: 32px; height: 32px; }
     .col.mid > :global(.pad) { grid-template-rows: repeat(6, minmax(0, 1fr)); }
   }
   @media (max-width: 759px) {
-    :global(.score) { position: relative; padding: 8px 46px 8px; row-gap: 2px; }
-    :global(.score .pts) { font-size: 42px; }
-    :global(.score .colon) { font-size: 28px; }
-    :global(.score .meta) { gap: 10px; font-size: 12px; }
-    :global(.score .team) { font-size: 13px; }
+    :global(.score) { position: relative; padding: clamp(4px, 1dvh, 10px) 46px clamp(4px, 1dvh, 10px); row-gap: 2px; }
+    :global(.score .pts) { font-size: clamp(30px, 5.2dvh, 52px); }
+    :global(.score .colon) { font-size: clamp(20px, 3.4dvh, 32px); }
+    :global(.score .meta) { gap: 10px; font-size: clamp(11px, 1.5dvh, 13px); }
+    :global(.score .team) { font-size: clamp(12px, 1.6dvh, 14px); }
+    .board-btn { width: clamp(28px, 4dvh, 36px); height: clamp(28px, 4dvh, 36px); }
   }
 </style>

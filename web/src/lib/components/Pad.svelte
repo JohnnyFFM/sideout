@@ -51,8 +51,6 @@
   }
   @media (max-width: 759px) and (max-height: 700px) {
     .pad-head { display: none; }
-    .cell { min-height: 35px !important; }
-    .cell b { font-size: 15px !important; }
     .cell span { display: none; }
     .prow .lbl small { display: none; }
   }
