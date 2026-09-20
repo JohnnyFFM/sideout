@@ -93,11 +93,49 @@ export function reconcileOps(actions, ops, knownTop = 0) {
   return { ops: out, conflict: false, dropped: [] };
 }
 
+/**
+ * settleAfterLoss(actions, ops) — the lease is gone (takeover, expiry, an
+ * ownership refusal). Nothing from the queue may be replayed under a new
+ * lease, but what the server already holds is not "lost": an add whose cid
+ * is in the log was committed, an undo whose target is gone was applied.
+ * Returns the ops that really did not make it, for the record.
+ */
+export function settleAfterLoss(actions, ops) {
+  const cids = new Set(actions.map((a) => a.cid).filter(Boolean));
+  return ops.filter((op) => {
+    if (op.type === 'add') return !(op.action.cid && cids.has(op.action.cid));
+    if (op.type === 'undo') return op.cid ? cids.has(op.cid) : true;
+    return true;
+  });
+}
+
+const lkey2 = (matchId) => `so_lease_${matchId}`;
+/** the scouting lease this device last held for a match, kept next to the
+ *  queue so offline capture continues only for a confirmed holder */
+export function saveLease(matchId, lease) {
+  try {
+    if (lease) localStorage.setItem(lkey2(matchId), JSON.stringify(lease));
+    else localStorage.removeItem(lkey2(matchId));
+  } catch {
+    /* ignore */
+  }
+}
+export function loadLease(matchId) {
+  try {
+    const raw = localStorage.getItem(lkey2(matchId));
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
 const dkey = (matchId) => `so_ops_dropped_${matchId}`;
 /** ops that could not be sent (another device scouted meanwhile) are kept for the record */
 export function keepDropped(matchId, ops) {
+  if (!ops.length) return;
   try {
-    localStorage.setItem(dkey(matchId), JSON.stringify({ at: new Date().toISOString(), ops }));
+    const prev = droppedOps(matchId);
+    localStorage.setItem(dkey(matchId), JSON.stringify({ at: new Date().toISOString(), ops: [...(prev?.ops || []), ...ops] }));
   } catch {
     /* ignore */
   }

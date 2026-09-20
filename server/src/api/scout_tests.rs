@@ -146,18 +146,25 @@ async fn lost_answers_and_late_requests_are_harmless() {
     assert_eq!(st, StatusCode::OK);
     assert_eq!(m["scout"]["lease"], lease1);
     assert_eq!(m["scout"]["revision"], 1);
-    // a plain claim by the current holder is a no-op success as well
+    // a new claim by the holding session (another tab handing over) starts a
+    // new period: new lease, revision advanced, the old lease is dead
     let (st, m) = claim(&app, &a1, mid, 1, "r1b").await;
     assert_eq!(st, StatusCode::OK);
-    assert_eq!(m["scout"]["lease"], lease1);
+    let lease1b = m["scout"]["lease"].as_str().unwrap().to_string();
+    assert_ne!(lease1b, lease1);
+    assert_eq!(m["scout"]["revision"], 2);
+    let (st, _, _) = call(&app, Method::DELETE, &format!("/matches/{mid}/scout?lease={lease1}"), Some(&a1), None).await;
+    assert_eq!(st, StatusCode::NO_CONTENT);
+    assert_eq!(get(&app, &a1, mid).await["scout"]["lease"], lease1b, "the late release of the old tab's lease changes nothing");
+    let lease1 = lease1b;
 
     // takeover by device 2, then back by device 1; replaying device 2's old takeover must not steal
-    let (st, m2, _) = call(&app, Method::POST, &format!("/matches/{mid}/scout"), Some(&a2), Some(acquire("takeover", 1, "t2"))).await;
+    let (st, m2, _) = call(&app, Method::POST, &format!("/matches/{mid}/scout"), Some(&a2), Some(acquire("takeover", 2, "t2"))).await;
     assert_eq!(st, StatusCode::OK, "{m2}");
-    let (st, m3, _) = call(&app, Method::POST, &format!("/matches/{mid}/scout"), Some(&a1), Some(acquire("takeover", 2, "t3"))).await;
+    let (st, m3, _) = call(&app, Method::POST, &format!("/matches/{mid}/scout"), Some(&a1), Some(acquire("takeover", 3, "t3"))).await;
     assert_eq!(st, StatusCode::OK, "{m3}");
     let lease3 = m3["scout"]["lease"].as_str().unwrap().to_string();
-    let (st, e, _) = call(&app, Method::POST, &format!("/matches/{mid}/scout"), Some(&a2), Some(acquire("takeover", 1, "t2"))).await;
+    let (st, e, _) = call(&app, Method::POST, &format!("/matches/{mid}/scout"), Some(&a2), Some(acquire("takeover", 2, "t2"))).await;
     assert_eq!(st, StatusCode::CONFLICT, "{e}");
     assert_eq!(get(&app, &a1, mid).await["scout"]["lease"], lease3);
 
@@ -172,12 +179,12 @@ async fn lost_answers_and_late_requests_are_harmless() {
     assert_eq!(st, StatusCode::NO_CONTENT);
     let m = get(&app, &a1, mid).await;
     assert_eq!(m["scout"]["held"], false);
-    assert_eq!(m["scout"]["revision"], 4);
+    assert_eq!(m["scout"]["revision"], 5);
     let (st, _, _) = call(&app, Method::DELETE, &format!("/matches/{mid}/scout?lease={lease3}"), Some(&a1), None).await;
     assert_eq!(st, StatusCode::NO_CONTENT, "repeated release");
-    assert_eq!(get(&app, &a1, mid).await["scout"]["revision"], 4, "no transition without ownership change");
+    assert_eq!(get(&app, &a1, mid).await["scout"]["revision"], 5, "no transition without ownership change");
     // reacquire, then a delayed release of the previous lease of the same session changes nothing
-    let (_, m) = claim(&app, &a1, mid, 4, "r5").await;
+    let (_, m) = claim(&app, &a1, mid, 5, "r5").await;
     let lease5 = m["scout"]["lease"].as_str().unwrap().to_string();
     let (st, _, _) = call(&app, Method::DELETE, &format!("/matches/{mid}/scout?lease={lease3}"), Some(&a1), None).await;
     assert_eq!(st, StatusCode::NO_CONTENT);

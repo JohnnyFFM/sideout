@@ -162,22 +162,17 @@ pub async fn acquire(
         tx.commit().await?;
         return Ok(Json(super::matches::match_payload(&state, &user, id).await?));
     }
-    // a claim by the session that already holds a current lease is a no-op success
-    if body.mode == "claim" && cur_lease.is_some() && cur_sid == Some(user.session_id) {
-        let current: i64 = sqlx::query(&format!("SELECT {CURRENT_HOLDER} AS c FROM matches WHERE matches.id = ?")).bind(id).fetch_one(&mut *tx).await?.get("c");
-        if current != 0 {
-            tx.commit().await?;
-            return Ok(Json(super::matches::match_payload(&state, &user, id).await?));
-        }
-    }
     let lease = auth::new_token();
     let res = if body.mode == "claim" {
+        // free or stale, or held by this very session (another tab of it
+        // handing over): a new period, so the old tab's late release of its
+        // lease is a no-op instead of clearing this one
         sqlx::query(&format!(
             "UPDATE matches SET scout_session_id = ?, scout_since = datetime('now'), scout_seen = datetime('now'),
                     scout_lease = ?, scout_req = ?, scout_rev = scout_rev + 1
-             WHERE matches.id = ? AND matches.scout_rev = ? AND NOT {CURRENT_HOLDER}"
+             WHERE matches.id = ? AND matches.scout_rev = ? AND (NOT {CURRENT_HOLDER} OR matches.scout_session_id = ?)"
         ))
-        .bind(user.session_id).bind(&lease).bind(&body.request_id).bind(id).bind(body.revision)
+        .bind(user.session_id).bind(&lease).bind(&body.request_id).bind(id).bind(body.revision).bind(user.session_id)
         .execute(&mut *tx)
         .await?
     } else {
@@ -196,7 +191,7 @@ pub async fn acquire(
         let code = if cur["scout"]["held"] == true && cur["scout"]["stale"] == false && cur["scout"]["mine"] == false { "scouted_elsewhere" } else { "scout_lease_expired" };
         return Err(ApiError::ScoutConflict(code, cur));
     }
-    let _ = cur_rev;
+    let _ = (cur_rev, cur_lease, cur_sid);
     audit_conn(&mut tx, user.team_id, "match", id, if body.mode == "claim" { "scout_claim" } else { "scout_takeover" }, &user.display_name, Some(user.id)).await?;
     tx.commit().await?;
     let rev: i64 = sqlx::query("SELECT scout_rev FROM matches WHERE id = ?").bind(id).fetch_one(&state.db).await?.get("scout_rev");

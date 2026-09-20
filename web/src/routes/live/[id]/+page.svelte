@@ -7,7 +7,8 @@
   import { api } from '$lib/api.js';
   import { me, mutations, online, showToast } from '$lib/stores.js';
   import { replay, courtView, expectedSkills, stats, SKILL, PAD, GRADE_CLASS, ROMAN, firstName, eff, fix } from '$lib/engine.js';
-  import { loadOps, saveOps, applyOps, cacheMatch, cachedMatch, newCid, reconcileOps, keepDropped } from '$lib/offline.js';
+  import { loadOps, saveOps, applyOps, cacheMatch, cachedMatch, newCid, reconcileOps, keepDropped, settleAfterLoss, saveLease, loadLease } from '$lib/offline.js';
+  import { tabWriter } from '$lib/scoutlock.js';
   import Court from '$lib/components/Court.svelte';
   import Pad from '$lib/components/Pad.svelte';
 
@@ -29,7 +30,29 @@
   let retryDelay = 5000;
   let loadError = $state('');
 
+  // ----- scouting ownership (one active writer per match) -----
+  // `scout` is the caller-relative block of the last server answer; `lease`
+  // is our lease as the server confirmed it for this session (or, right
+  // after an offline start, the one this device held last). Writes need the
+  // lease AND this tab being the writer tab in this browser. `needVerify`
+  // marks a doubt (page start, a scout event, a reconnect): the next flush
+  // asks the server first and only continues if the same lease still holds.
+  let scout = $state(null);
+  let lease = $state(null);
+  let leaseRev = 0;
+  let needVerify = true;
+  let doubtRev = 0;              // the ownership revision the doubt came from; older answers do not settle it
+  let acquiring = $state(false);
+  let tabOwner = $state(false);
+  const holderElse = $derived(!!scout?.held && !scout.stale && !scout.mine);
   const canScout = $derived(['coach', 'assistant'].includes($me?.user?.role));
+  const canWrite = $derived(canScout && !!lease && tabOwner);
+  // may this device acquire the match right now (free, stale, or already ours)?
+  const claimable = $derived(canScout && tabOwner && !!scout && (!scout.held || scout.stale || scout.mine));
+  const hhmm = (iso) => { const d = iso ? new Date(iso) : null; return d && !isNaN(d) ? d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '–'; };
+  const REQ_KEY = (mid) => `so_scout_req_${mid}`;
+  const loadReq = (mid) => { try { return JSON.parse(localStorage.getItem(REQ_KEY(mid)) || 'null'); } catch { return null; } };
+  const saveReq = (mid, v) => { try { if (v) localStorage.setItem(REQ_KEY(mid), JSON.stringify(v)); else localStorage.removeItem(REQ_KEY(mid)); } catch { /* ignore */ } };
   const byId = $derived(Object.fromEntries((match?.players || []).map((p) => [p.id, p])));
   const cfg = $derived(match ? { first_serve_us: match.first_serve === 'us', lineups: match.lineups } : null);
   const actionsAll = $derived(match ? applyOps(match.actions, ops) : []);
@@ -67,7 +90,7 @@
   $effect(() => { void timeline.length; const el = tlEl; if (el) tick().then(() => { el.scrollLeft = el.scrollWidth; }); });
 
   async function load() {
-    if (inflight && inflightFor === id) return; // a request for THIS match is on the wire; its answer settles the queue
+    if (inflight && inflightFor === id) { needVerify = true; return; } // the answer on the wire settles the queue; the next send verifies
     const saved = loadOps(id);
     if (JSON.stringify(saved) !== JSON.stringify(ops)) ops = saved;
     const g = gen; const mid = id;
@@ -81,15 +104,23 @@
       loadError = '';
     } catch (e) {
       const c = cachedMatch(id);
-      if (c) { match = c; showToast('Offline: Stand vom letzten Laden'); }
+      if (c) { match = c; scout = c.scout || scout; showToast('Offline: Stand vom letzten Laden'); }
       else loadError = e.offline ? 'Keine Verbindung und kein lokaler Stand.' : e.message;
     }
+    if (!lease) await maybeClaim();
     flush();
   }
-  // a fresh server log: settle the queue against it (see offline.js). Ops the
-  // server already holds are dropped, the rest renumbered; if another device
-  // wrote meanwhile our unsent ops cannot be applied and are kept for the record.
+  // a fresh server log: first the ownership question (is our lease still the
+  // match's lease?), then the queue is settled against the log (see
+  // offline.js): ops the server already holds are dropped, the rest
+  // renumbered; foreign actions with unsent ops of ours are a conflict and
+  // those ops are kept for the record.
   function adopt(m) {
+    const sc = m.scout;
+    if (sc && sc.revision >= leaseRev) {
+      const lostFlag = loadLease(id)?.lost;
+      if ((lease && !(sc.mine && sc.lease === lease)) || lostFlag) { ownershipLost(m); return; }
+    }
     const knownTop = (match || cachedMatch(id))?.actions?.slice(-1)[0]?.seq || 0;
     const r = reconcileOps(m.actions, ops, knownTop);
     if (r.conflict) {
@@ -101,11 +132,129 @@
     saveOps(id, ops);
     match = m;
     cacheMatch(id, m);
+    if (sc && sc.revision >= (scout?.revision ?? -1)) setScout(sc);
+  }
+  function setScout(sc) {
+    if (scout && sc.revision < scout.revision) return; // older than what we know
+    scout = sc;
+    if (sc.mine && sc.lease) {
+      lease = sc.lease; leaseRev = sc.revision;
+      if (sc.revision >= doubtRev) needVerify = false; // an answer from before the doubt does not settle it
+      saveLease(id, { lease, rev: leaseRev });
+    } else if (lease && sc.revision >= leaseRev) {
+      lease = null; saveLease(id, null);
+    }
+  }
+  // the lease is gone (takeover, expiry, refusal): whatever the server
+  // already holds is not lost; the rest may not be replayed under a new
+  // lease and is kept aside for the record
+  function ownershipLost(m) {
+    const rest = settleAfterLoss(m.actions, ops);
+    keepDropped(id, rest);
+    const who = m.scout?.actor ? `${m.scout.actor} scoutet jetzt` : 'Das Scouting ist beendet';
+    showToast(rest.length ? `${who}: ${rest.length} nicht gesendete Aktionen beiseitegelegt` : who, true);
+    ops = []; gen++; saveOps(id, ops);
+    lease = null; saveLease(id, null); needVerify = true;
+    match = m; cacheMatch(id, m); scout = m.scout;
+    // the match may already be free again (the other device released it):
+    // the same conditional claim as on entry, never a takeover
+    setTimeout(() => { if (alive) maybeClaim(); }, 0);
+  }
+  // conditional acquisition on entry when the match is free or stale (never
+  // a takeover). A lost answer is resolved first: the request id is kept
+  // until the server confirmed or refused it, so a retry returns the same
+  // lease instead of a second ownership period.
+  async function maybeClaim() {
+    if (!claimable || acquiring || !$online || lease) return false;
+    const confirmed = match && cfg ? replay(cfg, match.actions) : null;
+    if (confirmed?.finished && !ops.length) return false; // viewing a finished match does not claim it
+    return acquireLease('claim');
+  }
+  async function acquireLease(mode) {
+    if (acquiring || !alive || !tabOwner) return false;
+    const mid = id;
+    const pending = loadReq(mid);
+    const req = pending?.req || newCid();
+    saveReq(mid, { req, mode });
+    acquiring = true;
+    try {
+      const m = await api(`/matches/${mid}/scout`, { method: 'POST', body: { mode, revision: scout?.revision ?? 0, request_id: req } });
+      if (stale(mid)) return false;
+      saveReq(mid, null);
+      adopt(m);
+      return !!lease;
+    } catch (e) {
+      if (stale(mid) || e.offline) return false; // resolved on the next load with the same request id
+      saveReq(mid, null);
+      if (e.code === 'scouted_elsewhere' || e.code === 'scout_lease_expired') {
+        if (e.current?.scout) scout = e.current.scout;
+        if (mode === 'takeover') showToast('Inzwischen scoutet jemand anderes, Stand aktualisiert', true);
+        load();
+        return false;
+      }
+      showToast(e.message, true);
+      return false;
+    } finally {
+      acquiring = false;
+    }
+  }
+  async function takeover() {
+    if (!canScout || !tabOwner || acquiring) return;
+    if (await acquireLease('takeover')) showToast('Du scoutest jetzt');
+  }
+  // release only our own lease, only when nothing is pending; a late or
+  // repeated release is a server-side no-op
+  function releaseLease(keepalive = false) {
+    const l = lease; const mid = id;
+    // only the writer tab lets go; a watching tab of the same session must
+    // not release the lease the writer tab is using. Without a connection
+    // nothing can be released: the device stays the holder of record, so a
+    // reload in the hall keeps capturing (the server holds the lease anyway)
+    if (!l || !tabOwner || ops.length || inflight || !navigator.onLine) return;
+    lease = null; saveLease(mid, null);
+    api(`/matches/${mid}/scout?lease=${encodeURIComponent(l)}`, { method: 'DELETE', keepalive }).catch(() => {});
+  }
+  // ask the server whether our lease still holds before anything is sent
+  async function verifyLease(mid) {
+    try {
+      const m = await api(`/matches/${mid}`);
+      if (stale(mid)) return false;
+      adopt(m);
+      return !!lease;
+    } catch (e) {
+      if (!stale(mid) && !e.offline) showToast(e.message, true);
+      return false;
+    }
   }
 
   // effects only track their trigger; everything they call runs untracked,
   // otherwise a reload that rewrites `ops` would re-trigger itself forever
-  $effect(() => { void id; untrack(() => { match = null; ops = []; clearTimeout(retryTimer); load(); }); });
+  $effect(() => {
+    const mid = id;
+    untrack(() => {
+      match = null; ops = []; scout = null; clearTimeout(retryTimer);
+      const saved = loadLease(mid);
+      // the holder of record may capture offline; sending waits for
+      // verification, and the first server answer is authoritative (revision
+      // 0), whatever revision the stored lease was confirmed at
+      lease = saved?.lease && !saved.lost ? saved.lease : null;
+      leaseRev = 0;
+      needVerify = true;
+      load();
+    });
+    // the writer tab for this match in this browser; the other tabs watch
+    const lock = tabWriter(mid, (held) => { tabOwner = held; if (held) { needVerify = true; untrack(() => { if (!lease) maybeClaim(); flush(); }); } });
+    // a hard departure (tab closed, address bar): the same best-effort release
+    const onHide = () => untrack(() => releaseLease(true));
+    window.addEventListener('pagehide', onHide);
+    return () => {
+      // leaving this match: release our lease if nothing is pending
+      // (best-effort, keepalive), and stop being the writer tab
+      window.removeEventListener('pagehide', onHide);
+      untrack(() => releaseLease(true));
+      lock.release();
+    };
+  });
 
   // another device wrote to this match → refetch when we have nothing pending
   $effect(() => {
@@ -114,11 +263,20 @@
     untrack(() => {
       if (!match) return;
       const mine = (m.entity === 'action' || m.entity === 'match') && m.id === id;
+      if (mine && m.action === 'scout') {
+        // ownership may have moved (even our own claim produces this): the
+        // event is a notification, the server answer is the truth. With work
+        // pending or a request on the wire, the flush loop verifies before
+        // the next send (or right after the answer); otherwise ask right away.
+        needVerify = true; doubtRev = Math.max(doubtRev, m.version || 0);
+        if (!flushing && !inflight) load();
+        return;
+      }
       if ((mine || m.entity === 'resync') && ops.length === 0) load();
-      else if (m.entity === 'resync' && ops.length) flush(); // the stream is back: connectivity too
+      else if (m.entity === 'resync' && ops.length) { needVerify = true; flush(); } // the stream is back: connectivity too
     });
   });
-  $effect(() => { if ($online) untrack(flush); });
+  $effect(() => { if ($online) untrack(() => { needVerify = true; flush(); }); });
 
   // phone: the live screen has no top bar. Scoped via a body class, because a
   // :global rule in this component would stay loaded after leaving the page.
@@ -149,8 +307,22 @@
     return `${p?.number} ${firstName(p)} ${SKILL[a.skill].name} ${a.grade} ${PAD[a.skill][a.grade] || ''}`;
   }
 
+  // the write gate, enforced here and in flush, not only on buttons
+  function explainNoWrite() {
+    if (!canScout) return;
+    if (!tabOwner) showToast('Dieses Spiel wird in einem anderen Tab gescoutet', true);
+    else if (holderElse) showToast(`${scout.actor || 'Jemand'} scoutet gerade, erst übernehmen`, true);
+    else if (!$online) showToast('Ohne Verbindung kann nur der bisherige Scouter weitertippen', true);
+    else showToast('Scouting noch nicht übernommen', true);
+  }
   function queue(a) {
     if (!canScout) return;
+    if (!canWrite) {
+      // no lease yet but the match is free: acquire, then record (never a takeover)
+      if (claimable && $online && !acquiring) { acquireLease('claim').then((ok) => { if (ok) queue(a); else explainNoWrite(); }); return; }
+      explainNoWrite();
+      return;
+    }
     if (st.finished) { showToast('Das Spiel ist beendet'); return; }
     const before = st;
     const seq = (actionsAll[actionsAll.length - 1]?.seq || 0) + 1;
@@ -170,25 +342,34 @@
   // undone. Errors: offline → wait; 5xx → retry with backoff; 409 → reload
   // and reconcile; 4xx → this op is refused for good, the rest is renumbered.
   async function flush() {
-    if (flushing || !match || !alive) return;
+    if (flushing || !match || !alive || !tabOwner || !lease) return;
     flushing = true;
     clearTimeout(retryTimer);
     const mid = id;
     try {
       let conflicts = 0;
       while (ops.length && !stale(mid)) {
+        if (needVerify) {
+          // a doubt about ownership: settle it before sending anything
+          const ok = await verifyLease(mid);
+          if (stale(mid)) return;
+          if (!ok) { if (lease) { retryTimer = setTimeout(flush, retryDelay); retryDelay = Math.min(retryDelay * 2, 60000); } break; }
+          if (!ops.length) break; // the fresh log settled everything
+        }
         const op = ops[0];
         inflight = op; inflightFor = mid;
         if (op.type === 'add' && !op.sent) { op.sent = true; saveOps(id, ops); } // from here on the server may hold it
         try {
           if (op.type === 'add') {
-            const res = await api(`/matches/${mid}/actions`, { method: 'POST', body: op.action });
+            const res = await api(`/matches/${mid}/actions`, { method: 'POST', body: op.action, lease });
             if (stale(mid)) return;
             match = { ...match, actions: [...match.actions.filter((x) => x.seq !== res.action.seq), res.action] };
+            if (res.scout) setScout(res.scout);
           } else {
             const q = op.cid ? `cid=${encodeURIComponent(op.cid)}` : `seq=${op.seq}`;
-            const res = await api(`/matches/${mid}/actions/last?${q}`, { method: 'DELETE' });
+            const res = await api(`/matches/${mid}/actions/last?${q}`, { method: 'DELETE', lease });
             if (stale(mid)) return;
+            if (res.scout) setScout(res.scout);
             // a retry whose target is already gone answers removed:null; the
             // local log still holds the action, so take it out by target either way
             const gone = res.removed ? (x) => x.seq !== res.removed.seq : (x) => (op.cid ? x.cid !== op.cid : x.seq !== op.seq);
@@ -207,6 +388,15 @@
             // stay "online" while the server is unreachable, so retry anyway
             retryTimer = setTimeout(flush, retryDelay);
             retryDelay = Math.min(retryDelay * 2, 60000);
+            break;
+          }
+          if (e.code === 'scouted_elsewhere' || e.code === 'scout_lease_expired') {
+            // our lease is over: stop this writer, settle what the server
+            // already holds, keep the rest aside — before any sequence logic
+            const m = await api(`/matches/${mid}`).catch(() => null);
+            if (stale(mid)) return;
+            if (m) ownershipLost(m);
+            else { saveLease(mid, { lost: true }); lease = null; scout = e.current?.scout || scout; } // settled on the next successful load
             break;
           }
           if (e.status === 409) {
@@ -238,9 +428,14 @@
       }
     } finally {
       flushing = false;
+      // a doubt raised while a request was on the wire and nothing left to
+      // send: ask now, so a lost lease shows as read-only right away
+      if (alive && mid === id && needVerify && lease && !ops.length) { verifyLease(mid).catch(() => {}); }
       // this flush belonged to a match the page has left: the flag it held
       // kept the new match's queue waiting, so hand over now
       if (alive && mid !== id && ops.length) flush();
+      // the final point is confirmed and nothing is pending: let go of the match
+      if (alive && mid === id && lease && !ops.length && !inflight && match && cfg && replay(cfg, match.actions).finished) releaseLease(false);
     }
   }
 
@@ -277,7 +472,7 @@
     return el ? Number(el.dataset.pos) : null;
   }
   function chipDown(e, pid) {
-    if (!canScout || st.finished) return;
+    if (!canWrite || st.finished) { if (canScout && !st.finished) explainNoWrite(); return; }
     // every touch on a chip is a drag (touch-action: none, no gesture guessing);
     // the strip scrolls with the ‹ › buttons instead
     e.preventDefault();
@@ -397,7 +592,13 @@
     showToast(`Wechsel ${byId[target]?.number} → ${byId[chipId]?.number}`);
   }
   function undo() {
-    if (!actionsAll.length) return;
+    if (!actionsAll.length || !canScout) return;
+    if (!canWrite) {
+      // after a finished match the lease was released: undoing the final point acquires anew
+      if (claimable && $online && !acquiring) { acquireLease('claim').then((ok) => { if (ok) undo(); else explainNoWrite(); }); return; }
+      explainNoWrite();
+      return;
+    }
     const a = last;
     const lastOp = ops[ops.length - 1];
     // an add that never went out is simply taken back; anything else
@@ -450,17 +651,25 @@
           </div>
           {#if canScout && !st.finished}
             <div class="catch" title="Nachtragen: Spielstand, Rotation und Aufschlag ohne Aktionen angleichen">
-              <button disabled={tossPending} onclick={() => queue({ skill: 'adj', grade: '#' })}>+1 wir</button>
-              <button disabled={tossPending} onclick={() => queue({ skill: 'adj', grade: '=' })}>+1 Gegner</button>
-              <button onclick={() => queue({ skill: 'rot' })}>⟳ Rotieren</button>
-              <button onclick={() => queue({ skill: 'srv', grade: st.serving ? '=' : '#' })} title="Aufschlagrecht wechseln">⇄ Aufschlag</button>
+              <button disabled={tossPending || !canWrite} onclick={() => queue({ skill: 'adj', grade: '#' })}>+1 wir</button>
+              <button disabled={tossPending || !canWrite} onclick={() => queue({ skill: 'adj', grade: '=' })}>+1 Gegner</button>
+              <button disabled={!canWrite} onclick={() => queue({ skill: 'rot' })}>⟳ Rotieren</button>
+              <button disabled={!canWrite} onclick={() => queue({ skill: 'srv', grade: st.serving ? '=' : '#' })} title="Aufschlagrecht wechseln">⇄ Aufschlag</button>
             </div>
           {/if}
         </section>
+        {#if holderElse}
+          <div class="panel hint scoutbar" role="status">
+            <span class="hint-txt"><b>{scout.actor || 'Jemand'}</b> scoutet auf einem anderen Gerät{scout.device ? ` (${scout.device})` : ''} · seit {hhmm(scout.since)}</span>
+            {#if canScout}<button class="btn primary" onclick={takeover} disabled={acquiring || !$online || !tabOwner}>Scouting übernehmen</button>{/if}
+          </div>
+        {:else if canScout && !tabOwner}
+          <div class="panel hint scoutbar" role="status"><span class="hint-txt">Dieses Spiel wird in einem anderen Tab dieses Browsers gescoutet.</span></div>
+        {/if}
         {#if tossPending}
           <div class="panel hint toss">Satz 5, neue Auslosung. Wer schlägt auf?
-            <button class="btn" onclick={() => queue({ skill: 'srv', grade: '#' })}>Wir</button>
-            <button class="btn" onclick={() => queue({ skill: 'srv', grade: '=' })}>Gegner</button>
+            <button class="btn" disabled={!canWrite} onclick={() => queue({ skill: 'srv', grade: '#' })}>Wir</button>
+            <button class="btn" disabled={!canWrite} onclick={() => queue({ skill: 'srv', grade: '=' })}>Gegner</button>
           </div>
         {/if}
         <section class="court-wrap">
@@ -492,15 +701,15 @@
         </section>
         <section class="panel last" id="lastBox">
           <div class="txt">{last ? 'Zuletzt: ' + describe(last) : 'Noch keine Aktion.'}{#if ops.length}<span class="pending"> · {ops.length} ausstehend</span>{/if}</div>
-          <button class="btn" onclick={undo} disabled={!last || !canScout}><svg class="ico-undo" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg> Rückgängig</button>
+          <button class="btn" onclick={undo} disabled={!last || !canScout || (!canWrite && !claimable)}><svg class="ico-undo" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg> Rückgängig</button>
         </section>
       </div>
 
       <div class="col mid">
-        <Pad {expected} idle={!selected} disabled={!canScout || st.finished || tossPending} ontap={tapCell} />
+        <Pad {expected} idle={!selected} disabled={!canScout || !(canWrite || claimable) || st.finished || tossPending} ontap={tapCell} />
         <div class="pad-foot">
-          <button class="btn big us" disabled={!canScout || st.finished || tossPending} onclick={() => queue({ skill: 'opp', grade: '=' })}>Fehler Gegner <span class="muted">+1 wir</span></button>
-          <button class="btn big them" disabled={!canScout || st.finished || tossPending} onclick={() => queue({ skill: 'opp', grade: '#' })}>Punkt Gegner</button>
+          <button class="btn big us" disabled={!canScout || !(canWrite || claimable) || st.finished || tossPending} onclick={() => queue({ skill: 'opp', grade: '=' })}>Fehler Gegner <span class="muted">+1 wir</span></button>
+          <button class="btn big them" disabled={!canScout || !(canWrite || claimable) || st.finished || tossPending} onclick={() => queue({ skill: 'opp', grade: '#' })}>Punkt Gegner</button>
         </div>
         {#if st.finished}
           <div class="panel done">
@@ -665,6 +874,9 @@
   .chipb:disabled { opacity: 0.4; cursor: default; }
   .btn.sm { height: 28px; padding: 0 10px; font-size: 12px; }
   .hint { padding: 8px 12px; font-size: 13px; color: var(--ink-2); }
+  .scoutbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; border-color: var(--accent); background: var(--accent-soft); color: var(--ink); }
+  .scoutbar .hint-txt { flex: 1 1 180px; min-width: 0; white-space: normal; overflow-wrap: anywhere; line-height: 1.3; }
+  .scoutbar .btn { flex: 0 0 auto; height: 34px; padding: 0 12px; }
   .pad-foot { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .pad-foot .btn { justify-content: center; }
   .pad-foot .btn.us { border-color: var(--g-win); color: var(--g-win); }
