@@ -81,7 +81,13 @@
   } : null);
   const sum = (items) => items.reduce((a, b) => a + b.n, 0);
   const maxPts = $derived(s ? Math.max(1, ...s.players.map((p) => p.pts)) : 1);
-  const gradeRows = (key, min) => s.players.filter((p) => Object.values(p.grades[key]).reduce((a, b) => a + b, 0) >= min).map((p) => ({ p, g: p.grades[key], n: Object.values(p.grades[key]).reduce((a, b) => a + b, 0) }));
+  // team row from the first attempt, players from `min` attempts (one attempt is not a distribution)
+  const gsum = (g) => Object.values(g).reduce((a, b) => a + b, 0);
+  const gradeRows = (key, min) => {
+    const rows = s.players.filter((p) => gsum(p.grades[key]) >= min).map((p) => ({ p, g: p.grades[key], n: gsum(p.grades[key]) }));
+    const tn = gsum(s.team.grades[key]);
+    return tn ? [{ p: { id: 'team', number: '', name: 'Team' }, g: s.team.grades[key], n: tn }, ...rows] : [];
+  };
 </script>
 
 <svelte:head><title>Sideout — Auswertung{match ? ` · ${match.opponent}` : ''}</title></svelte:head>
@@ -190,9 +196,9 @@
       {#each [['Annahme-Qualität', 'R', 2], ['Angriff-Qualität', 'A', 2], ['Aufschlag-Qualität', 'S', 1]] as [title, key, min]}
         {@const rows = gradeRows(key, min)}
         <section class="panel">
-          <div class="panel-head"><h2>{title}</h2><span class="small muted">Anteil je Bewertung</span></div>
+          <div class="panel-head"><h2>{title}</h2><span class="small muted">Anteil je Bewertung · Spielerinnen ab {min} Versuchen</span></div>
           {#each rows as { p, g, n } (p.id)}
-            <div class="stackrow"><div class="lbl"><b>{p.number}</b> {firstName(p)}</div><div class="stack">{#each GRADES.filter((x) => g[x]) as x}<span class={GRADE_CLASS[x]} style="width:{(g[x] / n) * 100}%" title="{x} {PAD[key][x] || GRADE_NAME[x]}: {g[x]} ({Math.round((g[x] / n) * 100)} %)"></span>{/each}</div><div class="n">{n}</div></div>
+            <div class="stackrow" class:team={p.id === 'team'}><div class="lbl"><b>{p.number || p.name}</b>{#if p.number} {firstName(p)}{/if}</div><div class="stack">{#each GRADES.filter((x) => g[x]) as x}<span class={GRADE_CLASS[x]} style="width:{(g[x] / n) * 100}%" title="{x} {PAD[key][x] || GRADE_NAME[x]}: {g[x]} ({Math.round((g[x] / n) * 100)} %)"></span>{/each}</div><div class="n">{n}</div></div>
           {:else}<div class="empty">Keine Daten.</div>{/each}
           {#if rows.length}<div class="legend">{#each GRADES as g}<span><i class="gdot {GRADE_CLASS[g]}"></i> {g} {GRADE_NAME[g]}</span>{/each}</div>{/if}
         </section>
@@ -215,6 +221,7 @@
   .stackrow .lbl { color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .stackrow .lbl b { color: var(--ink); }
   .stackrow .n { color: var(--ink-3); text-align: right; font-size: 12px; }
+  .stackrow.team { padding-bottom: 6px; margin-bottom: 8px; border-bottom: 1px solid var(--line); }
   svg.flow { width: 100%; height: 150px; display: block; }
   .flow .grid { stroke: var(--line-soft); stroke-width: 1; }
   .flow .zero { stroke: var(--ink-3); stroke-width: 1; }
