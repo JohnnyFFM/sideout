@@ -52,7 +52,7 @@
             {#each list as m (m.id)}
               <li>
                 <span class="d">{fmtDate(m.date)}{#if m.time}<br />{m.time}{/if}</span>
-                <span><a class="opp" href={m.status === 'planned' ? `${base}/spiele/${m.id}` : `${base}/live/${m.id}`}>{m.opponent}</a><div class="ha">{m.home ? 'Heim' : 'Auswärts'}{m.hall ? ' · ' + m.hall : ''}{#if m.status !== 'done' && ready[m.id]}<span class="offl" title="Auf diesem Gerät gespeichert: Scouten geht auch ohne Empfang">offline bereit</span>{/if}</div></span>
+                <span><a class="opp" href={m.status === 'planned' ? `${base}/spiele/${m.id}` : `${base}/live/${m.id}`}>{m.opponent}</a><div class="ha">{m.home ? 'Heim' : 'Auswärts'}{m.hall ? ' · ' + m.hall : ''}{#if m.status !== 'done' && ready[m.id]}<span class="offl" title="Auf diesem Gerät gespeichert: Scouten geht auch ohne Empfang">offline bereit</span>{/if}{#if m.scout?.held && !m.scout.stale && !m.scout.mine}<span class="who">scoutet: {m.scout.actor || 'jemand'}</span>{/if}</div></span>
                 <span class="sets">{m.state.sets.map((s) => s.us + ':' + s.them).join(' ')}{#if m.status === 'live'} <em>({m.state.us}:{m.state.them})</em>{/if}</span>
                 <span class="res" class:w={m.status === 'done' && m.state.sets_won > m.state.sets_lost} class:l={m.status === 'done' && m.state.sets_won < m.state.sets_lost}>{m.status === 'planned' ? '–' : `${m.state.sets_won}:${m.state.sets_lost}`}</span>
                 <span class="acts">
@@ -71,6 +71,7 @@
 
 <style>
   .matches { list-style: none; margin: 0; padding: 0; }
+  .who { margin-left: 6px; font-size: 11px; color: var(--accent-text); white-space: nowrap; }
   .offl { margin-left: 6px; font-size: 11px; padding: 1px 6px; border-radius: 9px; background: var(--raised); color: var(--ok); border: 1px solid var(--line-soft); white-space: nowrap; }
   .matches li { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto auto auto; gap: 10px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line-soft); font-size: 14px; }
   .matches li:last-child { border-bottom: 0; }

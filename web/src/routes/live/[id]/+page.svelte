@@ -89,7 +89,10 @@
   // newest entry stays in view
   $effect(() => { void timeline.length; const el = tlEl; if (el) tick().then(() => { el.scrollLeft = el.scrollWidth; }); });
 
-  async function load() {
+  // `entry`: the page was just opened (or this tab just became the writer
+  // tab). Only then does a free match get claimed on its own; a watching
+  // device never grabs a match that was merely released, that takes a tap
+  async function load(entry = false) {
     if (inflight && inflightFor === id) { needVerify = true; return; } // the answer on the wire settles the queue; the next send verifies
     const saved = loadOps(id);
     if (JSON.stringify(saved) !== JSON.stringify(ops)) ops = saved;
@@ -107,7 +110,7 @@
       if (c) { match = c; scout = c.scout || scout; showToast('Offline: Stand vom letzten Laden'); }
       else loadError = e.offline ? 'Keine Verbindung und kein lokaler Stand.' : e.message;
     }
-    if (!lease) await maybeClaim();
+    if (entry && !lease) await maybeClaim();
     flush();
   }
   // a fresh server log: first the ownership question (is our lease still the
@@ -156,9 +159,6 @@
     ops = []; gen++; saveOps(id, ops);
     lease = null; saveLease(id, null); needVerify = true;
     match = m; cacheMatch(id, m); scout = m.scout;
-    // the match may already be free again (the other device released it):
-    // the same conditional claim as on entry, never a takeover
-    setTimeout(() => { if (alive) maybeClaim(); }, 0);
   }
   // conditional acquisition on entry when the match is free or stale (never
   // a takeover). A lost answer is resolved first: the request id is kept
@@ -240,7 +240,7 @@
       lease = saved?.lease && !saved.lost ? saved.lease : null;
       leaseRev = 0;
       needVerify = true;
-      load();
+      load(true);
     });
     // the writer tab for this match in this browser; the other tabs watch
     const lock = tabWriter(mid, (held) => { tabOwner = held; if (held) { needVerify = true; untrack(() => { if (!lease) maybeClaim(); flush(); }); } });

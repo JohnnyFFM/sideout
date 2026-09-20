@@ -52,7 +52,7 @@
           <span class="pulse"><i></i> Läuft gerade · Satz {live.state.set}</span>
           <div class="sc">{live.state.us}:{live.state.them}<small>Sätze {live.state.sets_won}:{live.state.sets_lost}</small></div>
           <div class="opp">gegen {live.opponent}</div>
-          <div class="small muted">{live.state.sets.map((s) => s.us + ':' + s.them).join('  ')}{live.hall ? ' · ' + live.hall : ''}</div>
+          <div class="small muted">{live.state.sets.map((s) => s.us + ':' + s.them).join('  ')}{live.hall ? ' · ' + live.hall : ''}{#if live.scout?.held && !live.scout.stale && !live.scout.mine} · scoutet: {live.scout.actor || 'jemand'}{/if}</div>
           <div class="row" style="margin-top:12px"><a class="btn primary big" href="{base}/live/{live.id}">{canScout ? 'Weiter scouten' : 'Live verfolgen'}</a><a class="btn big" href="{base}/auswertung/{live.id}">Zwischenstand</a></div>
         {:else if next}
           <span class="pulse">Nächstes Spiel · {fmtDM(next.date)}{next.time ? ' ' + next.time : ''}</span>

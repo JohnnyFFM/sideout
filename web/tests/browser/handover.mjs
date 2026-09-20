@@ -129,7 +129,12 @@ sv = await server();
 check('B leaving released the match', sv.held === false, { sv });
 await A.offline(false); await sleep(4000);
 sA = await A.state(); sv = await server();
-check('A back to a free match: old op set aside (dropped 1), then a fresh claim, nothing replayed', sA.queue === 0 && sA.dropped === 1 && sv.seq === 4 && sA.lease && sv.actor === 'Jonas Steitz', { sA, sv });
+check('A back to a free match: old op set aside (dropped 1), nothing replayed, no silent claim', sA.queue === 0 && sA.dropped === 1 && sv.seq === 4 && !sA.lease && sv.held === false && sA.padOn > 0, { sA, sv });
+await A.tap(); await sleep(2500);   // a tap claims the free match conditionally, then records
+sA = await A.state(); sv = await server();
+check('A: the tap claims and writes fresh (seq 5)', sA.lease && sv.actor === 'Jonas Steitz' && sv.seq === 5 && sA.queue === 0, { sA, sv });
+await A.undo(); await sleep(1500);
+check('A: undo of that point (back to seq 4)', (await server()).seq === 4);
 
 // 7. final point pending vs confirmed, undo after completion
 await A.ev(`localStorage.removeItem('so_ops_dropped_${M}')`);
