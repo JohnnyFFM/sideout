@@ -294,11 +294,6 @@
             {#if st.sets.length}<span><b>{st.sets.map((s) => s.us + ':' + s.them).join('  ')}</b></span>{/if}
             <span>{st.serving ? 'Aufschlag' : 'Annahme'} · Rally <b>{st.rally}</b></span>
           </div>
-          <div class="phone-ctl">
-            <button class:on={phoneView === 'pad'} onclick={() => (phoneView = 'pad')}>Feld</button>
-            <button class:on={phoneView === 'stats'} onclick={() => (phoneView = 'stats')}>Werte</button>
-            <button class:on={extrasOpen} onclick={() => (extrasOpen = !extrasOpen)}>⇄ Wechsel · Nachtrag</button>
-          </div>
           {#if canScout && !st.finished}
             <div class="catch" title="Nachtragen: Spielstand, Rotation und Aufschlag ohne Aktionen angleichen">
               <button onclick={() => queue({ skill: 'adj', grade: '#' })}>+1 wir</button>
@@ -331,8 +326,12 @@
             {:else if selected}
               <span class="chip pos-{byId[selected]?.position}">{byId[selected]?.number} {firstName(byId[selected])}</span><span>ausgewählt, jetzt Aktion tippen</span>
             {:else}
-              <span>Spielerin tippen, dann Aktion. Wechsel: Chip auf eine Karte ziehen.</span>
+              <span class="hint-txt">Spielerin tippen, dann Aktion.</span>
             {/if}
+            <span class="phone-ctl">
+              <button class:on={extrasOpen} onclick={() => (extrasOpen = !extrasOpen)}>⇄ Wechsel · Nachtrag</button>
+              <button onclick={() => (phoneView = 'stats')}>Werte</button>
+            </span>
           </div>
         </section>
         <section class="panel last" id="lastBox">
@@ -359,7 +358,7 @@
 
       <div class="col right">
         <section class="panel stats-panel">
-          <div class="panel-head"><h2>{scope === 'set' ? 'Dieser Satz' : 'Ganzes Spiel'}</h2>
+          <div class="panel-head"><button class="btn ghost sm phone-only" onclick={() => (phoneView = 'pad')}>← Feld</button><h2>{scope === 'set' ? 'Dieser Satz' : 'Ganzes Spiel'}</h2>
             <span class="tabs"><button class:active={scope === 'set'} onclick={() => (scope = 'set')}>Satz</button><button class:active={scope === 'match'} onclick={() => (scope = 'match')}>Spiel</button></span></div>
           {#if stat}
             {@const t = stat.team}
@@ -391,7 +390,7 @@
             {:else if e.t === 'score'}
               <div class="tl-score" class:us={e.won} class:them={!e.won}>{e.us}:{e.them}</div>
             {:else if e.r.skill === 'opp'}
-              <div class="tl-item opp"><b>{e.r.grade === '=' ? '✕' : '●'}</b><small>Gegner</small></div>
+              <div class="tl-item opp"><b>{e.r.grade === '=' ? '✕' : '●'}</b><small>Gegner {e.r.grade === '=' ? 'Fehler' : 'Punkt'}</small></div>
             {:else if e.r.skill === 'adj'}
               <div class="tl-item sub"><b>+1</b><small>{e.r.grade === '#' ? 'wir' : 'Gegner'}</small></div>
             {:else if e.r.skill === 'rot'}
@@ -403,7 +402,7 @@
             {:else if e.r.skill === 'lib'}
               <div class="tl-item sub"><b>L</b><small>{e.r.sub_in == null ? 'raus' : e.r.sub_out ? 'für ' + byId[e.r.sub_out]?.number : 'auto'}</small></div>
             {:else}
-              <div class="tl-item"><b>{byId[e.r.player_id]?.number}</b><small>{SKILL[e.r.skill].short}</small><span class="g {GRADE_CLASS[e.r.grade]}">{e.r.grade}</span></div>
+              <div class="tl-item {GRADE_CLASS[e.r.grade]}"><b>{byId[e.r.player_id]?.number}</b><small>{SKILL[e.r.skill].short} {e.r.grade}</small></div>
             {/if}
           {:else}
             <div class="muted small">Noch keine Aktion. Der Verlauf wächst nach rechts.</div>
@@ -443,12 +442,11 @@
   .tl-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
   .tl-head h2 { font-size: 15px; }
   .tl { display: flex; align-items: center; gap: 4px; overflow-x: auto; padding: 6px 2px 6px; scrollbar-width: thin; }
-  .tl-item { flex: 0 0 auto; position: relative; display: grid; justify-items: center; gap: 1px; width: 46px; padding: 5px 0 4px; border-radius: 6px; background: var(--raised); }
-  .tl-item b { font-family: var(--disp); font-size: 16px; font-weight: 700; line-height: 1; }
-  .tl-item small { font-size: 9px; color: var(--ink-3); line-height: 1; white-space: nowrap; }
-  .tl-item .g { position: absolute; top: -5px; right: -4px; width: 16px; height: 16px; border-radius: 4px; display: grid; place-items: center; font-family: var(--disp); font-weight: 700; font-size: 11px; }
-  .tl-item.opp b { color: var(--ink-3); }
-  .tl-item.sub { background: var(--accent-soft); }
+  .tl-item { flex: 0 0 auto; display: grid; justify-items: center; gap: 2px; width: 50px; padding: 5px 0 4px; border-radius: 7px; background: var(--raised); color: var(--ink-2); }
+  .tl-item b { font-family: var(--disp); font-size: 19px; font-weight: 700; line-height: 1; }
+  .tl-item small { font-size: 9px; line-height: 1; white-space: nowrap; opacity: 0.85; font-weight: 600; }
+  .tl-item.opp { background: var(--overlay); color: var(--ink-2); }
+  .tl-item.sub { background: var(--accent-soft); color: var(--accent-text); }
   .tl-score { flex: 0 0 auto; font-family: var(--disp); font-weight: 700; font-size: 13px; padding: 2px 7px; border-radius: 10px; margin: 0 3px; }
   .tl-score.us { background: var(--g-win); color: var(--g-win-ink); }
   .tl-score.them { background: var(--g-err); color: #fff; }
@@ -493,17 +491,31 @@
   .mini td.l { font-weight: 600; }
   .mini td.l small { color: var(--ink-3); font-weight: 500; margin-left: 4px; }
   .phone-ctl { display: none; }
+  .phone-only { display: none; }
   .tl-undo { display: none; }
   .last .btn.ghost { padding: 0 10px; }
   /* phone: one screen. Top bar hidden (tab bar navigates), score strip with
      Feld/Werte toggle, court, pad, opponent buttons; the timeline is docked
      above the tab bar with the undo button; bench and catch-up fold away. */
   @media (max-width: 759px) {
-    .live-page { padding: calc(6px + env(safe-area-inset-top)) 8px calc(var(--tabbar-h) + 66px); }
-    .live { gap: 6px; } .col { gap: 6px; }
-    .phone-ctl { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 4px; margin-top: 4px; }
-    .phone-ctl button { height: 28px; border-radius: 6px; border: 1px solid var(--line-soft); background: var(--raised); color: var(--ink-2); font-size: 12px; font-weight: 600; }
+    .live-page { padding: calc(6px + env(safe-area-inset-top)) 8px calc(var(--tabbar-h) + 8px); }
+    /* the columns dissolve so score, timeline, court, pad and buttons stack
+       in the order a scouting thumb wants */
+    .live { gap: 6px; }
+    .col { display: contents; }
+    .col.left > :global(.score) { order: 1; }
+    .timeline { order: 2; }
+    .col.left > .hint { order: 3; }
+    .col.left > .court-wrap { order: 4; }
+    .col.mid > :global(.pad) { order: 5; }
+    .col.mid > .pad-foot { order: 6; }
+    .col.mid > .done { order: 7; }
+    .col.right > .stats-panel { order: 8; }
+    .phone-ctl { display: flex; gap: 4px; margin-left: auto; flex: 0 0 auto; }
+    .phone-ctl button { height: 26px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--line-soft); background: var(--raised); color: var(--ink-2); font-size: 11px; font-weight: 600; white-space: nowrap; }
     .phone-ctl button.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-text); }
+    .phone-only { display: inline-flex; }
+    .hint-txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
     :global(.score .catch) { display: none; grid-template-columns: 1fr 1fr 1fr 1.25fr; }
     :global(.score .catch button) { font-size: 11px; padding: 0 2px; white-space: nowrap; }
     .live.extras :global(.score .catch) { display: grid; }
@@ -513,22 +525,18 @@
     .court-foot { margin-top: 4px; min-height: 18px; font-size: 11px; }
     .pad-foot .btn { height: 44px; font-size: 15px; }
     #lastBox { display: none; }
-    .col.right { display: none; }
-    .live.pv-stats .col.right { display: grid; }
-    .live.pv-stats .col.left .court-wrap, .live.pv-stats .col.mid { display: none; }
-    .timeline {
-      position: fixed; left: 0; right: 0; bottom: var(--tabbar-h); z-index: 20;
-      display: flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 0; border-width: 1px 0 0;
-      background: var(--panel); box-shadow: 0 -6px 20px #0006;
-    }
+    .col.right > .stats-panel { display: none; }
+    .live.pv-stats .col.right > .stats-panel { display: block; }
+    .live.pv-stats .col.left > .court-wrap, .live.pv-stats .col.mid > :global(.pad), .live.pv-stats .col.mid > .pad-foot { display: none; }
+    .timeline { display: flex; align-items: center; gap: 6px; padding: 6px 8px; }
     .tl-head { display: none; }
     .tl-undo { display: grid; place-items: center; position: relative; flex: 0 0 auto; width: 44px; height: 44px; border-radius: 8px; border: 1px solid var(--line); background: var(--raised); font-size: 18px; }
     .tl-redo { width: 36px; background: transparent; }
     .tl-undo:disabled { opacity: 0.4; }
     .tl-undo i { position: absolute; top: -5px; right: -5px; min-width: 16px; height: 16px; border-radius: 8px; background: var(--g-neg); color: var(--g-neg-ink); font-size: 10px; font-style: normal; font-weight: 700; display: grid; place-items: center; padding: 0 3px; }
-    .tl { flex: 1 1 auto; min-width: 0; padding: 2px 0; gap: 3px; }
-    .tl-item { width: 40px; padding: 3px 0; }
-    .tl-item b { font-size: 14px; }
+    .tl { flex: 1 1 auto; min-width: 0; padding: 2px 0; gap: 4px; }
+    .tl-item { width: 46px; padding: 4px 0 3px; }
+    .tl-item b { font-size: 17px; }
     .tl-score { font-size: 12px; padding: 1px 6px; }
   }
   @media (max-width: 759px) and (max-height: 700px) {
@@ -538,7 +546,11 @@
     .phone-ctl { margin-top: 2px; }
     .phone-ctl button { height: 24px; font-size: 11px; }
     .pad-foot .btn { height: 36px; font-size: 14px; }
-    .live-page { padding-top: 4px; }
+    .live-page { padding-top: calc(4px + env(safe-area-inset-top)); }
+    .tl-item { width: 40px; padding: 3px 0 2px; }
+    .tl-item b { font-size: 15px; }
+    .tl-undo { width: 36px; height: 36px; }
+    .tl-redo { width: 30px; }
   }
   @media (max-width: 759px) {
     :global(.score) { padding: 2px 10px 6px; row-gap: 0; }
