@@ -427,7 +427,7 @@
   :global(.score .catch) { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 4px; }
   :global(.score .catch button) { height: 30px; border-radius: 6px; border: 1px dashed var(--line); background: transparent; color: var(--ink-2); font-size: 12px; font-weight: 600; cursor: pointer; }
   :global(.score .catch button:hover) { background: var(--raised); color: var(--ink); }
-  :global(.score .catch .ballico) { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--g-neg); box-shadow: inset -2px -2px 0 #0003; margin-right: 3px; vertical-align: -1px; }
+  :global(.score .catch .ballico) { display: inline-block; width: 12px; height: 12px; background: url(/icon.svg) center / contain no-repeat; margin-right: 3px; vertical-align: -2px; }
   /* desktop: one screen. Row 1 = three cards of equal height (each scrolls
      inside if it must), row 2 = the timeline across the full width. */
   /* desktop: the row takes its natural height (the taller of the left and

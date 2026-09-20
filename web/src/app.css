@@ -236,7 +236,9 @@ table.tbl { border-collapse: collapse; width: 100%; font-size: 14px; }
 .score .team { font-weight: 600; color: var(--ink-2); font-size: 13px; }
 .score .pts { font-family: var(--disp); font-size: 48px; font-weight: 700; line-height: 1; }
 .score .colon { font-family: var(--disp); font-size: 34px; color: var(--ink-3); font-weight: 600; }
-.score .serve { width: 16px; height: 16px; border-radius: 50%; background: var(--g-neg); box-shadow: inset -3px -3px 0 #0003; visibility: hidden; }
+.score .serve { width: 18px; height: 18px; background: url(/icon.svg) center / contain no-repeat; visibility: hidden; }
+.brandico { width: 22px; height: 22px; margin-right: 2px; vertical-align: -4px; }
+.login-brand .brandico { width: 28px; height: 28px; }
 .score .serve.on { visibility: visible; }
 .score .meta { grid-column: 1 / -1; display: flex; gap: 14px; font-size: 12px; color: var(--ink-3); justify-content: center; }
 .score .meta b { color: var(--ink-2); font-weight: 600; }

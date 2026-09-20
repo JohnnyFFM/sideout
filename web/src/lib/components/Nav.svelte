@@ -25,7 +25,7 @@
 </script>
 
 <header class="topbar">
-  <a class="brand" href="/team"><span class="tick">▲</span>SIDEOUT</a>
+  <a class="brand" href="/team"><img class="brandico" src="/icon.svg" alt="" width="22" height="22" />SIDEOUT</a>
   <nav class="nav">
     <a class={active('/team')} href="/team">Team</a>
     <a class={active('/spiele') || active('/live')} href="/spiele">Spiele</a>

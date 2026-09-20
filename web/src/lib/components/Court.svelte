@@ -60,7 +60,7 @@
   .slot.hint::before { content: 'erwartet'; position: absolute; top: 4px; right: 6px; font-size: 9px; color: var(--accent-text); font-weight: 600; }
   .slot.hint .role { visibility: hidden; }
   .slot.sel { border-color: var(--accent); border-style: solid; background: var(--accent-soft); }
-  .slot.srv::after { content: ''; position: absolute; right: 6px; bottom: 22px; width: 12px; height: 12px; border-radius: 50%; background: var(--g-neg); box-shadow: inset -2px -2px 0 #0003; }
+  .slot.srv::after { content: ''; position: absolute; right: 6px; bottom: 22px; width: 14px; height: 14px; background: url(/icon.svg) center / contain no-repeat; }
   .slot.lib { border-style: dashed; border-color: var(--court-line); }
   .slot.lib.hint { border-color: var(--accent); }
   .slot.lib .role { color: var(--court-line); }

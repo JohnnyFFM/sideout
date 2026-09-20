@@ -49,7 +49,7 @@
 
 <div class="login-wrap">
   <div class="login-card">
-    <div class="login-brand"><span class="tick">▲</span>SIDEOUT</div>
+    <div class="login-brand"><img class="brandico" src="/icon.svg" alt="" width="28" height="28" />SIDEOUT</div>
     <p class="login-sub">
       {#if mode === 'login'}Einmal anmelden, dieses Gerät bleibt angemeldet.
       {:else if mode === 'register'}Neues Team anlegen. Du wirst Trainer:in.
