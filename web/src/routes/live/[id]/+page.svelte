@@ -324,15 +324,15 @@
           {#if drag?.moved}
             <div class="dragghost" style="left:{drag.x}px; top:{drag.y}px">{byId[drag.id]?.number} {firstName(byId[drag.id])}</div>
           {/if}
-          <div class="court-foot">
-            {#if drag?.moved}
-              <span class="chip pos-{byId[drag.id]?.position}">{byId[drag.id]?.number} {firstName(byId[drag.id])}</span><span>{drag.id === st.libero ? 'auf eine markierte Karte hinten ziehen' : liberoCard?.replaced === drag.id ? 'auf ihre eigene Karte ziehen, dann geht die Libera raus' : 'auf die Karte ziehen, die sie übernimmt'}</span>
-            {:else if selected}
-              <span class="chip pos-{byId[selected]?.position}">{byId[selected]?.number} {firstName(byId[selected])}</span><span>ausgewählt, jetzt Aktion tippen</span>
-            {:else}
-              <span class="hint-txt">Spielerin tippen, dann Aktion.</span>
-            {/if}
-          </div>
+          {#if drag?.moved || selected}
+            <div class="court-foot">
+              {#if drag?.moved}
+                <span class="chip pos-{byId[drag.id]?.position}">{byId[drag.id]?.number} {firstName(byId[drag.id])}</span><span>{drag.id === st.libero ? 'auf eine markierte Karte hinten ziehen' : liberoCard?.replaced === drag.id ? 'auf ihre eigene Karte ziehen, dann geht die Libera raus' : 'auf die Karte ziehen, die sie übernimmt'}</span>
+              {:else}
+                <span class="chip pos-{byId[selected]?.position}">{byId[selected]?.number} {firstName(byId[selected])}</span><span>ausgewählt, jetzt Aktion tippen</span>
+              {/if}
+            </div>
+          {/if}
         </section>
         <section class="panel last" id="lastBox">
           <div class="txt">{last ? 'Zuletzt: ' + describe(last) : 'Noch keine Aktion.'}{#if ops.length}<span class="pending"> · {ops.length} ausstehend</span>{/if}</div>
