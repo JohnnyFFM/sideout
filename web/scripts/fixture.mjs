@@ -38,7 +38,7 @@ for (let guard = 0; guard < 3000 && !st.finished; guard++) {
   else {
     const skill = st.serving && st.rows.filter((x) => x.set === st.set && x.rally === st.rally).length === 0 ? 'S' : pick([['R', 20], ['E', 25], ['A', 30], ['B', 10], ['D', 15]]);
     const grade = pick([['#', 22], ['+', 25], ['!', 22], ['-', 14], ['/', 5], ['=', 12]]);
-    const valid = { S: '#+!-=', R: '#+!-/=', E: '#+!-=', A: '#+!-/=', B: '#+!-=', D: '#+!-=' }[skill];
+    const valid = { S: '#+!-=', R: '#+!-/=', E: '#+!-=', A: '#+!-/=', B: '#+!-=', D: '#+!-/=' }[skill];
     push({ skill, grade: valid.includes(grade) ? grade : '!', player_id: skill === 'S' ? onCourt[0] : rnd() < 0.2 ? 17 : who() });
   }
   st = replay(cfg, actions);

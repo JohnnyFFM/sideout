@@ -162,7 +162,7 @@
       </div>
       <p>Du siehst deine Hälfte von hinter der Grundlinie: vorne IV, III, II am Netz, hinten V, VI, I. Der Ball markiert die aufschlagende Position I, wenn wir Aufschlag haben. Die Libera steht automatisch für die Mittelblockerin, sobald diese in die Hinterzone rotiert: auf V und VI immer, auf I nur solange der Gegner aufschlägt. Gewinnen wir das Aufschlagrecht, kommt die Mittelblockerin auf I zurück, weil die Libera nicht aufschlagen darf. Die gestrichelte Karte zeigt, für wen die Libera steht.</p>
       <p><b>So geht ein Tipp:</b> Spielerin auf dem Feld antippen (die Karte wird blau), dann im Pad die Zelle für Aktion und Bewertung. Danach ist die Auswahl wieder leer. Nochmal auf dieselbe Karte tippen hebt die Auswahl auf.</p>
-      <p><b>Wer ist dran?</b> Sideout markiert die Karte, zu der die nächste Aktion wahrscheinlich gehört, mit einem gestrichelten blauen Rand und dem Wort <span class="ui">erwartet</span>: bei eigenem Aufschlag die Position I, nach einer Annahme oder Abwehr die Zuspielerin. Tippst du dann eine Zuspiel-Zelle ohne Auswahl, bucht Sideout sie auf die Zuspielerin, genau wie eine Aufschlag-Zelle auf Position I.</p>
+      <p><b>Wer ist dran?</b> Sideout markiert die Karte, zu der die nächste Aktion wahrscheinlich gehört, mit einem gestrichelten blauen Rand und dem Wort <span class="ui">erwartet</span>: bei eigenem Aufschlag die Position I, nach einer Annahme oder Abwehr die Zuspielerin (außer nach einem Overpass, dann ist der Ball beim Gegner). Tippst du dann eine Zuspiel-Zelle ohne Auswahl, bucht Sideout sie auf die Zuspielerin, genau wie eine Aufschlag-Zelle auf Position I.</p>
       <h3 id="bank">Die Bank und die Libera</h3>
       <p>Unter dem Feld liegt die Bank: ein Chip für jede Spielerin, die gerade nicht auf dem Feld steht. Sitzt die Libera, ist sie der erste Chip (orange). Steht sie für jemanden auf dem Feld, ist stattdessen diese Spielerin der erste Chip (gestrichelt, „draußen für L“). Ein Chip zeigt Nummer, Name und Position.</p>
       <ul>
@@ -190,7 +190,7 @@
         <li>Punkt für den Gegner: <span class="ui">=</span> Fehler bei jeder Aktion, und <span class="ui">/</span> Geblockt beim Angriff.</li>
       </ul>
       <p>Alle anderen Zellen lassen den Ballwechsel weiterlaufen. Was du nicht siehst oder nicht bewerten willst, lässt du einfach weg. Wenn der Gegner den Ballwechsel beendet, tippst du unter dem Pad <span class="ui">Fehler Gegner</span> (Punkt für uns) oder <span class="ui">Punkt Gegner</span>.</p>
-      <p>Die Zeile, die als Nächstes wahrscheinlich ist, wird blau markiert und heißt <span class="ui">erwartet</span>: nach dem Aufschlag Block oder Abwehr, nach der Annahme das Zuspiel, nach dem Zuspiel der Angriff. Das ist nur eine Hilfe, jede Zelle bleibt tippbar.</p>
+      <p>Die Zeile, die als Nächstes wahrscheinlich ist, wird blau markiert und heißt <span class="ui">erwartet</span>: nach dem Aufschlag Block oder Abwehr, nach der Annahme das Zuspiel, nach dem Zuspiel der Angriff. Nach einem Overpass in Annahme oder Abwehr liegt der Ball beim Gegner, dann sind wieder Block und Abwehr dran. Das ist nur eine Hilfe, jede Zelle bleibt tippbar.</p>
 
       <h3 id="automatik">Was automatisch passiert</h3>
       <ul>
@@ -234,7 +234,7 @@
         <tr><td class="g"><span class="gcode g-pos">+</span></td><td>Gut, Gegner ohne schnellen Angriff</td><td>Gut, Zuspiel am Netz möglich</td><td>Gut</td><td>Gut, Gegner nur Notabwehr</td><td>Touch+, Ball bleibt bei uns spielbar</td><td>Gut, geordneter Angriff möglich</td></tr>
         <tr><td class="g"><span class="gcode g-mid">!</span></td><td>OK, neutraler Aufschlag</td><td>OK, Zuspiel weg vom Netz</td><td>OK</td><td>Rally, Ball geht weiter</td><td>Touch, abgefälscht</td><td>OK, hoher Ball</td></tr>
         <tr><td class="g"><span class="gcode g-neg">-</span></td><td>Schwach, Gegner greift frei an</td><td>Schwach, nur hoher Ball möglich</td><td>Schwach, Angreiferin gegen Doppelblock</td><td>Schwach, leicht abgewehrt</td><td>Touch−, Ball für uns kaum spielbar</td><td>Schwach, kein Angriff mehr möglich</td></tr>
-        <tr><td class="g"><span class="gcode g-half">/</span></td><td>–</td><td>Overpass, Ball direkt zum Gegner</td><td>–</td><td>Geblockt, Punkt für den Gegner</td><td>–</td><td>–</td></tr>
+        <tr><td class="g"><span class="gcode g-half">/</span></td><td>–</td><td>Overpass, Ball direkt zum Gegner</td><td>–</td><td>Geblockt, Punkt für den Gegner</td><td>–</td><td>Overpass, Ball direkt zum Gegner</td></tr>
         <tr><td class="g"><span class="gcode g-err">=</span></td><td>Fehler</td><td>Fehler, Ass für den Gegner</td><td>Fehler, Netz oder Doppelberührung</td><td>Fehler, Aus oder Netz</td><td>Fehler, Netzberührung oder Übertreten</td><td>Fehler, Ball nicht spielbar</td></tr>
       </table></div>
       <p>Für die Annahme leitet Sideout daraus die bekannte 0-bis-3-Skala ab: Perfekt 3, Gut 2, OK 1, alles andere 0.</p>

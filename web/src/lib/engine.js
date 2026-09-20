@@ -22,7 +22,7 @@ export const PAD = {
   E: { '#': 'Perfekt', '+': 'Gut', '!': 'OK', '-': 'Schwach', '/': null, '=': 'Fehler' },
   A: { '#': 'Punkt', '+': 'Gut', '!': 'Rally', '-': 'Schwach', '/': 'Geblockt', '=': 'Fehler' },
   B: { '#': 'Punkt', '+': 'Touch+', '!': 'Touch', '-': 'Touch−', '/': null, '=': 'Fehler' },
-  D: { '#': 'Perfekt', '+': 'Gut', '!': 'OK', '-': 'Schwach', '/': null, '=': 'Fehler' }
+  D: { '#': 'Perfekt', '+': 'Gut', '!': 'OK', '-': 'Schwach', '/': 'Overpass', '=': 'Fehler' }
 };
 export const POS_NAME = { Z: 'Zuspiel', A: 'Außen', M: 'Mitte', D: 'Diagonal', L: 'Libero' };
 export const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI'];
@@ -147,8 +147,10 @@ export function courtView(lineup, libero, byId, liberoFor = null, liberoOff = fa
 export function expectedSkills(st) {
   const cur = st.rows.filter((r) => r.set === st.set && r.rally === st.rally && !['sub', 'lib', 'rot', 'srv', 'adj'].includes(r.skill));
   if (!cur.length) return st.serving ? ['S'] : ['R'];
-  const last = cur[cur.length - 1].skill;
-  return { S: ['B', 'D'], R: ['E'], E: ['A'], A: ['B', 'D'], B: ['D'], D: ['E'] }[last] || [];
+  const last = cur[cur.length - 1];
+  // an overpass ("/") on reception or dig hands the ball to the opponent
+  if (last.grade === '/' && (last.skill === 'R' || last.skill === 'D')) return ['B', 'D'];
+  return { S: ['B', 'D'], R: ['E'], E: ['A'], A: ['B', 'D'], B: ['D'], D: ['E'] }[last.skill] || [];
 }
 
 // ------------------------------------------------------------------ stats
@@ -210,7 +212,7 @@ export function stats(cfg, players, actions, set) {
         break;
       case 'D':
         p.D.n++;
-        if (r.grade === '=') p.D.err++; else if (r.grade !== '-') p.D.good++;
+        if (r.grade === '=') p.D.err++; else if (r.grade !== '-' && r.grade !== '/') p.D.good++;
         break;
       case 'E':
         p.E.n++;

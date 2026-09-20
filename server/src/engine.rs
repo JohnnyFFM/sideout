@@ -338,7 +338,7 @@ pub fn stats(cfg: &MatchConfig, players: &[Player], actions: &[Action], set: Opt
             },
             "D" => {
                 ps.d_n += 1;
-                if g == "=" { ps.d_err += 1 } else if g != "-" { ps.d_good += 1 }
+                if g == "=" { ps.d_err += 1 } else if g != "-" && g != "/" { ps.d_good += 1 }
             }
             "E" => { ps.e_n += 1; if g == "=" { ps.e_err += 1 } }
             _ => {}
