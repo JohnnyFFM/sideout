@@ -68,11 +68,11 @@
         <div class="roster">
           {#each shown as p (p.id)}
             {#if editing === p.id}
-              <div class="row edit">
-                <input type="number" min="0" max="99" bind:value={draft.number} style="max-width:70px" />
-                <input type="text" bind:value={draft.name} />
-                <select bind:value={draft.position}>{#each Object.entries(POS_NAME) as [k, v]}<option value={k}>{v}</option>{/each}</select>
-                <button class="btn primary" onclick={() => saveEdit(p)}>OK</button><button class="btn ghost" onclick={() => (editing = null)}>✕</button>
+              <div class="edit">
+                <input class="e-nr" type="number" min="0" max="99" bind:value={draft.number} />
+                <input class="e-name" type="text" bind:value={draft.name} />
+                <select class="e-pos" bind:value={draft.position}>{#each Object.entries(POS_NAME) as [k, v]}<option value={k}>{v}</option>{/each}</select>
+                <button class="btn primary e-ok" onclick={() => saveEdit(p)}>OK</button><button class="btn ghost e-x" onclick={() => (editing = null)} title="Abbrechen">✕</button>
               </div>
             {:else}
               <div class="prow" class:inactive={!p.active}>
@@ -103,8 +103,14 @@
   .jersey { font-family: var(--disp); font-weight: 700; font-size: 18px; text-align: center; }
   .acts { display: flex; gap: 4px; }
   .acts .icon-btn { width: 32px; height: 32px; font-size: 13px; }
-  .edit { align-items: center; padding: 4px; }
+  .edit { display: grid; grid-template-columns: 70px 1fr 120px auto auto; gap: 8px; align-items: center; padding: 4px; }
   .edit input, .edit select { min-width: 0; }
+  /* phone: number + name on one line, position + OK + cancel on the next */
+  @media (max-width: 520px) {
+    .edit { grid-template-columns: 70px 1fr auto auto; }
+    .e-nr { grid-column: 1; grid-row: 1; } .e-name { grid-column: 2 / -1; grid-row: 1; }
+    .e-pos { grid-column: 1 / 3; grid-row: 2; } .e-ok { grid-column: 3; grid-row: 2; } .e-x { grid-column: 4; grid-row: 2; }
+  }
   .addrow { display: grid; grid-template-columns: 70px 1fr 120px auto; gap: 8px; align-items: end; }
   @media (max-width: 520px) { .addrow { grid-template-columns: 70px 1fr; } .prow { grid-template-columns: 36px 1fr auto; } .prow .chip { display: none; } }
 </style>

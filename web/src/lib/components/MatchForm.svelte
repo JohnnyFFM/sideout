@@ -132,6 +132,7 @@
   .lslot { background: var(--panel); border-radius: var(--r-m); padding: 6px; display: grid; gap: 4px; }
   .lslot .posn { font-size: 10px; color: var(--ink-3); }
   .lslot select { height: 36px; font-size: 13px; padding: 0 4px; }
+  @media (max-width: 760px) { .lslot select { height: 40px; font-size: 16px; padding: 0 2px; } }
   .warn { color: var(--g-neg); font-size: 13px; }
   .ok { color: var(--g-win); font-size: 13px; }
   .bad { color: var(--g-err); font-size: 13px; }

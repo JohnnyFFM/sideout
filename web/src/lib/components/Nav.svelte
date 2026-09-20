@@ -59,6 +59,6 @@
   .teamsel { height: 30px; max-width: 160px; padding: 0 6px; font-size: 13px; font-weight: 600; background: var(--raised); border: 1px solid var(--line-soft); border-radius: var(--r-m); color: var(--ink); }
   @media (max-width: 760px) {
     .desk { display: none; }
-    .teamsel { max-width: 120px; }
+    .teamsel { max-width: 120px; font-size: 16px; height: 32px; }
   }
 </style>
