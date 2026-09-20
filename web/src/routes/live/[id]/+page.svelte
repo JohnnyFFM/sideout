@@ -552,6 +552,7 @@
     .tl-item { width: 40px; padding: 3px 0 2px; }
     .tl-item b { font-size: 15px; }
     .tl-undo { width: 32px; height: 32px; }
+    .col.mid > :global(.pad) { grid-template-rows: repeat(6, minmax(0, 1fr)); }
   }
   @media (max-width: 759px) {
     :global(.score) { position: relative; padding: 8px 46px 8px; row-gap: 2px; }
