@@ -13,12 +13,13 @@ use tower::ServiceExt;
 use crate::events::EventBus;
 use crate::state::{AppState, Config};
 
-struct App {
-    router: Router,
+pub(super) struct App {
+    pub(super) router: Router,
+    pub(super) state: AppState,
     _dir: tempfile::TempDir,
 }
 
-async fn app() -> App {
+pub(super) async fn app() -> App {
     let dir = tempfile::tempdir().unwrap();
     let opts = SqliteConnectOptions::new()
         .filename(dir.path().join("t.db"))
@@ -37,14 +38,22 @@ async fn app() -> App {
         base: String::new(),
     };
     let state = AppState { db, dbw, events: EventBus::new(), config: Arc::new(config) };
-    App { router: super::router(state), _dir: dir }
+    App { router: super::router(state.clone()), state, _dir: dir }
 }
 
 /// (status, json body, Set-Cookie value if any)
-async fn call(app: &App, method: Method, path: &str, cookie: Option<&str>, body: Option<Value>) -> (StatusCode, Value, Option<String>) {
+pub(super) async fn call(app: &App, method: Method, path: &str, cookie: Option<&str>, body: Option<Value>) -> (StatusCode, Value, Option<String>) {
+    call_h(app, method, path, cookie, body, None).await
+}
+
+/// the same with an X-Scout-Lease header
+pub(super) async fn call_h(app: &App, method: Method, path: &str, cookie: Option<&str>, body: Option<Value>, lease: Option<&str>) -> (StatusCode, Value, Option<String>) {
     let mut req = Request::builder().method(method).uri(path).header("x-requested-by", "test");
     if let Some(c) = cookie {
         req = req.header(header::COOKIE, c);
+    }
+    if let Some(l) = lease {
+        req = req.header("x-scout-lease", l);
     }
     let req = match body {
         Some(b) => req.header(header::CONTENT_TYPE, "application/json").body(Body::from(b.to_string())).unwrap(),
@@ -62,7 +71,7 @@ async fn call(app: &App, method: Method, path: &str, cookie: Option<&str>, body:
     (status, json, set_cookie)
 }
 
-async fn register(app: &App, team: &str, user: &str) -> (String, Value) {
+pub(super) async fn register(app: &App, team: &str, user: &str) -> (String, Value) {
     let (st, body, cookie) = call(
         app,
         Method::POST,

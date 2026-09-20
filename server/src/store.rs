@@ -2,7 +2,7 @@
 //! loaders that feed the engine.
 
 use serde_json::{json, Value};
-use sqlx::Row;
+use sqlx::{Row, SqliteConnection};
 
 use crate::engine::{Action, Lineup, MatchConfig, Player};
 use crate::error::{ApiError, ApiResult};
@@ -10,6 +10,21 @@ use crate::state::AppState;
 
 pub async fn audit(
     state: &AppState,
+    team_id: i64,
+    entity: &str,
+    entity_id: i64,
+    action: &str,
+    detail: &str,
+    user_id: Option<i64>,
+) -> ApiResult<()> {
+    let mut conn = state.dbw.acquire().await?;
+    audit_conn(&mut conn, team_id, entity, entity_id, action, detail, user_id).await
+}
+
+/// the same audit line on an explicit connection (a write transaction must
+/// not touch the pool it came from: the pool has one connection)
+pub async fn audit_conn(
+    conn: &mut SqliteConnection,
     team_id: i64,
     entity: &str,
     entity_id: i64,
@@ -27,7 +42,7 @@ pub async fn audit(
     .bind(action)
     .bind(detail)
     .bind(user_id)
-    .execute(&state.dbw)
+    .execute(conn)
     .await?;
     Ok(())
 }
@@ -75,18 +90,28 @@ pub fn action_json(r: &sqlx::sqlite::SqliteRow) -> Value {
 }
 
 pub async fn fetch_match_row(state: &AppState, team_id: i64, id: i64) -> ApiResult<sqlx::sqlite::SqliteRow> {
+    let mut conn = state.db.acquire().await?;
+    fetch_match_row_conn(&mut conn, team_id, id).await
+}
+
+pub async fn fetch_match_row_conn(conn: &mut SqliteConnection, team_id: i64, id: i64) -> ApiResult<sqlx::sqlite::SqliteRow> {
     sqlx::query("SELECT * FROM matches WHERE id = ? AND team_id = ?")
         .bind(id)
         .bind(team_id)
-        .fetch_optional(&state.db)
+        .fetch_optional(conn)
         .await?
         .ok_or(ApiError::NotFound)
 }
 
 pub async fn load_players(state: &AppState, team_id: i64) -> ApiResult<Vec<Player>> {
+    let mut conn = state.db.acquire().await?;
+    load_players_conn(&mut conn, team_id).await
+}
+
+pub async fn load_players_conn(conn: &mut SqliteConnection, team_id: i64) -> ApiResult<Vec<Player>> {
     let rows = sqlx::query("SELECT id, number, name, position FROM players WHERE team_id = ? ORDER BY number")
         .bind(team_id)
-        .fetch_all(&state.db)
+        .fetch_all(conn)
         .await?;
     Ok(rows
         .iter()
@@ -100,11 +125,16 @@ pub async fn load_players(state: &AppState, team_id: i64) -> ApiResult<Vec<Playe
 }
 
 pub async fn load_config(state: &AppState, match_id: i64, first_serve: &str) -> ApiResult<MatchConfig> {
+    let mut conn = state.db.acquire().await?;
+    load_config_conn(&mut conn, match_id, first_serve).await
+}
+
+pub async fn load_config_conn(conn: &mut SqliteConnection, match_id: i64, first_serve: &str) -> ApiResult<MatchConfig> {
     let rows = sqlx::query(
         "SELECT set_no, pos1, pos2, pos3, pos4, pos5, pos6, libero_id FROM lineups WHERE match_id = ? ORDER BY set_no",
     )
     .bind(match_id)
-    .fetch_all(&state.db)
+    .fetch_all(conn)
     .await?;
     let mut cfg = MatchConfig {
         first_serve_us: first_serve == "us",
@@ -130,11 +160,16 @@ pub async fn load_config(state: &AppState, match_id: i64, first_serve: &str) -> 
 }
 
 pub async fn load_actions(state: &AppState, match_id: i64) -> ApiResult<Vec<Action>> {
+    let mut conn = state.db.acquire().await?;
+    load_actions_conn(&mut conn, match_id).await
+}
+
+pub async fn load_actions_conn(conn: &mut SqliteConnection, match_id: i64) -> ApiResult<Vec<Action>> {
     let rows = sqlx::query(
         "SELECT id, seq, set_no, skill, grade, player_id, sub_out, sub_in FROM actions WHERE match_id = ? ORDER BY seq",
     )
     .bind(match_id)
-    .fetch_all(&state.db)
+    .fetch_all(conn)
     .await?;
     Ok(rows
         .iter()

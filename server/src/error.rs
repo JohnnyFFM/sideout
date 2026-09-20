@@ -16,6 +16,12 @@ pub enum ApiError {
     /// Optimistic-locking failure — body carries the current row.
     #[error("conflict")]
     Conflict(Value),
+    /// Scouting ownership refusal: `scouted_elsewhere` (another session
+    /// holds the match) or `scout_lease_expired` (our lease is obsolete and
+    /// nobody else holds it). Same 409 status, distinct `error` code, so
+    /// clients can tell it from a sequence conflict.
+    #[error("{0}")]
+    ScoutConflict(&'static str, Value),
     #[error(transparent)]
     Db(#[from] sqlx::Error),
     #[error("{0}")]
@@ -32,6 +38,10 @@ impl IntoResponse for ApiError {
             ApiError::Conflict(current) => (
                 StatusCode::CONFLICT,
                 json!({"error": "conflict", "current": current}),
+            ),
+            ApiError::ScoutConflict(code, current) => (
+                StatusCode::CONFLICT,
+                json!({"error": code, "current": current}),
             ),
             ApiError::Db(e) => {
                 tracing::error!("db error: {e}");

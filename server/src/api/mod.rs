@@ -2,9 +2,12 @@ pub mod account;
 pub mod auth_routes;
 pub mod events;
 pub mod matches;
+pub mod scout;
 pub mod team;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod scout_tests;
 
 use axum::routing::{delete, get, patch, post, put};
 use axum::Router;
@@ -41,6 +44,8 @@ pub fn router(state: AppState) -> Router {
         .route("/matches/{id}/lineups/{set}", put(matches::put_lineup))
         .route("/matches/{id}/actions", post(matches::add_action))
         .route("/matches/{id}/actions/last", delete(matches::undo_action))
+        // scouting handover: one active writer per match
+        .route("/matches/{id}/scout", post(scout::acquire).delete(scout::release))
         .route("/matches/{id}/state", get(matches::state))
         .route("/matches/{id}/stats", get(matches::stats))
         .route("/matches/{id}/export.csv", get(matches::export_csv))
