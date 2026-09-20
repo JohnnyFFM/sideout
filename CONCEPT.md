@@ -185,9 +185,12 @@ gets the full-screen, no-browser-chrome mode the pad needs.
 4. Later: attack direction / zones on the court, opponent scouting,
    second scouter (two phones, one match), share a read-only live link with
    parents/players, Data Volley `.dvw` export for the openvolley toolchain.
-5. After the domain (HTTPS, 2026-09-20 decision): fuller offline mode —
-   "offline ready" marker with prefetch of upcoming matches, evaluation
-   from the local log without server, creating matches offline.
+5. Offline mode ✔ (2026-09-20): Spiele prefetches running and planned
+   matches ("offline bereit"), the identity is remembered for offline
+   starts, the evaluation reads the local log, and every action carries a
+   client id (`cid`) so the queue reconciles against the server after lost
+   answers (no double counts, no double undo). Still open: creating a match
+   offline.
 
 ## Decisions worth remembering
 

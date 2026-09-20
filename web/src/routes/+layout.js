@@ -11,14 +11,22 @@ import { meCache } from '$lib/stores.js';
 export async function load({ url }) {
   if (url.pathname === `${base}/login`) {
     meCache.value = null;
+    try { localStorage.removeItem('so_me'); } catch { /* ignore */ }
     return { me: null };
   }
   if (meCache.value) return { me: meCache.value };
   try {
     meCache.value = await api('/me');
+    try { localStorage.setItem('so_me', JSON.stringify(meCache.value)); } catch { /* ignore */ }
     return { me: meCache.value };
   } catch (e) {
-    if (e.offline) return { me: { offline: true, user: { display_name: '' }, team: { name: '' }, members: [] } };
+    if (e.offline) {
+      // no network: the last known identity (with its role) keeps the coach
+      // scouting; not cached, so /me is asked again on the next navigation
+      let last = null;
+      try { last = JSON.parse(localStorage.getItem('so_me') || 'null'); } catch { /* ignore */ }
+      return { me: last ? { ...last, offline: true } : { offline: true, user: { display_name: '' }, team: { name: '' }, members: [] } };
+    }
     return { me: null };
   }
 }

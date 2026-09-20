@@ -223,8 +223,9 @@
       <p>Jeder Nachtrag steht als eigener Eintrag im Verlauf und lässt sich wie alles andere mit <span class="ui">↶ Rückgängig</span> zurücknehmen.</p>
 
       <h3 id="offline">Ohne Empfang</h3>
-      <p>Hallen haben schlechten Empfang. Sideout speichert jede Aktion sofort auf dem Gerät und rechnet den Spielstand lokal. Ist keine Verbindung da, erscheint oben ein gelber Balken, und neben der letzten Aktion steht <span class="ui">n ausstehend</span>. Sobald die Verbindung zurück ist, werden die Aktionen in der richtigen Reihenfolge gesendet, auch nach dem Schließen der App.</p>
-      <p>Scoutet ein zweites Gerät dasselbe Spiel, gewinnt die Aktion, die zuerst beim Server ankommt. Das andere Gerät meldet <span class="ui">Ein anderes Gerät hat gescoutet, neu geladen</span> und verwirft seine ausstehenden Aktionen. Für ein Spiel also ein Gerät zum Scouten; mitlesen dürfen beliebig viele.</p>
+      <p>Hallen haben schlechten Empfang. Sideout speichert jede Aktion sofort auf dem Gerät und rechnet den Spielstand lokal. Ist keine Verbindung da, erscheint oben ein gelber Balken, und neben der letzten Aktion steht <span class="ui">n ausstehend</span>. Sobald die Verbindung zurück ist, werden die Aktionen in der richtigen Reihenfolge gesendet, auch nach dem Schließen der App. Rückgängig geht auch ohne Verbindung, für die eigenen ausstehenden Aktionen genauso wie für schon gesendete.</p>
+      <p><b>Vorbereitung:</b> Öffne <span class="ui">Spiele</span> einmal mit Verbindung, am besten zu Hause. Sideout legt dabei jedes laufende und geplante Spiel samt Kader auf dem Gerät ab und zeigt daneben <span class="ui">offline bereit</span>. Ein so markiertes Spiel lässt sich in der Halle ohne Empfang öffnen und scouten, auch nach einem Neustart der App; die Anmeldung bleibt dabei erhalten. Die Auswertung rechnet ebenfalls aus dem lokalen Stand, die Liste der Spiele zeigt dann <span class="ui">Offline: Liste vom letzten Laden</span>. Nur ein neues Spiel anlegen braucht Verbindung.</p>
+      <p>Jede Aktion trägt eine eigene Kennung. Geht eine Antwort des Servers verloren, erkennt Sideout beim nächsten Kontakt, was schon angekommen ist, und schickt nichts doppelt; ein Rückgängig wird nie zweimal ausgeführt. Scoutet ein zweites Gerät dasselbe Spiel, gewinnt die Aktion, die zuerst beim Server ankommt. Das andere Gerät meldet <span class="ui">Ein anderes Gerät hat gescoutet</span> und verwirft seine ausstehenden Aktionen. Für ein Spiel also ein Gerät zum Scouten; mitlesen dürfen beliebig viele.</p>
 
       <h2 id="skala">Bewertungsskala</h2>
       <p>Sideout benutzt die Skala von Data Volley, dem Standard im Profi- und Verbandsvolleyball. Sechs Codes, für jede Aktion mit einem eigenen Wort:</p>
@@ -267,7 +268,7 @@
       <h3>Diagramme</h3>
       <ul>
         <li><b>Spielverlauf:</b> unser Vorsprung nach jedem Ballwechsel des gewählten Satzes. Grün über der Null führen wir, rot darunter der Gegner.</li>
-        <li><b>Sideout nach Rotation:</b> eine Kachel pro Rotation. Rotation heißt, wer auf Position I steht; darüber steht, wo die Zuspielerin dabei ist (<span class="ui">Zuspiel auf I</span> bis <span class="ui">VI</span>). So siehst du, in welcher Rotation die Annahme hakt.</li>
+        <li><b>Sideout nach Rotation:</b> eine Kachel pro Rotation. Rotation heißt: die Startaufstellung des Satzes, so oft weitergedreht, dass die genannte Spielerin auf Position I steht; wer für sie eingewechselt wird, zählt in derselben Rotation mit. Darüber steht, wo die Zuspielerin dabei ist (<span class="ui">Zuspiel auf I</span> bis <span class="ui">VI</span>). So siehst du, in welcher Rotation die Annahme hakt.</li>
         <li><b>Woher die Punkte kommen:</b> Angriff, Aufschlag, Block, Gegnerfehler.</li>
         <li><b>Wie Punkte verloren gehen:</b> Gegner-Punkt, Angriffsfehler, Aufschlagfehler, andere Fehler.</li>
         <li><b>Punkte pro Spielerin</b> als Balken.</li>
@@ -302,7 +303,9 @@
         <dt>Die falsche Spielerin steht auf dem Feld.</dt>
         <dd>Während des Satzes: den Chip aus der Bank auf die Karte ziehen. Für den nächsten Satz: Aufstellung unter Spiele bearbeiten. Ist der Satz noch nicht gescoutet, kannst du seine Aufstellung frei ändern.</dd>
         <dt>Kein Empfang in der Halle.</dt>
-        <dd>Weiter tippen. Alles wird lokal gespeichert und später gesendet. Die App vorher einmal mit Verbindung öffnen, damit das Spiel geladen ist.</dd>
+        <dd>Weiter tippen. Alles wird lokal gespeichert und später gesendet. Vorher einmal <span class="ui">Spiele</span> mit Verbindung öffnen, bis am Spiel <span class="ui">offline bereit</span> steht (siehe <a href="#offline">Ohne Empfang</a>).</dd>
+        <dt>Wer schlägt im fünften Satz auf?</dt>
+        <dd>Im Tiebreak wird neu gelost. Zu Beginn von Satz 5 fragt Sideout <span class="ui">Wer schlägt auf?</span>; tippe <span class="ui">Wir</span> oder <span class="ui">Gegner</span>. Die Antwort steht als Nachtrag im Verlauf und lässt sich zurücknehmen.</dd>
         <dt>Wem gehören die Daten?</dt>
         <dd>Dem Verein. Sideout läuft auf eurem eigenen Server, es gibt keinen Anbieter dazwischen.</dd>
         <dt>Wo liegen die Daten?</dt>

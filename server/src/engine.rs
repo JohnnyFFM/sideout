@@ -92,6 +92,8 @@ pub struct Rally {
     pub serving: bool,
     pub won: bool,
     pub rot: i64,
+    /// rotations since the set started (0-5); rotation stats group by it
+    pub rotn: i64,
     pub us: i64,
     pub them: i64,
 }
@@ -119,6 +121,7 @@ pub struct State {
     pub libero_off: bool,
     pub serving: bool,
     pub rally: i64,
+    pub rotn: i64,
     pub finished: bool,
     pub last_seq: i64,
     #[serde(skip)]
@@ -155,6 +158,7 @@ pub fn replay(cfg: &MatchConfig, actions: &[Action]) -> State {
         libero_off: false,
         serving: cfg.first_serve_us,
         rally: 1,
+        rotn: 0,
         finished: false,
         last_seq: 0,
         rows: vec![],
@@ -167,7 +171,7 @@ pub fn replay(cfg: &MatchConfig, actions: &[Action]) -> State {
         }
         st.last_seq = a.seq;
         if a.skill == "rot" || a.skill == "srv" {
-            if a.skill == "rot" { st.lineup = rotate(st.lineup); } else { st.serving = a.grade.as_deref() == Some("#"); }
+            if a.skill == "rot" { st.lineup = rotate(st.lineup); st.rotn = (st.rotn + 1) % 6; } else { st.serving = a.grade.as_deref() == Some("#"); }
             st.rows.push(Row {
                 id: a.id, seq: a.seq, set: st.set, rally: st.rally, us: st.us, them: st.them,
                 serving: st.serving, rot: st.lineup[0], skill: a.skill.clone(), grade: a.grade.clone(),
@@ -212,12 +216,13 @@ pub fn replay(cfg: &MatchConfig, actions: &[Action]) -> State {
             if won { st.us += 1 } else { st.them += 1 }
         } else {
             st.rally_log.push(Rally {
-                set: st.set, rally: st.rally, serving: st.serving, won, rot: st.lineup[0], us: st.us, them: st.them,
+                set: st.set, rally: st.rally, serving: st.serving, won, rot: st.lineup[0], rotn: st.rotn, us: st.us, them: st.them,
             });
             let won_on_receive = won && !st.serving;
             if won { st.us += 1 } else { st.them += 1 }
             if won_on_receive {
                 st.lineup = rotate(st.lineup);
+                st.rotn = (st.rotn + 1) % 6;
             }
             st.serving = won;
             st.rally += 1;
@@ -233,6 +238,7 @@ pub fn replay(cfg: &MatchConfig, actions: &[Action]) -> State {
             }
             st.set += 1;
             st.rally = 1;
+            st.rotn = 0;
             set_serve_start = !set_serve_start;
             let l = lineup_for(cfg, st.set);
             st.lineup = l.pos;
@@ -343,7 +349,8 @@ pub fn stats(cfg: &MatchConfig, players: &[Player], actions: &[Action], set: Opt
             "E" => { ps.e_n += 1; if g == "=" { ps.e_err += 1 } }
             _ => {}
         }
-        last_set = match r.skill.as_str() { "E" => Some(pid), "A" => None, _ => last_set };
+        // the remembered setter dies with the rally
+        last_set = if r.outcome.is_some() { None } else { match r.skill.as_str() { "E" => Some(pid), "A" => None, _ => last_set } };
     }
 
     let mut so = (0i64, 0i64);
@@ -355,7 +362,7 @@ pub fn stats(cfg: &MatchConfig, players: &[Player], actions: &[Action], set: Opt
         let t = if r.serving { &mut brk } else { &mut so };
         t.1 += 1; if r.won { t.0 += 1 }
         if r.won { us += 1 } else { them += 1 }
-        let e = by_rot.entry(r.rot).or_default();
+        let e = by_rot.entry(r.rotn).or_default();
         if r.serving { e.3 += 1; if r.won { e.2 += 1 } } else { e.1 += 1; if r.won { e.0 += 1 } }
     }
 
@@ -413,7 +420,7 @@ pub fn stats(cfg: &MatchConfig, players: &[Player], actions: &[Action], set: Opt
             "set": rp.set, "us": rp.us, "them": rp.them, "sets": rp.sets,
             "sets_won": rp.sets_won, "sets_lost": rp.sets_lost, "finished": rp.finished,
         },
-        "rallies": rallies.iter().map(|r| json!({"set": r.set, "rally": r.rally, "serving": r.serving, "won": r.won, "rot": r.rot, "us": r.us, "them": r.them})).collect::<Vec<_>>(),
+        "rallies": rallies.iter().map(|r| json!({"set": r.set, "rally": r.rally, "serving": r.serving, "won": r.won, "rot": r.rot, "rotn": r.rotn, "us": r.us, "them": r.them})).collect::<Vec<_>>(),
     })
 }
 
@@ -565,6 +572,7 @@ mod tests {
         assert_eq!(s["team"]["sideout"], exp["sideout"]);
         assert_eq!(s["team"]["brk"], exp["brk"]);
         assert_eq!(s["team"]["ptsBy"], exp["ptsBy"]);
+        assert_eq!(s["team"]["byRot"], exp["byRot"]);
         for ep in exp["players"].as_array().unwrap() {
             let p = s["players"].as_array().unwrap().iter().find(|p| p["id"] == ep["id"]).unwrap();
             assert_eq!(p["pts"], ep["pts"], "pts of {}", ep["id"]);

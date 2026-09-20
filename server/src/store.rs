@@ -69,6 +69,7 @@ pub fn action_json(r: &sqlx::sqlite::SqliteRow) -> Value {
         "player_id": r.get::<Option<i64>, _>("player_id"),
         "sub_out": r.get::<Option<i64>, _>("sub_out"),
         "sub_in": r.get::<Option<i64>, _>("sub_in"),
+        "cid": r.get::<Option<String>, _>("cid"),
         "created_at": r.get::<String, _>("created_at"),
     })
 }

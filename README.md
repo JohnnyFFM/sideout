@@ -128,7 +128,7 @@ GET|POST /players · PATCH|DELETE /players/{id}
 GET|POST /matches · GET|PATCH|DELETE /matches/{id}
 PUT /matches/{id}/lineups/{set}          {pos:[6 player ids], libero}
 POST /matches/{id}/actions               {seq, skill, grade?, player_id?, sub_out?, sub_in?} → {action, state}
-DELETE /matches/{id}/actions/last        → {removed, state}
+DELETE /matches/{id}/actions/last?cid=   → {removed|null, state}  (idempotent by client id)
 GET /matches/{id}/state · /matches/{id}/stats?set= · /matches/{id}/export.csv
 GET /season/stats
 GET /events                              SSE, one notification per committed mutation
@@ -146,10 +146,11 @@ Next: player pages across the season, `.dvw` export for Data Volley and
 the openvolley toolchain, attack directions on the court, a read-only
 live link for parents, a second scouter on a second phone.
 
-Once a domain (HTTPS) exists: fuller offline mode, i.e. an "offline ready"
-marker with one-tap prefetch of upcoming matches, an evaluation page that
-reads the local log when the server is unreachable, and creating matches
-offline. Service workers only run on secure origins, so this waits for TLS.
+Offline: opening Spiele once online stores every running and planned
+match on the device ("offline bereit"); the live screen, undo and the
+evaluation then work without a connection, the session survives an offline
+restart, and the queue reconciles against the server log by client id when
+answers got lost. Not yet: creating a match offline.
 
 ## License
 

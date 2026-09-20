@@ -69,7 +69,9 @@
     const lu = (match.lineups?.[set || full.set] || match.lineups?.[1] || Object.values(match.lineups)[0])?.pos || [];
     const setter = lu.find((id) => byId[id]?.position === 'Z');
     return lu.map((pid, i) => {
-      const r = s.team.byRot[pid] || { so: { won: 0, n: 0 }, brk: { won: 0, n: 0 } };
+      // rotation i = the set's starting lineup rotated i times: the player who
+      // started on I+i is on I, whoever substitutes her later included
+      const r = s.team.byRot[i] || { so: { won: 0, n: 0 }, brk: { won: 0, n: 0 } };
       const setterPos = setter ? ((lu.indexOf(setter) - i + 6) % 6) + 1 : null;
       return { pid, r, sop: r.so.n ? Math.round((r.so.won / r.so.n) * 100) : null, setterPos };
     });

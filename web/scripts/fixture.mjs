@@ -50,7 +50,7 @@ const fixture = {
   actions,
   expected: {
     set: st.set, us: st.us, them: st.them, lineup: st.lineup, serving: st.serving, sets: st.sets, libero_for: st.libero_for, libero_off: st.libero_off,
-    sideout: s.team.sideout, brk: s.team.brk, ptsBy: s.team.ptsBy,
+    sideout: s.team.sideout, brk: s.team.brk, ptsBy: s.team.ptsBy, byRot: s.team.byRot,
     players: s.players.map((p) => ({ id: p.id, pts: p.pts, k: p.A.k, rsum: p.R.sum, ast: p.E.ast }))
   }
 };

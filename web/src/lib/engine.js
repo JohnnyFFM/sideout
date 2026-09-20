@@ -61,15 +61,17 @@ export function replay(cfg, actions) {
   const st = {
     set: 1, us: 0, them: 0, sets: [], sets_won: 0, sets_lost: 0,
     lineup: first.pos, libero: first.libero, libero_for: null, libero_off: false,
-    serving: !!cfg.first_serve_us, rally: 1, finished: false, last_seq: 0,
+    serving: !!cfg.first_serve_us, rally: 1, rotn: 0, finished: false, last_seq: 0,
     rows: [], rally_log: []
   };
+  // rotn: rotations since the set started (0-5). Rotation statistics group by
+  // it, not by the player on I, so substitutes do not split a rotation.
   let setServeStart = !!cfg.first_serve_us;
   for (const a of actions) {
     if (st.finished) break;
     st.last_seq = a.seq;
     if (a.skill === 'rot' || a.skill === 'srv') {
-      if (a.skill === 'rot') st.lineup = rotate(st.lineup); else st.serving = a.grade === '#';
+      if (a.skill === 'rot') { st.lineup = rotate(st.lineup); st.rotn = (st.rotn + 1) % 6; } else st.serving = a.grade === '#';
       st.rows.push({ ...a, set: st.set, rally: st.rally, us: st.us, them: st.them, serving: st.serving, rot: st.lineup[0], outcome: null });
       continue;
     }
@@ -93,10 +95,10 @@ export function replay(cfg, actions) {
       // catch-up point: score only, no rally, rotation or serve change
       if (won) st.us++; else st.them++;
     } else {
-      st.rally_log.push({ set: st.set, rally: st.rally, serving: st.serving, won, rot: st.lineup[0], us: st.us, them: st.them });
+      st.rally_log.push({ set: st.set, rally: st.rally, serving: st.serving, won, rot: st.lineup[0], rotn: st.rotn, us: st.us, them: st.them });
       const wonOnReceive = won && !st.serving;
       if (won) st.us++; else st.them++;
-      if (wonOnReceive) st.lineup = rotate(st.lineup);
+      if (wonOnReceive) { st.lineup = rotate(st.lineup); st.rotn = (st.rotn + 1) % 6; }
       st.serving = won;
       st.rally++;
     }
@@ -108,6 +110,7 @@ export function replay(cfg, actions) {
       if (w === 3 || l === 3) { st.finished = true; break; }
       st.set++;
       st.rally = 1;
+      st.rotn = 0;
       setServeStart = !setServeStart;
       const nl = lineupFor(cfg, st.set);
       st.lineup = nl.pos;
@@ -219,13 +222,15 @@ export function stats(cfg, players, actions, set) {
         if (r.grade === '=') p.E.err++;
         break;
     }
-    lastSet = r.skill === 'E' ? p : r.skill === 'A' ? null : lastSet;
+    // the remembered setter dies with the rally: an assist needs the set and
+    // the kill in the same rally
+    lastSet = r.outcome ? null : r.skill === 'E' ? p : r.skill === 'A' ? null : lastSet;
   }
   for (const r of rallies) {
     const k = r.serving ? 'brk' : 'sideout';
     team[k].n++; if (r.won) team[k].won++;
     if (r.won) team.us++; else team.them++;
-    const rot = (team.byRot[r.rot] = team.byRot[r.rot] || { rot: r.rot, so: { won: 0, n: 0 }, brk: { won: 0, n: 0 } });
+    const rot = (team.byRot[r.rotn] = team.byRot[r.rotn] || { rot: r.rotn, so: { won: 0, n: 0 }, brk: { won: 0, n: 0 } });
     const rk = r.serving ? 'brk' : 'so';
     rot[rk].n++; if (r.won) rot[rk].won++;
   }

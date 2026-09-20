@@ -2,10 +2,17 @@
   import { base } from '$app/paths';
   // Picks a match to evaluate: the running one first, then the finished ones.
   import { api } from '$lib/api.js';
+  import { me } from '$lib/stores.js';
+  import { cachedList } from '$lib/offline.js';
   import { fmtDate } from '$lib/engine.js';
   let matches = $state(null);
   let error = $state('');
-  $effect(() => { api('/matches').then((r) => (matches = r.matches.filter((m) => m.status !== 'planned'))).catch((e) => (error = e.offline ? 'Keine Verbindung.' : e.message)); });
+  $effect(() => {
+    api('/matches').then((r) => (matches = r.matches.filter((m) => m.status !== 'planned'))).catch((e) => {
+      const c = cachedList('matches_' + ($me?.team?.id ?? 0));
+      if (c) matches = c.filter((m) => m.status !== 'planned'); else error = e.offline ? 'Keine Verbindung.' : e.message;
+    });
+  });
 </script>
 
 <svelte:head><title>Sideout — Auswertung</title></svelte:head>

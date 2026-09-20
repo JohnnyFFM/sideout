@@ -7,7 +7,7 @@
   import { api } from '$lib/api.js';
   import { me, mutations, online, showToast } from '$lib/stores.js';
   import { replay, courtView, expectedSkills, stats, SKILL, PAD, GRADE_CLASS, ROMAN, firstName, eff, fix } from '$lib/engine.js';
-  import { loadOps, saveOps, applyOps, cacheMatch, cachedMatch } from '$lib/offline.js';
+  import { loadOps, saveOps, applyOps, cacheMatch, cachedMatch, newCid, reconcileOps, keepDropped } from '$lib/offline.js';
   import Court from '$lib/components/Court.svelte';
   import Pad from '$lib/components/Pad.svelte';
 
@@ -17,6 +17,9 @@
   let selected = $state(null);
   let scope = $state('set');
   let flushing = false;
+  let inflight = null;      // the op whose request is on the wire
+  let retryTimer = null;
+  let retryDelay = 5000;
   let loadError = $state('');
 
   const canScout = $derived(['coach', 'assistant'].includes($me?.user?.role));
@@ -54,12 +57,12 @@
   const missingLineupForSet = $derived(st && st.set > 1 && !match.lineups?.[st.set]);
 
   async function load() {
+    if (inflight) return; // a request is on the wire; its answer settles the queue
     const saved = loadOps(id);
     if (JSON.stringify(saved) !== JSON.stringify(ops)) ops = saved;
     try {
       const m = await api(`/matches/${id}`);
-      match = m;
-      cacheMatch(id, m);
+      adopt(m);
       loadError = '';
     } catch (e) {
       const c = cachedMatch(id);
@@ -67,6 +70,21 @@
       else loadError = e.offline ? 'Keine Verbindung und kein lokaler Stand.' : e.message;
     }
     flush();
+  }
+  // a fresh server log: settle the queue against it (see offline.js). Ops the
+  // server already holds are dropped, the rest renumbered; if another device
+  // wrote meanwhile our unsent ops cannot be applied and are kept for the record.
+  function adopt(m) {
+    const knownTop = (match || cachedMatch(id))?.actions?.slice(-1)[0]?.seq || 0;
+    const r = reconcileOps(m.actions, ops, knownTop);
+    if (r.conflict) {
+      keepDropped(id, r.dropped);
+      showToast(`Ein anderes Gerät hat gescoutet: ${r.dropped.length} eigene Aktionen verworfen`, true);
+    }
+    ops = r.ops;
+    saveOps(id, ops);
+    match = m;
+    cacheMatch(id, m);
   }
 
   // effects only track their trigger; everything they call runs untracked,
@@ -117,7 +135,7 @@
     if (st.finished) { showToast('Das Spiel ist beendet'); return; }
     const before = st;
     const seq = (actionsAll[actionsAll.length - 1]?.seq || 0) + 1;
-    ops = [...ops, { type: 'add', action: { id: -seq, seq, grade: null, player_id: null, sub_out: null, sub_in: null, ...a } }];
+    ops = [...ops, { type: 'add', action: { id: -seq, seq, cid: newCid(), grade: null, player_id: null, sub_out: null, sub_in: null, ...a } }];
     saveOps(id, ops);
     selected = null;
     const after = replay(cfg, applyOps(match.actions, ops));
@@ -126,33 +144,56 @@
     flush();
   }
 
+  // send the queue in order. One op is on the wire at a time (`inflight`);
+  // undo never removes that one from the queue, it queues a compensating
+  // undo instead, so a request that completes after the tap still gets
+  // undone. Errors: offline → wait; 5xx → retry with backoff; 409 → reload
+  // and reconcile; 4xx → this op is refused for good, the rest is renumbered.
   async function flush() {
     if (flushing || !match) return;
     flushing = true;
+    clearTimeout(retryTimer);
     try {
+      let conflicts = 0;
       while (ops.length) {
         const op = ops[0];
+        inflight = op;
         try {
           if (op.type === 'add') {
             const res = await api(`/matches/${id}/actions`, { method: 'POST', body: op.action });
             match = { ...match, actions: [...match.actions.filter((x) => x.seq !== res.action.seq), res.action] };
           } else {
-            await api(`/matches/${id}/actions/last`, { method: 'DELETE' });
-            match = { ...match, actions: match.actions.slice(0, -1) };
+            const q = op.cid ? `cid=${encodeURIComponent(op.cid)}` : `seq=${op.seq}`;
+            const res = await api(`/matches/${id}/actions/last?${q}`, { method: 'DELETE' });
+            if (res.removed) match = { ...match, actions: match.actions.filter((x) => x.seq !== res.removed.seq) };
           }
-          ops = ops.slice(1);
+          ops = ops.filter((o) => o !== op);
           saveOps(id, ops);
           cacheMatch(id, match);
+          retryDelay = 5000;
+          conflicts = 0;
         } catch (e) {
           if (e.offline) break; // retry when back online
           if (e.status === 409) {
-            showToast('Ein anderes Gerät hat gescoutet, neu geladen', true);
-            ops = []; saveOps(id, ops);
-            const m = await api(`/matches/${id}`); match = m; cacheMatch(id, m);
+            if (++conflicts > 2) { keepDropped(id, ops); ops = []; saveOps(id, ops); showToast('Konflikt mit dem Server, eigene Aktionen verworfen', true); break; }
+            const m = await api(`/matches/${id}`).catch(() => null);
+            if (!m) break;
+            adopt(m);
+            continue;
+          }
+          if (e.status >= 500) {
+            showToast('Server antwortet nicht, neuer Versuch gleich', true);
+            retryTimer = setTimeout(flush, retryDelay);
+            retryDelay = Math.min(retryDelay * 2, 60000);
             break;
           }
+          // refused for good (e.g. the match is finished): drop it and the undo aimed at it
           showToast(e.message, true);
-          ops = ops.slice(1); saveOps(id, ops);
+          const rest = ops.filter((o) => o !== op && !(op.type === 'add' && o.type === 'undo' && o.cid === op.action.cid));
+          ops = reconcileOps(match.actions, rest, match.actions.slice(-1)[0]?.seq || 0).ops;
+          saveOps(id, ops);
+        } finally {
+          inflight = null;
         }
       }
     } finally {
@@ -262,8 +303,10 @@
     if (!actionsAll.length) return;
     const a = last;
     const lastOp = ops[ops.length - 1];
-    if (lastOp?.type === 'add') ops = ops.slice(0, -1);
-    else ops = [...ops, { type: 'undo' }];
+    // an unsent add is simply taken back; anything else (confirmed, or on the
+    // wire right now) gets a targeted undo
+    if (lastOp?.type === 'add' && lastOp !== inflight) ops = ops.slice(0, -1);
+    else ops = [...ops, { type: 'undo', cid: a.cid ?? null, seq: a.seq }];
     saveOps(id, ops);
     selected = null;
     showToast('Rückgängig: ' + describe(a));
@@ -317,6 +360,12 @@
         </section>
         {#if missingLineupForSet}
           <div class="panel hint">Satz {st.set}: Aufstellung von Satz {st.set - 1} übernommen. <a href="{base}/spiele/{id}?set={st.set}">Anpassen</a></div>
+        {/if}
+        {#if canScout && st.set === 5 && !st.finished && !st.rows.some((r) => r.set === 5)}
+          <div class="panel hint toss">Satz 5, neue Auslosung. Wer schlägt auf?
+            <button class="btn" onclick={() => queue({ skill: 'srv', grade: '#' })}>Wir</button>
+            <button class="btn" onclick={() => queue({ skill: 'srv', grade: '=' })}>Gegner</button>
+          </div>
         {/if}
         <section class="court-wrap">
           <Court {court} {byId} {selected} serving={st.serving} {suggested} {over} dragging={!!drag} {targets} onselect={slotTap} />

@@ -21,7 +21,13 @@
 
   const fieldPlayers = $derived(players.filter((p) => p.active && p.position !== 'L'));
   const liberos = $derived(players.filter((p) => p.active));
-  const existing = $derived(match?.lineups?.[set] || match?.lineups?.[1] || null);
+  // a set without its own lineup inherits the closest lower one, exactly as the engine replays it
+  const existing = $derived.by(() => {
+    const l = match?.lineups || {};
+    const keys = Object.keys(l).map(Number);
+    const lower = keys.filter((k) => k <= set).sort((a, b) => b - a);
+    return lower.length ? l[lower[0]] : keys.length ? l[Math.min(...keys)] : null;
+  });
   let pos = $state([0, 0, 0, 0, 0, 0]);
   let libero = $state(null);
   $effect(() => {

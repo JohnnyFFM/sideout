@@ -139,7 +139,7 @@ function logError(kind, msg) {
 }
 
 if (typeof window !== 'undefined') {
-  window.addEventListener('online', () => online.set(true));
+  window.addEventListener('online', () => { online.set(true); refreshMe().catch(() => {}); }); // revalidate the offline identity
   window.addEventListener('offline', () => online.set(false));
   window.addEventListener('pagehide', close);
   // safety net independent of the stream: a tab that comes back into view

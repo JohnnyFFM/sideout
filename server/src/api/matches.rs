@@ -270,6 +270,8 @@ pub struct NewAction {
     pub player_id: Option<i64>,
     pub sub_out: Option<i64>,
     pub sub_in: Option<i64>,
+    /// client id (uuid) of the op on the device; retries are answered from the stored row
+    pub cid: Option<String>,
 }
 
 /// Append one action. `seq` must be last_seq + 1; a retry with the same seq
@@ -319,7 +321,13 @@ pub async fn add_action(
     let actions = load_actions(&state, id).await?;
     let st = engine::replay(&cfg, &actions);
 
-    // idempotent retry?
+    // idempotent retry by client id: a lost response leaves the op queued on the phone
+    if let Some(cid) = body.cid.as_deref() {
+        if let Some(r) = sqlx::query("SELECT * FROM actions WHERE match_id = ? AND cid = ?").bind(id).bind(cid).fetch_optional(&state.db).await? {
+            return Ok(Json(json!({ "action": action_json(&r), "state": serde_json::to_value(&st).unwrap_or(Value::Null), "duplicate": true })));
+        }
+    }
+    // idempotent retry by seq (older clients without cid)?
     if let Some(existing) = actions.iter().find(|a| a.seq == body.seq) {
         let same = existing.skill == body.skill
             && existing.grade == body.grade
@@ -338,9 +346,37 @@ pub async fn add_action(
     if st.finished {
         return Err(ApiError::BadRequest("Das Spiel ist beendet".into()));
     }
+    // players must belong to this team, and a substitution must be possible on
+    // the court as replayed (foreign keys only prove an id exists somewhere)
+    let team_players = load_players(&state, user.team_id).await?;
+    let in_team = |pid: Option<i64>| pid.map_or(true, |p| team_players.iter().any(|x| x.id == p));
+    if !in_team(body.player_id) || !in_team(body.sub_out) || !in_team(body.sub_in) {
+        return Err(ApiError::BadRequest("Spielerin gehört nicht zum Team".into()));
+    }
+    if body.skill == "sub" {
+        let (out, inn) = (body.sub_out.unwrap_or(0), body.sub_in.unwrap_or(0));
+        if !st.lineup.contains(&out) {
+            return Err(ApiError::BadRequest("Die auszuwechselnde Spielerin steht nicht auf dem Feld".into()));
+        }
+        if st.lineup.contains(&inn) || Some(inn) == st.libero {
+            return Err(ApiError::BadRequest("Die einzuwechselnde Spielerin steht schon auf dem Feld".into()));
+        }
+    }
+    if body.skill == "lib" {
+        if let Some(inn) = body.sub_in {
+            if Some(inn) != st.libero {
+                return Err(ApiError::BadRequest("Nur die Libera der Aufstellung kann eingesetzt werden".into()));
+            }
+            if let Some(out) = body.sub_out {
+                if !st.lineup.contains(&out) {
+                    return Err(ApiError::BadRequest("Die Spielerin, für die die Libera steht, ist nicht auf dem Feld".into()));
+                }
+            }
+        }
+    }
     let res = sqlx::query(
-        "INSERT INTO actions (match_id, seq, set_no, skill, grade, player_id, sub_out, sub_in, created_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO actions (match_id, seq, set_no, skill, grade, player_id, sub_out, sub_in, created_by, cid)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     )
     .bind(id).bind(body.seq).bind(st.set)
     .bind(&body.skill)
@@ -348,6 +384,7 @@ pub async fn add_action(
     .bind(if matches!(body.skill.as_str(), "S" | "R" | "E" | "A" | "B" | "D") { body.player_id } else { None })
     .bind(body.sub_out).bind(body.sub_in)
     .bind(user.id)
+    .bind(&body.cid)
     .execute(&state.dbw)
     .await?;
     let action_id = res.last_insert_rowid();
@@ -371,13 +408,43 @@ pub async fn add_action(
     Ok(Json(json!({ "action": action_json(&r), "state": serde_json::to_value(&st2).unwrap_or(Value::Null) })))
 }
 
-pub async fn undo_action(State(state): State<AppState>, user: CurrentUser, Path(id): Path<i64>) -> ApiResult<Json<Value>> {
+#[derive(Deserialize)]
+pub struct UndoQuery {
+    /// client id of the action the device wants removed (preferred), or the
+    /// seq it expects on top. A retry whose target is already gone is
+    /// answered as done (idempotent); anything else on top is a 409, so a
+    /// lost response or a stale device never deletes a second action.
+    pub cid: Option<String>,
+    pub seq: Option<i64>,
+}
+
+pub async fn undo_action(State(state): State<AppState>, user: CurrentUser, Path(id): Path<i64>, Query(q): Query<UndoQuery>) -> ApiResult<Json<Value>> {
     user.require(Role::Assistant)?;
     let row = fetch_match_row(&state, user.team_id, id).await?;
     let last = sqlx::query("SELECT * FROM actions WHERE match_id = ? ORDER BY seq DESC LIMIT 1")
         .bind(id)
         .fetch_optional(&state.db)
         .await?;
+    let last_seq_now = last.as_ref().map(|r| r.get::<i64, _>("seq")).unwrap_or(0);
+    let last_cid: Option<String> = last.as_ref().and_then(|r| r.get::<Option<String>, _>("cid"));
+    // is the target still on top? (None = untargeted legacy undo, always allowed)
+    let verdict: Option<bool> = if let Some(cid) = q.cid.as_deref() {
+        if last_cid.as_deref() == Some(cid) { None } else {
+            let exists = sqlx::query("SELECT 1 FROM actions WHERE match_id = ? AND cid = ?").bind(id).bind(cid).fetch_optional(&state.db).await?.is_some();
+            Some(!exists) // gone → done already; still there but not on top → conflict
+        }
+    } else if let Some(expected) = q.seq {
+        if expected == last_seq_now { None } else { Some(expected == last_seq_now + 1) }
+    } else { None };
+    if let Some(gone) = verdict {
+        let cfg = load_config(&state, id, &row.get::<String, _>("first_serve")).await?;
+        let actions = load_actions(&state, id).await?;
+        let st = engine::replay(&cfg, &actions);
+        if gone {
+            return Ok(Json(json!({ "removed": Value::Null, "duplicate": true, "state": serde_json::to_value(&st).unwrap_or(Value::Null) })));
+        }
+        return Err(ApiError::Conflict(json!({ "last_seq": st.last_seq, "state": serde_json::to_value(&st).unwrap_or(Value::Null) })));
+    }
     let Some(last) = last else {
         return Err(ApiError::BadRequest("Nichts zum Rückgängigmachen".into()));
     };
