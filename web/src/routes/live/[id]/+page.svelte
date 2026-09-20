@@ -445,6 +445,10 @@
     .col.right .stats-panel { flex: 1 1 0; min-height: 0; overflow: auto; }
     .timeline { grid-column: 1 / -1; }
   }
+  /* narrow three-column range: the four catch-up buttons as 2×2 */
+  @media (min-width: 1000px) and (max-width: 1199px) {
+    :global(.score .catch) { grid-template-columns: 1fr 1fr; }
+  }
   /* desktop on a short screen (laptops at 700–760px, iPad landscape): tighter */
   @media (min-width: 1000px) and (max-height: 780px) {
     .live-page { padding-top: 10px; }
