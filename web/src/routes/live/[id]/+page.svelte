@@ -39,6 +39,10 @@
     return [];
   });
   const last = $derived(actionsAll[actionsAll.length - 1] || null);
+  // set five is a new toss: until the coach says who serves, nothing scores
+  // (substitutions and libero changes are fine). A rally already recorded
+  // in set five ends the question, the choice would be moot.
+  const tossPending = $derived(!!st && canScout && st.set === 5 && !st.finished && !st.rows.some((r) => r.set === 5 && (r.skill === 'srv' || r.outcome)));
   const stat = $derived(st ? stats(cfg, match.players, actionsAll, scope === 'set' ? st.set : 0) : null);
   // timeline: every action left to right, a score pill after each rally, a divider per set
   const timeline = $derived.by(() => {
@@ -157,6 +161,7 @@
       while (ops.length) {
         const op = ops[0];
         inflight = op;
+        if (op.type === 'add' && !op.sent) { op.sent = true; saveOps(id, ops); } // from here on the server may hold it
         try {
           if (op.type === 'add') {
             const res = await api(`/matches/${id}/actions`, { method: 'POST', body: op.action });
@@ -164,7 +169,10 @@
           } else {
             const q = op.cid ? `cid=${encodeURIComponent(op.cid)}` : `seq=${op.seq}`;
             const res = await api(`/matches/${id}/actions/last?${q}`, { method: 'DELETE' });
-            if (res.removed) match = { ...match, actions: match.actions.filter((x) => x.seq !== res.removed.seq) };
+            // a retry whose target is already gone answers removed:null; the
+            // local log still holds the action, so take it out by target either way
+            const gone = res.removed ? (x) => x.seq !== res.removed.seq : (x) => (op.cid ? x.cid !== op.cid : x.seq !== op.seq);
+            match = { ...match, actions: match.actions.filter(gone) };
           }
           ops = ops.filter((o) => o !== op);
           saveOps(id, ops);
@@ -340,9 +348,10 @@
     if (!actionsAll.length) return;
     const a = last;
     const lastOp = ops[ops.length - 1];
-    // an unsent add is simply taken back; anything else (confirmed, or on the
-    // wire right now) gets a targeted undo
-    if (lastOp?.type === 'add' && lastOp !== inflight) ops = ops.slice(0, -1);
+    // an add that never went out is simply taken back; anything else
+    // (confirmed, on the wire, or sent with the answer lost) gets a targeted
+    // undo, because the server may hold it
+    if (lastOp?.type === 'add' && !lastOp.sent && lastOp !== inflight) ops = ops.slice(0, -1);
     else ops = [...ops, { type: 'undo', cid: a.cid ?? null, seq: a.seq }];
     saveOps(id, ops);
     selected = null;
@@ -388,14 +397,14 @@
           </div>
           {#if canScout && !st.finished}
             <div class="catch" title="Nachtragen: Spielstand, Rotation und Aufschlag ohne Aktionen angleichen">
-              <button onclick={() => queue({ skill: 'adj', grade: '#' })}>+1 wir</button>
-              <button onclick={() => queue({ skill: 'adj', grade: '=' })}>+1 Gegner</button>
+              <button disabled={tossPending} onclick={() => queue({ skill: 'adj', grade: '#' })}>+1 wir</button>
+              <button disabled={tossPending} onclick={() => queue({ skill: 'adj', grade: '=' })}>+1 Gegner</button>
               <button onclick={() => queue({ skill: 'rot' })}>⟳ Rotieren</button>
               <button onclick={() => queue({ skill: 'srv', grade: st.serving ? '=' : '#' })} title="Aufschlagrecht wechseln">⇄ Aufschlag</button>
             </div>
           {/if}
         </section>
-        {#if canScout && st.set === 5 && !st.finished && !st.rows.some((r) => r.set === 5)}
+        {#if tossPending}
           <div class="panel hint toss">Satz 5, neue Auslosung. Wer schlägt auf?
             <button class="btn" onclick={() => queue({ skill: 'srv', grade: '#' })}>Wir</button>
             <button class="btn" onclick={() => queue({ skill: 'srv', grade: '=' })}>Gegner</button>
@@ -435,10 +444,10 @@
       </div>
 
       <div class="col mid">
-        <Pad {expected} idle={!selected} disabled={!canScout || st.finished} ontap={tapCell} />
+        <Pad {expected} idle={!selected} disabled={!canScout || st.finished || tossPending} ontap={tapCell} />
         <div class="pad-foot">
-          <button class="btn big us" disabled={!canScout || st.finished} onclick={() => queue({ skill: 'opp', grade: '=' })}>Fehler Gegner <span class="muted">+1 wir</span></button>
-          <button class="btn big them" disabled={!canScout || st.finished} onclick={() => queue({ skill: 'opp', grade: '#' })}>Punkt Gegner</button>
+          <button class="btn big us" disabled={!canScout || st.finished || tossPending} onclick={() => queue({ skill: 'opp', grade: '=' })}>Fehler Gegner <span class="muted">+1 wir</span></button>
+          <button class="btn big them" disabled={!canScout || st.finished || tossPending} onclick={() => queue({ skill: 'opp', grade: '#' })}>Punkt Gegner</button>
         </div>
         {#if st.finished}
           <div class="panel done">

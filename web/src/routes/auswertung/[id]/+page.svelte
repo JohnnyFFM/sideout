@@ -7,7 +7,7 @@
   import { untrack } from 'svelte';
   import { api } from '$lib/api.js';
   import { me, mutations } from '$lib/stores.js';
-  import { replay, stats, GRADES, GRADE_CLASS, GRADE_NAME, PAD, ROMAN, firstName, eff, fix, pct, fmtDate } from '$lib/engine.js';
+  import { replay, stats, lineupFor, rotKey, GRADES, GRADE_CLASS, GRADE_NAME, PAD, ROMAN, firstName, eff, fix, pct, fmtDate } from '$lib/engine.js';
   import { cachedMatch, cacheMatch, applyOps, loadOps } from '$lib/offline.js';
 
   const id = $derived(Number($page.params.id));
@@ -66,12 +66,15 @@
 
   const rotations = $derived.by(() => {
     if (!s || !match) return [];
-    const lu = (match.lineups?.[set || full.set] || match.lineups?.[1] || Object.values(match.lineups)[0])?.pos || [];
+    // one tile per rotation of the shown set's starting lineup (rotation i:
+    // the starter of I+i is on I). Buckets are keyed by setter position, so
+    // for the whole match rallies from sets with other lineups land on the
+    // tile with the same setter position; without a unique setter, by starter.
+    const showSet = set || full.set;
+    const lu = lineupFor(cfg, showSet).pos;
     const setter = lu.find((id) => byId[id]?.position === 'Z');
     return lu.map((pid, i) => {
-      // rotation i = the set's starting lineup rotated i times: the player who
-      // started on I+i is on I, whoever substitutes her later included
-      const r = s.team.byRot[i] || { so: { won: 0, n: 0 }, brk: { won: 0, n: 0 } };
+      const r = s.team.byRot[rotKey(cfg, byId, showSet, i)] || { so: { won: 0, n: 0 }, brk: { won: 0, n: 0 } };
       const setterPos = setter ? ((lu.indexOf(setter) - i + 6) % 6) + 1 : null;
       return { pid, r, sop: r.so.n ? Math.round((r.so.won / r.so.n) * 100) : null, setterPos };
     });

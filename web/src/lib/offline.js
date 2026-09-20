@@ -73,7 +73,7 @@ export function reconcileOps(actions, ops, knownTop = 0) {
       if (op.action.cid && confirmed.has(op.action.cid)) continue; // saved, answer got lost
       const seq = (sim[sim.length - 1]?.seq || 0) + 1;
       const action = op.action.seq === seq ? op.action : { ...op.action, seq, id: -seq };
-      out.push({ type: 'add', action });
+      out.push({ type: 'add', action, sent: false }); // not on the server: it goes out fresh
       sim.push(action);
     } else if (op.type === 'undo') {
       const top = sim[sim.length - 1];
@@ -81,8 +81,10 @@ export function reconcileOps(actions, ops, knownTop = 0) {
       const stillThere = op.cid ? sim.some((a) => a.cid === op.cid) : op.seq == null || top.seq >= op.seq;
       if (!stillThere) continue; // the target is gone: undone already, or its add was dropped
       if (!sameCid(top, op)) return { ops: [], conflict: true, dropped: ops }; // something sits on top of it
+      // undo of our own add that is not on the server (we just fetched the
+      // log, so absence is certain): the pair cancels out
       const k = out.findIndex((o) => o.type === 'add' && o.action.cid && o.action.cid === op.cid);
-      if (k >= 0) out.splice(k, 1); // undo of our own unsent add: the pair cancels out
+      if (k >= 0) out.splice(k, 1);
       else out.push({ type: 'undo', cid: top.cid ?? null, seq: top.seq });
       sim.pop();
     }

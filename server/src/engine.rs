@@ -275,6 +275,21 @@ fn ratio(a: i64, n: i64) -> Value {
     if n == 0 { Value::Null } else { json!(a as f64 / n as f64) }
 }
 
+/// Rotation bucket key for a rally: the setter's court position when the
+/// set's starting lineup has exactly one setter ("Z1".."Z6"), else the
+/// starter on I in that rotation ("P<id>"). Mirrors `rotKey` in engine.js.
+fn rot_key(cfg: &MatchConfig, players: &[Player], set: i64, rotn: i64) -> String {
+    let l = lineup_for(cfg, set);
+    let setters: Vec<i64> = l.pos.iter().enumerate()
+        .filter(|(_, id)| players.iter().any(|p| p.id == **id && p.position == "Z"))
+        .map(|(i, _)| i as i64)
+        .collect();
+    if setters.len() == 1 {
+        return format!("Z{}", (((setters[0] - rotn) % 6) + 6) % 6 + 1);
+    }
+    format!("P{}", l.pos.get(rotn as usize).copied().unwrap_or(0))
+}
+
 /// Stats for the whole match (`set` = None) or one set. Shape mirrors the
 /// JS engine so the web app renders both identically.
 pub fn stats(cfg: &MatchConfig, players: &[Player], actions: &[Action], set: Option<i64>) -> Value {
@@ -357,12 +372,12 @@ pub fn stats(cfg: &MatchConfig, players: &[Player], actions: &[Action], set: Opt
     let mut brk = (0i64, 0i64);
     let mut us = 0i64;
     let mut them = 0i64;
-    let mut by_rot: BTreeMap<i64, (i64, i64, i64, i64)> = BTreeMap::new(); // so_won, so_n, brk_won, brk_n
+    let mut by_rot: BTreeMap<String, (i64, i64, i64, i64)> = BTreeMap::new(); // so_won, so_n, brk_won, brk_n
     for r in &rallies {
         let t = if r.serving { &mut brk } else { &mut so };
         t.1 += 1; if r.won { t.0 += 1 }
         if r.won { us += 1 } else { them += 1 }
-        let e = by_rot.entry(r.rotn).or_default();
+        let e = by_rot.entry(rot_key(cfg, players, r.set, r.rotn)).or_default();
         if r.serving { e.3 += 1; if r.won { e.2 += 1 } } else { e.1 += 1; if r.won { e.0 += 1 } }
     }
 

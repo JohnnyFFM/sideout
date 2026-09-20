@@ -327,9 +327,12 @@ pub async fn add_action(
             return Ok(Json(json!({ "action": action_json(&r), "state": serde_json::to_value(&st).unwrap_or(Value::Null), "duplicate": true })));
         }
     }
-    // idempotent retry by seq (older clients without cid)?
+    // idempotent retry by seq: only for clients without a cid. With a cid that
+    // the log does not hold, an identical action at that seq is another
+    // device's and must not be merged into ours.
     if let Some(existing) = actions.iter().find(|a| a.seq == body.seq) {
-        let same = existing.skill == body.skill
+        let same = body.cid.is_none()
+            && existing.skill == body.skill
             && existing.grade == body.grade
             && existing.player_id == body.player_id
             && existing.sub_out == body.sub_out

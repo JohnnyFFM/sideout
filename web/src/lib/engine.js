@@ -42,7 +42,7 @@ export const setTarget = (s) => (s === 5 ? 15 : 25);
 const rotate = (l) => [l[1], l[2], l[3], l[4], l[5], l[0]];
 
 /** lineups: { "1": {pos:[6 ids], libero}, ... } — a set inherits the closest lower one */
-function lineupFor(cfg, set) {
+export function lineupFor(cfg, set) {
   const keys = Object.keys(cfg.lineups || {}).map(Number).sort((a, b) => a - b);
   let best = null;
   for (const k of keys) if (k <= set) best = k;
@@ -169,6 +169,17 @@ function emptyPlayer(p) {
   };
 }
 
+/** rotation bucket key for a rally: the setter's court position when the set's
+ *  starting lineup has exactly one setter ("Z1".."Z6"), else the starter who
+ *  is on I in that rotation ("P<id>"). Comparable across sets with different
+ *  lineups, immune to substitutions. */
+export function rotKey(cfg, byId, set, rotn) {
+  const l = lineupFor(cfg, set);
+  const setters = l.pos.map((id, i) => (byId[id]?.position === 'Z' ? i : -1)).filter((i) => i >= 0);
+  if (setters.length === 1) return 'Z' + ((((setters[0] - rotn) % 6) + 6) % 6 + 1);
+  return 'P' + (l.pos[rotn] ?? 0);
+}
+
 /** stats(cfg, players, actions, set) — set 0/null = whole match. Same shape as the server. */
 export function stats(cfg, players, actions, set) {
   const rp = replay(cfg, actions);
@@ -230,7 +241,8 @@ export function stats(cfg, players, actions, set) {
     const k = r.serving ? 'brk' : 'sideout';
     team[k].n++; if (r.won) team[k].won++;
     if (r.won) team.us++; else team.them++;
-    const rot = (team.byRot[r.rotn] = team.byRot[r.rotn] || { rot: r.rotn, so: { won: 0, n: 0 }, brk: { won: 0, n: 0 } });
+    const key = rotKey(cfg, byId, r.set, r.rotn);
+    const rot = (team.byRot[key] = team.byRot[key] || { rot: key, so: { won: 0, n: 0 }, brk: { won: 0, n: 0 } });
     const rk = r.serving ? 'brk' : 'so';
     rot[rk].n++; if (r.won) rot[rk].won++;
   }
