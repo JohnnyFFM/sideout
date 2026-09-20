@@ -18,6 +18,7 @@
   let scope = $state('set');
   let flushing = false;
   let inflight = null;      // the op whose request is on the wire
+  let inflightFor = null;   // ... and the match it belongs to
   let gen = 0;              // bumps on every local change; a refresh started before it is stale
   // a page that was left (or switched to another match) must not touch the
   // queue any more: its timers are cancelled and every await checks `stale()`
@@ -66,7 +67,7 @@
   $effect(() => { void timeline.length; const el = tlEl; if (el) tick().then(() => { el.scrollLeft = el.scrollWidth; }); });
 
   async function load() {
-    if (inflight) return; // a request is on the wire; its answer settles the queue
+    if (inflight && inflightFor === id) return; // a request for THIS match is on the wire; its answer settles the queue
     const saved = loadOps(id);
     if (JSON.stringify(saved) !== JSON.stringify(ops)) ops = saved;
     const g = gen; const mid = id;
@@ -177,7 +178,7 @@
       let conflicts = 0;
       while (ops.length && !stale(mid)) {
         const op = ops[0];
-        inflight = op;
+        inflight = op; inflightFor = mid;
         if (op.type === 'add' && !op.sent) { op.sent = true; saveOps(id, ops); } // from here on the server may hold it
         try {
           if (op.type === 'add') {
