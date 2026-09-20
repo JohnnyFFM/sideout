@@ -3,6 +3,7 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import Nav from '$lib/components/Nav.svelte';
+  import { updated } from '$app/state';
   import { me, toast, online, connectSSE, disconnectSSE } from '$lib/stores.js';
 
   let { data, children } = $props();
@@ -30,6 +31,10 @@
   {/if}
 {/if}
 {@render children()}
+
+{#if updated.current}
+  <button class="update-bar" onclick={() => location.reload()}>Neue Version verfügbar – neu laden</button>
+{/if}
 
 {#if $toast}
   <div class="toast show" class:err={$toast.isErr}>{$toast.text}</div>
