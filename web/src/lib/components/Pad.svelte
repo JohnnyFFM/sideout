@@ -49,9 +49,19 @@
     .prow .lbl { font-size: 12px; }
     .cell span { font-size: 9px; }
   }
+  @media (max-width: 759px) and (max-height: 700px) {
+    .pad-head { display: none; }
+    .cell { min-height: 35px !important; }
+    .cell b { font-size: 15px !important; }
+    .cell span { display: none; }
+    .prow .lbl small { display: none; }
+  }
   @media (max-width: 759px) {
-    .pad { padding: 8px; gap: 4px; }
-    .cell { min-height: 46px; }
-    .cell b { font-size: 18px; }
+    .pad { padding: 6px; gap: 3px; }
+    .pad-head, .prow { gap: 3px; }
+    .cell { min-height: 42px; }
+    .cell b { font-size: 17px; }
+    .cell span { font-size: 9px; }
+    .prow .lbl { font-size: 12px; }
   }
 </style>

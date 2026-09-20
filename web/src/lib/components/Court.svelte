@@ -64,11 +64,18 @@
   .slot.lib .role { color: var(--court-line); }
   .court.armed .slot { border-style: dashed; border-color: var(--line); }
   .slot.over { border-color: var(--court-line); border-style: solid; background: var(--court-soft); box-shadow: 0 0 0 3px var(--court-soft); }
+  @media (max-width: 759px) and (max-height: 700px) {
+    .slot { min-height: 44px !important; }
+    .slot .jersey { font-size: 19px !important; }
+    .slot .nm { display: none; }
+  }
   @media (max-width: 759px) {
-    .court { padding: 6px; gap: 6px; }
-    .rowp { gap: 6px; }
-    .slot { min-height: 58px; padding: 4px 6px; }
-    .slot .jersey { font-size: 24px; }
+    .court { padding: 5px; gap: 5px; border-top-width: 4px; }
+    .court::before { top: -17px; }
+    .rowp { gap: 5px; }
+    .slot { min-height: 54px; padding: 3px 6px; }
+    .slot .jersey { font-size: 22px; }
     .slot .nm { font-size: 11px; }
+    .slot .posn, .slot .role { font-size: 9px; }
   }
 </style>

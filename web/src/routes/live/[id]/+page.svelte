@@ -163,6 +163,8 @@
   // ----- bench strip: libero pinned first, then the bench. A chip is
   // dragged onto a court slot (pointer events, works with touch) or tapped
   // to arm it, then the target slot is tapped. -----
+  let phoneView = $state('pad');   // phone: 'pad' | 'stats'
+  let extrasOpen = $state(false);  // phone: bench + catch-up shown
   let armed = $state(null);   // chip id waiting for a slot
   let drag = $state(null);    // { id, x, y, moved }
   let over = $state(null);    // court position under the dragged chip
@@ -206,6 +208,7 @@
     selected = selected === pid ? null : pid;
   }
   function dropOn(chipId, pos) {
+    extrasOpen = false;
     const slot = court[pos - 1];
     const target = slot.replaced || slot.id;   // the player who actually holds the position
     if (chipId === st.libero) {
@@ -260,7 +263,7 @@
       <a class="btn primary big" href="/spiele/{id}">Aufstellung eintragen</a>
     </div>
   {:else}
-    <div class="live">
+    <div class="live" class:pv-stats={phoneView === 'stats'} class:extras={extrasOpen}>
       <div class="col left">
         <section class="score">
           <div class="side us"><span class="serve" class:on={st.serving}></span><span class="team">{$me?.team?.short || 'Wir'}</span><span class="pts">{st.us}</span></div>
@@ -270,6 +273,11 @@
             <span>Satz <b>{st.set}</b></span><span>Sätze <b>{st.sets_won}:{st.sets_lost}</b></span>
             {#if st.sets.length}<span><b>{st.sets.map((s) => s.us + ':' + s.them).join('  ')}</b></span>{/if}
             <span>{st.serving ? 'Aufschlag' : 'Annahme'} · Rally <b>{st.rally}</b></span>
+          </div>
+          <div class="phone-ctl">
+            <button class:on={phoneView === 'pad'} onclick={() => (phoneView = 'pad')}>Feld</button>
+            <button class:on={phoneView === 'stats'} onclick={() => (phoneView = 'stats')}>Werte</button>
+            <button class:on={extrasOpen} onclick={() => (extrasOpen = !extrasOpen)}>⇄ Wechsel · Nachtrag</button>
           </div>
           {#if canScout && !st.finished}
             <div class="catch" title="Nachtragen: Spielstand, Rotation und Aufschlag ohne Aktionen angleichen">
@@ -353,6 +361,7 @@
       </div>
       <section class="panel timeline">
         <div class="tl-head"><h2>Verlauf</h2><span class="small muted">{actionsAll.length} Aktionen</span><span class="spacer"></span><a class="small" href="/auswertung/{id}">Auswertung →</a></div>
+        <button class="tl-undo" onclick={undo} disabled={!last || !canScout} title={last ? 'Rückgängig: ' + describe(last) : 'Nichts zum Rückgängigmachen'}>↶{#if ops.length}<i>{ops.length}</i>{/if}</button>
         <div class="tl" bind:this={tlEl}>
           {#each timeline as e (e.key)}
             {#if e.t === 'set'}
@@ -461,18 +470,58 @@
   .mini td.l, .mini th.l { text-align: left; }
   .mini td.l { font-weight: 600; }
   .mini td.l small { color: var(--ink-3); font-weight: 500; margin-left: 4px; }
+  .phone-ctl { display: none; }
+  .tl-undo { display: none; }
+  /* phone: one screen. Top bar hidden (tab bar navigates), score strip with
+     Feld/Werte toggle, court, pad, opponent buttons; the timeline is docked
+     above the tab bar with the undo button; bench and catch-up fold away. */
   @media (max-width: 759px) {
-    .live-page { padding-bottom: 130px; }
-    .live { gap: 8px; } .col { gap: 8px; }
-    .court-wrap { padding: 8px; }
-    .court-foot { margin-top: 6px; }
-    .pad-foot .btn { height: 48px; }
-    #lastBox { position: fixed; left: 8px; right: 8px; bottom: calc(66px + env(safe-area-inset-bottom)); z-index: 20; box-shadow: 0 6px 20px #0009; padding: 8px 10px; }
+    :global(.topbar) { display: none; }
+    .live-page { padding: 6px 8px calc(122px + env(safe-area-inset-bottom)); }
+    .live { gap: 6px; } .col { gap: 6px; }
+    .phone-ctl { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 4px; margin-top: 4px; }
+    .phone-ctl button { height: 28px; border-radius: 6px; border: 1px solid var(--line-soft); background: var(--raised); color: var(--ink-2); font-size: 12px; font-weight: 600; }
+    .phone-ctl button.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-text); }
+    :global(.score .catch) { display: none; grid-template-columns: 1fr 1fr 1fr 1.25fr; }
+    :global(.score .catch button) { font-size: 11px; padding: 0 2px; white-space: nowrap; }
+    .live.extras :global(.score .catch) { display: grid; }
+    .bench { display: none; }
+    .live.extras .bench { display: flex; }
+    .court-wrap { padding: 6px; }
+    .court-foot { margin-top: 4px; min-height: 18px; font-size: 11px; }
+    .pad-foot .btn { height: 44px; font-size: 15px; }
+    #lastBox { display: none; }
+    .col.right { display: none; }
+    .live.pv-stats .col.right { display: grid; }
+    .live.pv-stats .col.left .court-wrap, .live.pv-stats .col.mid { display: none; }
+    .timeline {
+      position: fixed; left: 0; right: 0; bottom: calc(56px + env(safe-area-inset-bottom)); z-index: 20;
+      display: flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 0; border-width: 1px 0 0;
+      background: var(--panel); box-shadow: 0 -6px 20px #0006;
+    }
+    .tl-head { display: none; }
+    .tl-undo { display: grid; place-items: center; position: relative; flex: 0 0 auto; width: 44px; height: 44px; border-radius: 8px; border: 1px solid var(--line); background: var(--raised); font-size: 18px; }
+    .tl-undo:disabled { opacity: 0.4; }
+    .tl-undo i { position: absolute; top: -5px; right: -5px; min-width: 16px; height: 16px; border-radius: 8px; background: var(--g-neg); color: var(--g-neg-ink); font-size: 10px; font-style: normal; font-weight: 700; display: grid; place-items: center; padding: 0 3px; }
+    .tl { flex: 1 1 auto; min-width: 0; padding: 2px 0; gap: 3px; }
+    .tl-item { width: 40px; padding: 3px 0; }
+    .tl-item b { font-size: 14px; }
+    .tl-score { font-size: 12px; padding: 1px 6px; }
+  }
+  @media (max-width: 759px) and (max-height: 700px) {
+    :global(.score .pts) { font-size: 28px !important; }
+    :global(.score .colon) { font-size: 20px !important; }
+    :global(.score .meta) { display: none; }
+    .phone-ctl { margin-top: 2px; }
+    .phone-ctl button { height: 24px; font-size: 11px; }
+    .pad-foot .btn { height: 36px; font-size: 14px; }
+    .live-page { padding-top: 4px; }
   }
   @media (max-width: 759px) {
-    :global(.score) { padding: 4px 12px; }
-    :global(.score .pts) { font-size: 40px; }
-    :global(.score .colon) { font-size: 28px; }
-    :global(.score .meta) { gap: 10px; font-size: 11px; }
+    :global(.score) { padding: 2px 10px 6px; row-gap: 0; }
+    :global(.score .pts) { font-size: 34px; }
+    :global(.score .colon) { font-size: 24px; }
+    :global(.score .meta) { gap: 8px; font-size: 11px; }
+    :global(.score .team) { font-size: 12px; }
   }
 </style>
