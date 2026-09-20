@@ -148,18 +148,32 @@ async fn leaving_refuses_the_last_coach() {
 
     let (st, body, _) = call(&app, Method::DELETE, &format!("/teams/{team_id}/membership"), Some(&coach), None).await;
     assert_eq!(st, StatusCode::BAD_REQUEST, "{body}");
-    // the viewer may leave; being on no team any more, the session is gone
+    // the viewer's only team: refused, the account would be locked out
+    let (st, body, _) = call(&app, Method::DELETE, &format!("/teams/{team_id}/membership"), Some(&bob), None).await;
+    assert_eq!(st, StatusCode::BAD_REQUEST, "{body}");
+    let (st, _, _) = call(&app, Method::GET, "/me", Some(&bob), None).await;
+    assert_eq!(st, StatusCode::OK);
+    // with a second team, leaving works and the device moves there
+    let (st, _, _) = call(&app, Method::POST, "/teams", Some(&bob), Some(json!({ "name": "Bobs Team" }))).await;
+    assert_eq!(st, StatusCode::OK);
     let (st, body, _) = call(&app, Method::DELETE, &format!("/teams/{team_id}/membership"), Some(&bob), None).await;
     assert_eq!(st, StatusCode::OK, "{body}");
-    assert!(body["active_team"].is_null());
-    let (st, _, _) = call(&app, Method::GET, "/me", Some(&bob), None).await;
-    assert_eq!(st, StatusCode::UNAUTHORIZED);
+    assert!(body["active_team"].is_number());
+    let (st, body, _) = call(&app, Method::GET, "/me", Some(&bob), None).await;
+    assert_eq!(st, StatusCode::OK);
+    assert_eq!(body["team"]["name"], "Bobs Team");
+    assert_eq!(body["teams"].as_array().unwrap().len(), 1);
     // a second coach makes leaving possible
     let (_, _, cara) = call(&app, Method::POST, "/auth/join", None, Some(json!({ "code": me["team"]["join_code"], "display_name": "Cara", "username": "cara", "password": "geheim123" }))).await;
     let cara = cara.unwrap();
     let (_, body, _) = call(&app, Method::GET, "/me", Some(&cara), None).await;
     let cara_id = body["user"]["id"].as_i64().unwrap();
     let (st, _, _) = call(&app, Method::PATCH, &format!("/teams/{team_id}/members/{cara_id}"), Some(&coach), Some(json!({ "role": "coach" }))).await;
+    assert_eq!(st, StatusCode::OK);
+    // ... but the coach still needs another team of her own before leaving
+    let (st, body, _) = call(&app, Method::DELETE, &format!("/teams/{team_id}/membership"), Some(&coach), None).await;
+    assert_eq!(st, StatusCode::BAD_REQUEST, "{body}");
+    let (st, _, _) = call(&app, Method::POST, "/teams", Some(&coach), Some(json!({ "name": "Annas Zweite" }))).await;
     assert_eq!(st, StatusCode::OK);
     let (st, body, _) = call(&app, Method::DELETE, &format!("/teams/{team_id}/membership"), Some(&coach), None).await;
     assert_eq!(st, StatusCode::OK, "{body}");

@@ -60,13 +60,18 @@ pub async fn change_password(State(state): State<AppState>, user: CurrentUser, J
 }
 
 /// DELETE /teams/{id}/membership — leave a team. The last coach cannot
-/// leave (the team would be orphaned); if it was this device's active
-/// team, another membership becomes active, or none is left and the
-/// client sends the user to the login.
+/// leave (the team would be orphaned), and the last membership cannot be
+/// left either: a login needs a team, so an account without one would be
+/// locked out. If it was this device's active team, another membership
+/// becomes active.
 pub async fn leave_team(State(state): State<AppState>, user: CurrentUser, Path(team_id): Path<i64>) -> ApiResult<Json<Value>> {
     let m = sqlx::query("SELECT role FROM memberships WHERE user_id = ? AND team_id = ?")
         .bind(user.id).bind(team_id).fetch_optional(&state.db).await?
         .ok_or(ApiError::NotFound)?;
+    let mine: i64 = sqlx::query("SELECT count(*) AS n FROM memberships WHERE user_id = ?").bind(user.id).fetch_one(&state.db).await?.get("n");
+    if mine <= 1 {
+        return Err(ApiError::BadRequest("Das ist dein einziges Team. Lege erst ein anderes an oder tritt einem bei, dann kannst du dieses verlassen.".into()));
+    }
     if m.get::<String, _>("role") == "coach" {
         let coaches: i64 = sqlx::query("SELECT count(*) AS n FROM memberships WHERE team_id = ? AND role = 'coach'")
             .bind(team_id).fetch_one(&state.db).await?.get("n");

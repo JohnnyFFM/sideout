@@ -41,7 +41,9 @@ const bc = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('so-ss
 
 function publish(d) {
   mutations.set(d);
-  if (d.entity === 'resync') refreshMe().catch(() => {});
+  // a reconnect, or a change to someone's role or membership: my own role
+  // and team list may have changed, so the cached identity is refetched
+  if (d.entity === 'resync' || (d.entity === 'team' && /^member_/.test(d.action))) refreshMe().catch(() => {});
 }
 
 function open() {

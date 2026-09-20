@@ -18,9 +18,13 @@
   );
 
   let display = $state('');
+  let saved = $state(null); // the server's value the field was last filled from
+  // an identity refresh (tab focus, reconnect) must not wipe what is being
+  // typed: the field is reset only when the saved name really changed
   $effect(() => {
     const u = $me?.user;
-    display = u && u.display_name !== u.username ? u.display_name : '';
+    const now = u ? (u.display_name !== u.username ? u.display_name : '') : null;
+    if (now !== null && now !== saved) { saved = now; display = now; }
   });
   let busy = $state(false);
   async function saveName(e) {

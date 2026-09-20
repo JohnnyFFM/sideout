@@ -5,7 +5,7 @@
   import { goto } from '$app/navigation';
   import { untrack } from 'svelte';
   import { api } from '$lib/api.js';
-  import { me, meCache, showToast, refreshMe, switchTeam, reconnectSSE, mutations } from '$lib/stores.js';
+  import { me, showToast, refreshMe, switchTeam, reconnectSSE, mutations } from '$lib/stores.js';
   import { POS_NAME } from '$lib/engine.js';
   import { ROLES, ROLE_SHORT, initialsOf } from '$lib/people.js';
 
@@ -67,8 +67,7 @@
   async function leave(t) {
     if (!confirm(`${t.name} verlassen? Du siehst das Team danach nicht mehr.`)) return;
     try {
-      const r = await api(`/teams/${t.id}/membership`, { method: 'DELETE' });
-      if (r.active_team == null && teams.length <= 1) { meCache.value = null; goto(`${base}/login`); return; }
+      await api(`/teams/${t.id}/membership`, { method: 'DELETE' });
       await refreshMe(); reconnectSSE(); showToast(`${t.name} verlassen`);
     } catch (err) { showToast(err.message, true); }
   }
@@ -184,6 +183,7 @@
                   <div class="small muted">{d.member_count <= 1 ? 'Noch niemand dabei. Code weitergeben; wer beitritt, kann erst mal nur lesen.' : 'Team-Code zum Beitreten. Wer beitritt, kann erst mal nur lesen. Zum Scouten oben auf Co-Trainer:in setzen.'}</div>
                   <button class="btn" onclick={() => rotate(t)}>Neu erzeugen</button>
                 </div>
+                <p class="small muted" style="margin:10px 0 0">Du bist Trainer:in. {d.members.filter((m) => m.role === 'coach').length > 1 ? '' : 'Ernenne erst jemand anderen zur Trainer:in, dann kannst du das Team verlassen. '}<button class="danger-link" onclick={() => leave(t)}>Team verlassen</button></p>
               {:else}
                 <p class="small muted" style="margin:10px 0 0">Du bist {ROLE_SHORT[t.role]}: Rollen und Team-Code verwaltet {coachNames(d) || 'die Trainer:in'}. <button class="danger-link" onclick={() => leave(t)}>Team verlassen</button></p>
               {/if}

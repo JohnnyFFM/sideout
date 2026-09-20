@@ -127,6 +127,8 @@ async fn patch_member_in(state: AppState, user: CurrentUser, id: i64, body: Patc
     if let Some(n) = body.display_name.as_deref().map(str::trim).filter(|n| !n.is_empty()) {
         sqlx::query("UPDATE users SET display_name = ? WHERE id = ?").bind(n).bind(id).execute(&state.dbw).await?;
     }
+    // the promoted person's open app refreshes its identity on this event
+    state.events.publish(EventMsg { team_id: user.team_id, entity: "team".into(), id: user.team_id, version: id, action: "member_role".into(), actor: user.display_name.clone() });
     Ok(Json(me_payload(&state, &user).await?))
 }
 
@@ -157,6 +159,7 @@ async fn delete_member_in(state: AppState, user: CurrentUser, id: i64) -> ApiRes
          WHERE id = ?",
     )
     .bind(id).bind(id).execute(&state.dbw).await?;
+    state.events.publish(EventMsg { team_id: user.team_id, entity: "team".into(), id: user.team_id, version: id, action: "member_removed".into(), actor: user.display_name.clone() });
     Ok(Json(me_payload(&state, &user).await?))
 }
 
