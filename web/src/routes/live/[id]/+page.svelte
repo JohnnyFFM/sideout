@@ -273,6 +273,8 @@
     <div class="live" class:pv-stats={phoneView === 'stats'} class:extras={extrasOpen}>
       <div class="col left">
         <section class="score">
+          <button class="board-btn left" class:on={phoneView === 'stats'} onclick={() => (phoneView = phoneView === 'stats' ? 'pad' : 'stats')} title="Live-Werte"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M4 20h16v-2H4v2zm2-4h3V7H6v9zm5 0h3V4h-3v12zm5 0h3v-6h-3v6z"/></svg></button>
+          <button class="board-btn right" class:on={extrasOpen} onclick={() => (extrasOpen = !extrasOpen)} title="Nachtragen: Spielstand, Rotation, Aufschlag"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm17.71-10.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>
           <div class="side us"><span class="serve" class:on={st.serving}></span><span class="team">{$me?.team?.short || 'Wir'}</span><span class="pts">{st.us}</span></div>
           <div class="colon">:</div>
           <div class="side them"><span class="pts">{st.them}</span><span class="team">{match.opponent.split(' ')[0]}</span><span class="serve" class:on={!st.serving}></span></div>
@@ -315,10 +317,6 @@
             {:else}
               <span class="hint-txt">Spielerin tippen, dann Aktion.</span>
             {/if}
-            <span class="phone-ctl">
-              <button class:on={extrasOpen} onclick={() => (extrasOpen = !extrasOpen)}>⇄ Wechsel · Nachtrag</button>
-              <button onclick={() => (phoneView = 'stats')}>Werte</button>
-            </span>
           </div>
         </section>
         <section class="panel last" id="lastBox">
@@ -344,7 +342,7 @@
 
       <div class="col right">
         <section class="panel stats-panel">
-          <div class="panel-head"><button class="btn ghost sm phone-only" onclick={() => (phoneView = 'pad')}>← Feld</button><h2>{scope === 'set' ? 'Dieser Satz' : 'Ganzes Spiel'}</h2>
+          <div class="panel-head"><h2>{scope === 'set' ? 'Dieser Satz' : 'Ganzes Spiel'}</h2>
             <span class="tabs"><button class:active={scope === 'set'} onclick={() => (scope = 'set')}>Satz</button><button class:active={scope === 'match'} onclick={() => (scope = 'match')}>Spiel</button></span></div>
           {#if stat}
             {@const t = stat.team}
@@ -475,8 +473,7 @@
   .mini td.l, .mini th.l { text-align: left; }
   .mini td.l { font-weight: 600; }
   .mini td.l small { color: var(--ink-3); font-weight: 500; margin-left: 4px; }
-  .phone-ctl { display: none; }
-  .phone-only { display: none; }
+  .board-btn { display: none; }
   .tl-undo { display: none; }
   .ico-undo { display: inline-block; vertical-align: -3px; }
   /* phone: one screen. Top bar hidden (tab bar navigates), score strip with
@@ -496,16 +493,17 @@
     .col.mid > .pad-foot { order: 6; }
     .col.mid > .done { order: 7; }
     .col.right > .stats-panel { order: 8; }
-    .phone-ctl { display: flex; gap: 4px; margin-left: auto; flex: 0 0 auto; }
-    .phone-ctl button { height: 26px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--line-soft); background: var(--raised); color: var(--ink-2); font-size: 11px; font-weight: 600; white-space: nowrap; }
-    .phone-ctl button.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-text); }
-    .phone-only { display: inline-flex; }
+    /* the board carries two icon buttons: live stats (left), catch-up (right) */
+    .board-btn { display: grid; place-items: center; position: absolute; top: 8px; width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--line-soft); background: var(--raised); color: var(--ink-2); z-index: 1; }
+    .board-btn.left { left: 8px; }
+    .board-btn.right { right: 8px; }
+    .board-btn.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-text); }
     .hint-txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-    :global(.score .catch) { display: none; grid-template-columns: 1fr 1fr 1fr 1.25fr; }
+    :global(.score .catch) { display: none; grid-template-columns: 1fr 1fr 1fr 1.25fr; margin-top: 8px; }
     :global(.score .catch button) { font-size: 11px; padding: 0 2px; white-space: nowrap; }
     .live.extras :global(.score .catch) { display: grid; }
-    .bench { display: none; }
-    .live.extras .bench { display: flex; }
+    .bench { display: flex; margin-top: 6px; }
+    .chipb { height: 38px; }
     .court-wrap { padding: 6px; }
     .court-foot { margin-top: 4px; min-height: 18px; font-size: 11px; }
     .pad-foot .btn { height: 44px; font-size: 15px; }
@@ -527,11 +525,13 @@
     .tl-score { font-size: 12px; padding: 1px 6px; }
   }
   @media (max-width: 759px) and (max-height: 700px) {
-    :global(.score .pts) { font-size: 28px !important; }
-    :global(.score .colon) { font-size: 20px !important; }
+    :global(.score) { padding: 6px 42px 6px !important; }
+    :global(.score .pts) { font-size: 32px !important; }
+    :global(.score .colon) { font-size: 22px !important; }
     :global(.score .meta) { display: none; }
-    .phone-ctl { margin-top: 2px; }
-    .phone-ctl button { height: 24px; font-size: 11px; }
+    .board-btn { width: 28px; height: 28px; top: 6px; }
+    .chipb { height: 32px; }
+    .chipb b { font-size: 15px; }
     .pad-foot .btn { height: 36px; font-size: 14px; }
     .live-page { padding-top: calc(4px + env(safe-area-inset-top)); }
     .tl-item { width: 40px; padding: 3px 0 2px; }
@@ -539,10 +539,10 @@
     .tl-undo { width: 32px; height: 32px; }
   }
   @media (max-width: 759px) {
-    :global(.score) { padding: 2px 10px 6px; row-gap: 0; }
-    :global(.score .pts) { font-size: 34px; }
-    :global(.score .colon) { font-size: 24px; }
-    :global(.score .meta) { gap: 8px; font-size: 11px; }
-    :global(.score .team) { font-size: 12px; }
+    :global(.score) { position: relative; padding: 8px 46px 8px; row-gap: 2px; }
+    :global(.score .pts) { font-size: 42px; }
+    :global(.score .colon) { font-size: 28px; }
+    :global(.score .meta) { gap: 10px; font-size: 12px; }
+    :global(.score .team) { font-size: 13px; }
   }
 </style>
