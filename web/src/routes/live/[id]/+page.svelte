@@ -238,6 +238,9 @@
       }
     } finally {
       flushing = false;
+      // this flush belonged to a match the page has left: the flag it held
+      // kept the new match's queue waiting, so hand over now
+      if (alive && mid !== id && ops.length) flush();
     }
   }
 
