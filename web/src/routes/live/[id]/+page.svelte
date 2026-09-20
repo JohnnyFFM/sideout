@@ -484,11 +484,22 @@
      Feld/Werte toggle, court, pad, opponent buttons; the timeline is docked
      above the tab bar with the undo button; bench and catch-up fold away. */
   @media (max-width: 759px) {
-    .live-page { padding: calc(6px + env(safe-area-inset-top)) 8px calc(var(--tabbar-h) + 8px); }
-    /* the columns dissolve so score, timeline, court, pad and buttons stack
-       in the order a scouting thumb wants */
-    .live { gap: 6px; }
+    /* the live view owns the whole viewport between the top inset and the
+       tab bar: a flex column where the pad absorbs the remaining height, so
+       it fits any display without scrolling; the two opponent buttons are
+       pinned to the bottom edge */
+    .live-page { position: fixed; top: 0; left: 0; right: 0; bottom: var(--tabbar-h); padding: calc(6px + env(safe-area-inset-top)) 8px 58px; overflow: hidden; display: flex; flex-direction: column; }
+    .live { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 6px; }
     .col { display: contents; }
+    .col.left > :global(.score), .timeline, .col.left > .hint, .col.left > .court-wrap { flex: 0 0 auto; }
+    .col.left > .court-wrap { flex: 0 1 auto; min-height: 0; overflow: hidden; }
+    .col.mid > :global(.pad) { flex: 1 1 0; min-height: 0; overflow: hidden; grid-template-rows: auto repeat(6, minmax(0, 1fr)); }
+    .col.mid > :global(.pad .cell) { min-height: 0; }
+    .col.mid > :global(.pad .cell b) { font-size: clamp(12px, 2.2dvh, 18px); }
+    .col.mid > :global(.pad .cell span) { font-size: clamp(8px, 1.15dvh, 10px); }
+    .col.mid > :global(.pad .prow .lbl) { font-size: clamp(10px, 1.5dvh, 12px); }
+    .col.mid > .pad-foot { position: absolute; left: 8px; right: 8px; bottom: 6px; }
+    .col.right > .stats-panel { flex: 1 1 0; min-height: 0; overflow: auto; }
     .col.left > :global(.score) { order: 1; }
     .timeline { order: 2; }
     .col.left > .hint { order: 3; }
