@@ -54,7 +54,6 @@
   let tlEl = $state(null);
   // newest entry stays in view
   $effect(() => { void timeline.length; const el = tlEl; if (el) tick().then(() => { el.scrollLeft = el.scrollWidth; }); });
-  const missingLineupForSet = $derived(st && st.set > 1 && !match.lineups?.[st.set]);
 
   async function load() {
     if (inflight) return; // a request is on the wire; its answer settles the queue
@@ -139,7 +138,7 @@
     saveOps(id, ops);
     selected = null;
     const after = replay(cfg, applyOps(match.actions, ops));
-    if (after.set !== before.set) { const s = after.sets[after.sets.length - 1]; showToast(`Satz ${before.set} beendet ${s.us}:${s.them}`); }
+    if (after.set !== before.set) { const s = after.sets[after.sets.length - 1]; showToast(`Satz ${before.set} beendet ${s.us}:${s.them}` + (after.finished || match.lineups?.[after.set] ? '' : ' · Aufstellung übernommen, Wechsel per Drag & Drop')); }
     else if (after.finished) showToast(`Spiel beendet ${after.sets_won}:${after.sets_lost}`);
     flush();
   }
@@ -235,10 +234,24 @@
   }
   function chipDown(e, pid) {
     if (!canScout || st.finished) return;
-    e.preventDefault();
+    // touch: the browser keeps horizontal pans for scrolling the strip
+    // (touch-action: pan-x) and cancels our pointer; a vertical move is a drag
+    if (e.pointerType === 'mouse') e.preventDefault();
     try { e.currentTarget.setPointerCapture?.(e.pointerId); } catch { /* synthetic or already-released pointer */ }
     drag = { id: pid, x: e.clientX, y: e.clientY, moved: false };
   }
+  function chipCancel() { drag = null; over = null; } // the strip scrolled instead
+  // scroll buttons for mouse users, only while the strip overflows
+  let benchEl = $state(null);
+  let benchOverflow = $state(false);
+  $effect(() => {
+    void benchChips.length; const el = benchEl; if (!el) return;
+    const check = () => (benchOverflow = el.scrollWidth > el.clientWidth + 2);
+    check();
+    const ro = new ResizeObserver(check); ro.observe(el);
+    return () => ro.disconnect();
+  });
+  const benchScroll = (dir) => benchEl?.scrollBy({ left: dir * Math.max(120, benchEl.clientWidth * 0.6), behavior: 'smooth' });
   // grabbing cursor and no text selection while a chip is in flight
   $effect(() => {
     document.body.classList.toggle('dragging', !!drag?.moved);
@@ -358,9 +371,6 @@
             </div>
           {/if}
         </section>
-        {#if missingLineupForSet}
-          <div class="panel hint">Satz {st.set}: Aufstellung von Satz {st.set - 1} übernommen. <a href="{base}/spiele/{id}?set={st.set}">Anpassen</a></div>
-        {/if}
         {#if canScout && st.set === 5 && !st.finished && !st.rows.some((r) => r.set === 5)}
           <div class="panel hint toss">Satz 5, neue Auslosung. Wer schlägt auf?
             <button class="btn" onclick={() => queue({ skill: 'srv', grade: '#' })}>Wir</button>
@@ -370,12 +380,15 @@
         <section class="court-wrap">
           <Court {court} {byId} {selected} serving={st.serving} {suggested} {over} dragging={!!drag} {targets} onselect={slotTap} />
           {#if benchChips.length}
-            <div class="bench" onpointermove={chipMove} onpointerup={chipUp} onpointercancel={chipUp}>
+            <div class="benchwrap">
+            {#if benchOverflow}<button class="bscroll l" onclick={() => benchScroll(-1)} title="Bank nach links">‹</button><button class="bscroll r" onclick={() => benchScroll(1)} title="Bank nach rechts">›</button>{/if}
+            <div class="bench" bind:this={benchEl} onpointermove={chipMove} onpointerup={chipUp} onpointercancel={chipCancel}>
               {#each benchChips as p (p.id)}
                 <button class="chipb" class:libero={p.id === st.libero} class:out={liberoCard?.replaced === p.id} class:dragging={drag?.id === p.id} onpointerdown={(e) => chipDown(e, p.id)} disabled={!canScout || st.finished}>
                   <b>{p.number}</b><span>{firstName(p)}</span><small>{chipNote(p)}</small>
                 </button>
               {/each}
+            </div>
             </div>
           {/if}
           {#if drag?.moved}
@@ -530,12 +543,16 @@
   .tl-set { flex: 0 0 auto; align-self: stretch; display: grid; align-items: center; padding: 0 8px 0 10px; margin: 0 4px; border-left: 2px solid var(--line); font-size: 11px; font-weight: 600; color: var(--ink-3); white-space: nowrap; }
   .court-wrap { background: var(--panel); border: 1px solid var(--line-soft); border-radius: var(--r-l); padding: 10px; }
   .court-foot { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--ink-2); min-height: 22px; }
-  .bench { display: flex; gap: 6px; margin-top: 8px; overflow-x: auto; padding: 2px 0 4px; scrollbar-width: none; touch-action: none; }
+  .benchwrap { position: relative; }
+  .bench { display: flex; gap: 6px; margin-top: 8px; overflow-x: auto; padding: 2px 0 4px; scrollbar-width: none; touch-action: pan-x; }
+  .bscroll { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); color: var(--ink-2); font-size: 18px; line-height: 1; padding: 0; cursor: pointer; opacity: 0.85; }
+  .bscroll.l { left: -4px; } .bscroll.r { right: -4px; }
+  @media (hover: none) { .bscroll { display: none; } }
   .bench::-webkit-scrollbar { display: none; }
   .chipb {
     flex: 0 0 auto; display: grid; grid-template-columns: auto auto; align-items: baseline; column-gap: 5px;
     height: 40px; padding: 0 10px; border-radius: 20px; border: 1px solid var(--line); background: var(--raised);
-    cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none;
+    cursor: grab; touch-action: pan-x; user-select: none; -webkit-user-select: none;
   }
   .chipb b { font-family: var(--disp); font-size: 18px; font-weight: 700; }
   .chipb span { font-size: 12px; color: var(--ink-2); }
