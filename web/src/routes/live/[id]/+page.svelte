@@ -409,7 +409,18 @@
 
 <style>
   .live { display: grid; gap: 12px; grid-template-columns: 1fr; }
-  @media (min-width: 760px) { .live { grid-template-columns: 340px 1fr; align-items: start; } .timeline { grid-column: 1 / -1; } }
+  /* tablet, portrait or landscape (760–1099px): left column = score, court,
+     undo, then the live stats; the pad spans the right side; the timeline
+     runs across the bottom. Natural heights, page scrolls if it must. */
+  @media (min-width: 760px) and (max-width: 999px) {
+    .live { grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); grid-template-rows: auto auto auto; align-items: start; }
+    .col.left { grid-column: 1; grid-row: 1; }
+    .col.mid { grid-column: 2; grid-row: 1 / span 2; position: sticky; top: 64px; }
+    .col.right { grid-column: 1; grid-row: 2; }
+    .col.right .stats-panel { max-height: 300px; overflow: auto; }
+    .timeline { grid-column: 1 / -1; grid-row: 3; }
+    .col.mid :global(.pad) { grid-template-rows: auto repeat(6, minmax(58px, auto)); }
+  }
   .col { display: grid; gap: 12px; align-content: start; min-width: 0; }
   .timeline { min-width: 0; }
   :global(.score .catch) { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 4px; }
@@ -422,9 +433,9 @@
      middle columns), the three cards stretch to that height and no further;
      the stats card scrolls inside. Wide screens get a wider page, not
      taller cards. */
-  @media (min-width: 1100px) {
+  @media (min-width: 1000px) {
     .live-page { padding-bottom: 16px; max-width: 1500px; }
-    .live { grid-template-columns: 360px 1fr 380px; grid-template-rows: auto auto; align-items: stretch; }
+    .live { grid-template-columns: clamp(300px, 25%, 360px) minmax(0, 1fr) clamp(300px, 27%, 380px); grid-template-rows: auto auto; align-items: stretch; }
     .col { display: flex; flex-direction: column; min-height: 0; }
     .col > :global(*) { flex: 0 0 auto; }
     .col.left .court-wrap { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
@@ -433,6 +444,20 @@
     .col.mid :global(.pad) { flex: 1 1 auto; grid-template-rows: auto repeat(6, minmax(64px, 1fr)); }
     .col.right .stats-panel { flex: 1 1 0; min-height: 0; overflow: auto; }
     .timeline { grid-column: 1 / -1; }
+  }
+  /* desktop on a short screen (laptops at 700–760px, iPad landscape): tighter */
+  @media (min-width: 1000px) and (max-height: 780px) {
+    .live-page { padding-top: 10px; }
+    .live { gap: 10px; } .col { gap: 8px; }
+    :global(.score .pts) { font-size: 38px; }
+    .col.left .court-wrap :global(.court) { min-height: 200px; }
+    .col.left .court-wrap :global(.slot) { min-height: 0; }
+    .col.mid :global(.pad) { grid-template-rows: auto repeat(6, minmax(50px, 1fr)); }
+    .col.mid :global(.pad .cell) { min-height: 0; }
+    .col.mid :global(.pad .cell b) { font-size: 17px; }
+    .timeline { padding: 4px 10px 4px; }
+    .tl-item { width: 42px; padding: 3px 0 2px; } .tl-item b { font-size: 15px; }
+    .tl-head h2 { font-size: 13px; } .tl-head { margin-bottom: 2px; }
   }
   /* timeline */
   .timeline { padding: 8px 12px 6px; }
@@ -569,5 +594,55 @@
     :global(.score .meta) { gap: 10px; font-size: clamp(11px, 1.5dvh, 13px); }
     :global(.score .team) { font-size: clamp(12px, 1.6dvh, 14px); }
     .board-btn { width: clamp(28px, 4dvh, 36px); height: clamp(28px, 4dvh, 36px); }
+  }
+  /* wide but short (a phone held sideways, up to 1099px wide and 540px
+     tall): two columns. Left: score, timeline, court + bench. Right: the pad
+     with the two buttons under it. Stats replace the pad on demand. */
+  @media (max-width: 1099px) and (max-height: 540px) and (orientation: landscape) {
+    .live-page { position: fixed; top: 0; left: 0; right: 0; bottom: var(--tabbar-h); padding: calc(4px + env(safe-area-inset-top)) calc(8px + env(safe-area-inset-right)) 4px calc(8px + env(safe-area-inset-left)); overflow: hidden; display: flex; flex-direction: column; max-width: none; }
+    .live { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); grid-template-rows: auto auto minmax(0, 1fr) auto; gap: 6px; height: auto; align-items: stretch; }
+    .col { display: contents; }
+    .col.left > :global(.score) { grid-column: 1; grid-row: 1; position: relative; padding: 4px 42px; row-gap: 0; }
+    :global(.score .pts) { font-size: clamp(24px, 7dvh, 36px); }
+    :global(.score .colon) { font-size: clamp(16px, 5dvh, 26px); }
+    :global(.score .meta) { display: none; }
+    .board-btn { display: grid; place-items: center; position: absolute; top: 5px; width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--line-soft); background: var(--raised); color: var(--ink-2); z-index: 1; }
+    .board-btn.left { left: 6px; } .board-btn.right { right: 6px; }
+    .board-btn.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-text); }
+    :global(.score .catch) { display: none; margin-top: 4px; grid-template-columns: 1fr 1fr 1fr 1.25fr; }
+    :global(.score .catch button) { height: 26px; font-size: 11px; padding: 0 2px; white-space: nowrap; }
+    .live.extras :global(.score .catch) { display: grid; }
+    .timeline { grid-column: 1; grid-row: 2; display: flex; align-items: center; gap: 6px; padding: 4px 8px; min-width: 0; }
+    .tl-head { display: none; }
+    .tl { flex: 1 1 auto; min-width: 0; padding: 2px 0; gap: 3px; order: 1; }
+    .tl-item { width: 38px; padding: 3px 0 2px; } .tl-item b { font-size: 13px; } .tl-item small { font-size: 8px; }
+    .tl-score { font-size: 11px; padding: 1px 5px; }
+    .tl-undo { display: grid; place-items: center; position: relative; order: 2; flex: 0 0 auto; width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--line); background: var(--raised); }
+    .tl-undo .ico-undo { width: 14px; height: 14px; }
+    .col.left > .hint { grid-column: 1; grid-row: 3; }
+    .col.left > .court-wrap { grid-column: 1; grid-row: 3 / span 2; min-height: 0; overflow: hidden; display: flex; flex-direction: column; padding: 6px; }
+    .col.left > .court-wrap :global(.court) { flex: 1 1 auto; min-height: 0; padding: 4px; gap: 4px; border-top-width: 4px; }
+    .col.left > .court-wrap :global(.court::before) { display: none; }
+    .col.left > .court-wrap :global(.rowp) { gap: 4px; }
+    .col.left > .court-wrap :global(.slot) { min-height: 0; padding: 2px 5px; }
+    .col.left > .court-wrap :global(.slot .jersey) { font-size: clamp(14px, 5dvh, 24px); }
+    .col.left > .court-wrap :global(.slot .nm) { display: none; }
+    .bench { display: flex; flex: 0 0 auto; margin-top: 4px; }
+    .chipb { height: 30px; } .chipb b { font-size: 14px; } .chipb small { display: none; }
+    #lastBox { display: none; }
+    .col.mid > :global(.pad) { grid-column: 2; grid-row: 1 / span 3; min-height: 0; overflow: hidden; padding: 6px; gap: 3px; grid-template-rows: repeat(6, minmax(0, 1fr)); }
+    .col.mid > :global(.pad .pad-head) { display: none; }
+    .col.mid > :global(.pad .prow) { gap: 3px; }
+    .col.mid > :global(.pad .cell) { min-height: 0; }
+    .col.mid > :global(.pad .cell b) { font-size: clamp(12px, 4dvh, 18px); }
+    .col.mid > :global(.pad .cell span) { display: none; }
+    .col.mid > :global(.pad .prow .lbl) { font-size: 11px; }
+    .col.mid > :global(.pad .prow .lbl small) { display: none; }
+    .col.mid > .pad-foot { grid-column: 2; grid-row: 4; position: static; }
+    .pad-foot .btn { height: 34px; font-size: 13px; }
+    .col.mid > .done { grid-column: 2; grid-row: 4; }
+    .col.right > .stats-panel { display: none; }
+    .live.pv-stats .col.right > .stats-panel { display: block; grid-column: 2; grid-row: 1 / span 4; min-height: 0; overflow: auto; }
+    .live.pv-stats .col.mid > :global(.pad), .live.pv-stats .col.mid > .pad-foot { display: none; }
   }
 </style>
