@@ -111,10 +111,9 @@
     return `${p?.number} ${firstName(p)} ${SKILL[a.skill].name} ${a.grade} ${PAD[a.skill][a.grade] || ''}`;
   }
 
-  function queue(a, fromRedo = false) {
+  function queue(a) {
     if (!canScout) return;
     if (st.finished) { showToast('Das Spiel ist beendet'); return; }
-    if (!fromRedo) redo = [];
     const before = st;
     const seq = (actionsAll[actionsAll.length - 1]?.seq || 0) + 1;
     ops = [...ops, { type: 'add', action: { id: -seq, seq, grade: null, player_id: null, sub_out: null, sub_in: null, ...a } }];
@@ -171,7 +170,6 @@
   // ----- bench strip: libero pinned first, then the bench. A chip is
   // dragged onto a court slot (pointer events, works with touch) or tapped
   // to arm it, then the target slot is tapped. -----
-  let redo = $state([]);           // actions taken back by undo, replayable with redo
   let phoneView = $state('pad');   // phone: 'pad' | 'stats'
   let extrasOpen = $state(false);  // phone: bench + catch-up shown
   let armed = $state(null);   // chip id waiting for a slot
@@ -212,13 +210,6 @@
     if (d.moved) { const pos = slotUnder(e.clientX, e.clientY); if (pos) dropOn(d.id, pos); }
     else armed = armed === d.id ? null : d.id;   // a tap arms the chip
   }
-  function redoLast() {
-    if (!redo.length) return;
-    const a = redo[redo.length - 1];
-    redo = redo.slice(0, -1);
-    queue(a, true);
-    showToast('Wiederholt: ' + describe(a));
-  }
   function slotTap(pid, pos) {
     if (armed) { dropOn(armed, pos); armed = null; return; }
     selected = selected === pid ? null : pid;
@@ -247,8 +238,6 @@
   function undo() {
     if (!actionsAll.length) return;
     const a = last;
-    const { skill, grade, player_id, sub_out, sub_in } = a;
-    redo = [...redo, { skill, grade, player_id, sub_out, sub_in }];
     const lastOp = ops[ops.length - 1];
     if (lastOp?.type === 'add') ops = ops.slice(0, -1);
     else ops = [...ops, { type: 'undo' }];
@@ -261,8 +250,6 @@
   function keys(e) {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
     if (e.key >= '1' && e.key <= '6' && court.length) { selected = court[+e.key - 1].id; }
-    if ((e.key === 'z' || e.key === 'Z') && (e.ctrlKey || e.metaKey) && e.shiftKey) { e.preventDefault(); redoLast(); return; }
-    if (e.key === 'y' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); redoLast(); return; }
     if (e.key === 'z' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); undo(); }
     if (e.key === 'Escape') { selected = null; armed = null; }
   }
@@ -336,8 +323,7 @@
         </section>
         <section class="panel last" id="lastBox">
           <div class="txt">{last ? 'Zuletzt: ' + describe(last) : 'Noch keine Aktion.'}{#if ops.length}<span class="pending"> · {ops.length} ausstehend</span>{/if}</div>
-          <button class="btn" onclick={undo} disabled={!last || !canScout}>↶ Rückgängig</button>
-          <button class="btn ghost" onclick={redoLast} disabled={!redo.length || !canScout} title={redo.length ? 'Wiederholen: ' + describe(redo[redo.length - 1]) : 'Nichts zum Wiederholen'}>↷</button>
+          <button class="btn" onclick={undo} disabled={!last || !canScout}><svg class="ico-undo" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg> Rückgängig</button>
         </section>
       </div>
 
@@ -381,8 +367,7 @@
       </div>
       <section class="panel timeline">
         <div class="tl-head"><h2>Verlauf</h2><span class="small muted">{actionsAll.length} Aktionen</span><span class="spacer"></span><a class="small" href="/auswertung/{id}">Auswertung →</a></div>
-        <button class="tl-undo" onclick={undo} disabled={!last || !canScout} title={last ? 'Rückgängig: ' + describe(last) : 'Nichts zum Rückgängigmachen'}>↶{#if ops.length}<i>{ops.length}</i>{/if}</button>
-        <button class="tl-undo tl-redo" onclick={redoLast} disabled={!redo.length || !canScout} title="Wiederholen">↷</button>
+        <button class="tl-undo" onclick={undo} disabled={!last || !canScout} title={last ? 'Rückgängig: ' + describe(last) : 'Nichts zum Rückgängigmachen'}><svg class="ico-undo" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>{#if ops.length}<i>{ops.length}</i>{/if}</button>
         <div class="tl" bind:this={tlEl}>
           {#each timeline as e (e.key)}
             {#if e.t === 'set'}
@@ -493,7 +478,7 @@
   .phone-ctl { display: none; }
   .phone-only { display: none; }
   .tl-undo { display: none; }
-  .last .btn.ghost { padding: 0 10px; }
+  .ico-undo { display: inline-block; vertical-align: -3px; }
   /* phone: one screen. Top bar hidden (tab bar navigates), score strip with
      Feld/Werte toggle, court, pad, opponent buttons; the timeline is docked
      above the tab bar with the undo button; bench and catch-up fold away. */
@@ -531,7 +516,6 @@
     .timeline { display: flex; align-items: center; gap: 6px; padding: 6px 8px; }
     .tl-head { display: none; }
     .tl-undo { display: grid; place-items: center; position: relative; flex: 0 0 auto; width: 44px; height: 44px; border-radius: 8px; border: 1px solid var(--line); background: var(--raised); font-size: 18px; }
-    .tl-redo { width: 36px; background: transparent; }
     .tl-undo:disabled { opacity: 0.4; }
     .tl-undo i { position: absolute; top: -5px; right: -5px; min-width: 16px; height: 16px; border-radius: 8px; background: var(--g-neg); color: var(--g-neg-ink); font-size: 10px; font-style: normal; font-weight: 700; display: grid; place-items: center; padding: 0 3px; }
     .tl { flex: 1 1 auto; min-width: 0; padding: 2px 0; gap: 4px; }
@@ -550,7 +534,6 @@
     .tl-item { width: 40px; padding: 3px 0 2px; }
     .tl-item b { font-size: 15px; }
     .tl-undo { width: 36px; height: 36px; }
-    .tl-redo { width: 30px; }
   }
   @media (max-width: 759px) {
     :global(.score) { padding: 2px 10px 6px; row-gap: 0; }
