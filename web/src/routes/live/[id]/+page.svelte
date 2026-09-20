@@ -234,14 +234,15 @@
   }
   function chipDown(e, pid) {
     if (!canScout || st.finished) return;
-    // touch: the browser keeps horizontal pans for scrolling the strip
-    // (touch-action: pan-x) and cancels our pointer; a vertical move is a drag
-    if (e.pointerType === 'mouse') e.preventDefault();
+    // every touch on a chip is a drag (touch-action: none, no gesture guessing);
+    // the strip scrolls with the ‹ › buttons instead
+    e.preventDefault();
     try { e.currentTarget.setPointerCapture?.(e.pointerId); } catch { /* synthetic or already-released pointer */ }
     drag = { id: pid, x: e.clientX, y: e.clientY, moved: false };
   }
-  function chipCancel() { drag = null; over = null; } // the strip scrolled instead
-  // scroll buttons for mouse users, only while the strip overflows
+  function chipCancel() { drag = null; over = null; } // pointer taken by the browser
+  // ‹ › buttons while the strip overflows: a tap scrolls one step, holding
+  // the button keeps scrolling
   let benchEl = $state(null);
   let benchOverflow = $state(false);
   $effect(() => {
@@ -251,7 +252,16 @@
     const ro = new ResizeObserver(check); ro.observe(el);
     return () => ro.disconnect();
   });
-  const benchScroll = (dir) => benchEl?.scrollBy({ left: dir * Math.max(120, benchEl.clientWidth * 0.6), behavior: 'smooth' });
+  let holdTimer = null;
+  function benchPress(e, dir) {
+    e.preventDefault();
+    try { e.currentTarget.setPointerCapture?.(e.pointerId); } catch { /* ignore */ }
+    benchEl?.scrollBy({ left: dir * 90, behavior: 'smooth' });
+    clearInterval(holdTimer);
+    let held = 0;
+    holdTimer = setInterval(() => { if (++held > 20 && benchEl) benchEl.scrollLeft += dir * 6; }, 16); // after ~320 ms: continuous
+  }
+  function benchRelease() { clearInterval(holdTimer); holdTimer = null; }
   // grabbing cursor and no text selection while a chip is in flight
   $effect(() => {
     document.body.classList.toggle('dragging', !!drag?.moved);
@@ -381,7 +391,7 @@
           <Court {court} {byId} {selected} serving={st.serving} {suggested} {over} dragging={!!drag} {targets} onselect={slotTap} />
           {#if benchChips.length}
             <div class="benchwrap">
-            {#if benchOverflow}<button class="bscroll l" onclick={() => benchScroll(-1)} title="Bank nach links">‹</button><button class="bscroll r" onclick={() => benchScroll(1)} title="Bank nach rechts">›</button>{/if}
+            {#if benchOverflow}<button class="bscroll l" onpointerdown={(e) => benchPress(e, -1)} onpointerup={benchRelease} onpointercancel={benchRelease} onlostpointercapture={benchRelease} title="Bank nach links">‹</button><button class="bscroll r" onpointerdown={(e) => benchPress(e, 1)} onpointerup={benchRelease} onpointercancel={benchRelease} onlostpointercapture={benchRelease} title="Bank nach rechts">›</button>{/if}
             <div class="bench" bind:this={benchEl} onpointermove={chipMove} onpointerup={chipUp} onpointercancel={chipCancel}>
               {#each benchChips as p (p.id)}
                 <button class="chipb" class:libero={p.id === st.libero} class:out={liberoCard?.replaced === p.id} class:dragging={drag?.id === p.id} onpointerdown={(e) => chipDown(e, p.id)} disabled={!canScout || st.finished}>
@@ -544,15 +554,16 @@
   .court-wrap { background: var(--panel); border: 1px solid var(--line-soft); border-radius: var(--r-l); padding: 10px; }
   .court-foot { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--ink-2); min-height: 22px; }
   .benchwrap { position: relative; }
-  .bench { display: flex; gap: 6px; margin-top: 8px; overflow-x: auto; padding: 2px 0 4px; scrollbar-width: none; touch-action: pan-x; }
-  .bscroll { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); color: var(--ink-2); font-size: 18px; line-height: 1; padding: 0; cursor: pointer; opacity: 0.85; }
-  .bscroll.l { left: -4px; } .bscroll.r { right: -4px; }
-  @media (hover: none) { .bscroll { display: none; } }
+  .bench { display: flex; gap: 6px; margin-top: 8px; overflow-x: auto; padding: 2px 0 4px; scrollbar-width: none; touch-action: none; }
+  .benchwrap:has(.bscroll) .bench { padding-left: 30px; padding-right: 30px; }
+  .bscroll { position: absolute; top: 0; bottom: 0; z-index: 2; width: 28px; border-radius: var(--r-m); border: 1px solid var(--line); background: var(--raised); color: var(--ink); font-size: 22px; line-height: 1; padding: 0 0 3px; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
+  .bscroll.l { left: 0; } .bscroll.r { right: 0; }
+  .bscroll:active { background: var(--accent); color: #fff; }
   .bench::-webkit-scrollbar { display: none; }
   .chipb {
     flex: 0 0 auto; display: grid; grid-template-columns: auto auto; align-items: baseline; column-gap: 5px;
     height: 40px; padding: 0 10px; border-radius: 20px; border: 1px solid var(--line); background: var(--raised);
-    cursor: grab; touch-action: pan-x; user-select: none; -webkit-user-select: none;
+    cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none;
   }
   .chipb b { font-family: var(--disp); font-size: 18px; font-weight: 700; }
   .chipb span { font-size: 12px; color: var(--ink-2); }
