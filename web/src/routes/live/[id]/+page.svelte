@@ -390,7 +390,7 @@
             {:else if e.t === 'score'}
               <div class="tl-score" class:us={e.won} class:them={!e.won}>{e.us}:{e.them}</div>
             {:else if e.r.skill === 'opp'}
-              <div class="tl-item opp"><b>{e.r.grade === '=' ? '✕' : '●'}</b><small>Gegner {e.r.grade === '=' ? 'Fehler' : 'Punkt'}</small></div>
+              <div class="tl-item opp"><b>{e.r.grade === '=' ? '✕' : '●'}</b><small>Gegner</small></div>
             {:else if e.r.skill === 'adj'}
               <div class="tl-item sub"><b>+1</b><small>{e.r.grade === '#' ? 'wir' : 'Gegner'}</small></div>
             {:else if e.r.skill === 'rot'}
@@ -402,7 +402,7 @@
             {:else if e.r.skill === 'lib'}
               <div class="tl-item sub"><b>L</b><small>{e.r.sub_in == null ? 'raus' : e.r.sub_out ? 'für ' + byId[e.r.sub_out]?.number : 'auto'}</small></div>
             {:else}
-              <div class="tl-item {GRADE_CLASS[e.r.grade]}"><b>{byId[e.r.player_id]?.number}</b><small>{SKILL[e.r.skill].short} {e.r.grade}</small></div>
+              <div class="tl-item" style="background: var(--{GRADE_CLASS[e.r.grade]}); color: var(--{GRADE_CLASS[e.r.grade]}-ink)"><b>{byId[e.r.player_id]?.number}</b><small>{SKILL[e.r.skill].short} {e.r.grade}</small></div>
             {/if}
           {:else}
             <div class="muted small">Noch keine Aktion. Der Verlauf wächst nach rechts.</div>
