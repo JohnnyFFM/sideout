@@ -170,7 +170,7 @@
     if (confirmed?.finished && !ops.length) return false; // viewing a finished match does not claim it
     return acquireLease('claim');
   }
-  async function acquireLease(mode) {
+  async function acquireLease(mode, retried = false) {
     if (acquiring || !alive || !tabOwner) return false;
     const mid = id;
     const pending = loadReq(mid);
@@ -187,7 +187,12 @@
       if (stale(mid) || e.offline) return false; // resolved on the next load with the same request id
       saveReq(mid, null);
       if (e.code === 'scouted_elsewhere' || e.code === 'scout_lease_expired') {
-        if (e.current?.scout) scout = e.current.scout;
+        const cur = e.current?.scout;
+        if (cur) scout = cur;
+        // a claim refused only because the revision moved (a release landed
+        // in between) is repeated once from the fresh revision; it is still
+        // conditional, so a current holder is never displaced by it
+        if (mode === 'claim' && !retried && cur && (!cur.held || cur.stale)) { acquiring = false; return acquireLease('claim', true); }
         if (mode === 'takeover') showToast('Inzwischen scoutet jemand anderes, Stand aktualisiert', true);
         load();
         return false;
@@ -243,7 +248,19 @@
       load(true);
     });
     // the writer tab for this match in this browser; the other tabs watch
-    const lock = tabWriter(mid, (held) => { tabOwner = held; if (held) { needVerify = true; untrack(() => { if (!lease) maybeClaim(); flush(); }); } });
+    const lock = tabWriter(mid, (held, info) => {
+      tabOwner = held;
+      if (!held) return;
+      needVerify = true;
+      untrack(() => {
+        // a hand-off from another tab of this browser: that tab may have
+        // released the lease we restored from storage, so acquire afresh
+        // (the server starts a new period for the same session)
+        if (info?.handoff && $online) { lease = null; saveLease(mid, null); }
+        if (!lease) maybeClaim();
+        flush();
+      });
+    });
     // a hard departure (tab closed, address bar): the same best-effort release
     const onHide = () => untrack(() => releaseLease(true));
     window.addEventListener('pagehide', onHide);

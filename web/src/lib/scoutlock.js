@@ -11,15 +11,20 @@
 
 const tabId = Math.random().toString(36).slice(2, 10);
 
+// onChange(held, { handoff }): `handoff` is true when this tab became the
+// writer after another tab of this browser held the role (that tab may have
+// released its lease on leaving, so the new writer acquires afresh).
 export function tabWriter(matchId, onChange) {
   const name = `so_scout_${matchId}`;
   let held = false;
   let released = false;
-  const set = (v) => { if (v !== held) { held = v; onChange(v); } };
+  let sawOther = false;
+  const set = (v) => { if (v !== held) { held = v; onChange(v, { handoff: v && sawOther }); } };
 
   if (typeof navigator !== 'undefined' && navigator.locks?.request) {
     const ac = new AbortController();
     let done = null;
+    navigator.locks.query?.().then((q) => { if (!held && q.held?.some((l) => l.name === name)) sawOther = true; }).catch(() => {});
     navigator.locks
       .request(name, { mode: 'exclusive', signal: ac.signal }, () => new Promise((resolve) => { done = resolve; if (!released) set(true); else resolve(); }))
       .catch(() => { /* aborted before acquisition */ });
@@ -43,6 +48,7 @@ export function tabWriter(matchId, onChange) {
       try { localStorage.setItem(key, JSON.stringify({ tab: tabId, t: Date.now() })); } catch { /* ignore */ }
       set(true);
     } else {
+      sawOther = true;
       set(false);
     }
   };
