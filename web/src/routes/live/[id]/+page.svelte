@@ -19,6 +19,11 @@
   let flushing = false;
   let inflight = null;      // the op whose request is on the wire
   let gen = 0;              // bumps on every local change; a refresh started before it is stale
+  // a page that was left (or switched to another match) must not touch the
+  // queue any more: its timers are cancelled and every await checks `stale()`
+  let alive = true;
+  const stale = (mid) => !alive || mid !== id;
+  $effect(() => () => { alive = false; clearTimeout(retryTimer); });
   let retryTimer = null;
   let retryDelay = 5000;
   let loadError = $state('');
@@ -64,9 +69,10 @@
     if (inflight) return; // a request is on the wire; its answer settles the queue
     const saved = loadOps(id);
     if (JSON.stringify(saved) !== JSON.stringify(ops)) ops = saved;
-    const g = gen;
+    const g = gen; const mid = id;
     try {
-      const m = await api(`/matches/${id}`);
+      const m = await api(`/matches/${mid}`);
+      if (stale(mid)) return;
       // something changed locally while this answer was on its way (a tap,
       // a save): it is older than what we show, so drop it and ask again
       if (g !== gen) { load(); return; }
@@ -98,7 +104,7 @@
 
   // effects only track their trigger; everything they call runs untracked,
   // otherwise a reload that rewrites `ops` would re-trigger itself forever
-  $effect(() => { void id; untrack(load); });
+  $effect(() => { void id; untrack(() => { match = null; ops = []; clearTimeout(retryTimer); load(); }); });
 
   // another device wrote to this match → refetch when we have nothing pending
   $effect(() => {
@@ -163,22 +169,25 @@
   // undone. Errors: offline → wait; 5xx → retry with backoff; 409 → reload
   // and reconcile; 4xx → this op is refused for good, the rest is renumbered.
   async function flush() {
-    if (flushing || !match) return;
+    if (flushing || !match || !alive) return;
     flushing = true;
     clearTimeout(retryTimer);
+    const mid = id;
     try {
       let conflicts = 0;
-      while (ops.length) {
+      while (ops.length && !stale(mid)) {
         const op = ops[0];
         inflight = op;
         if (op.type === 'add' && !op.sent) { op.sent = true; saveOps(id, ops); } // from here on the server may hold it
         try {
           if (op.type === 'add') {
-            const res = await api(`/matches/${id}/actions`, { method: 'POST', body: op.action });
+            const res = await api(`/matches/${mid}/actions`, { method: 'POST', body: op.action });
+            if (stale(mid)) return;
             match = { ...match, actions: [...match.actions.filter((x) => x.seq !== res.action.seq), res.action] };
           } else {
             const q = op.cid ? `cid=${encodeURIComponent(op.cid)}` : `seq=${op.seq}`;
-            const res = await api(`/matches/${id}/actions/last?${q}`, { method: 'DELETE' });
+            const res = await api(`/matches/${mid}/actions/last?${q}`, { method: 'DELETE' });
+            if (stale(mid)) return;
             // a retry whose target is already gone answers removed:null; the
             // local log still holds the action, so take it out by target either way
             const gone = res.removed ? (x) => x.seq !== res.removed.seq : (x) => (op.cid ? x.cid !== op.cid : x.seq !== op.seq);
@@ -186,11 +195,12 @@
           }
           ops = ops.filter((o) => o !== op);
           gen++;
-          saveOps(id, ops);
+          saveOps(mid, ops);
           cacheMatch(id, match);
           retryDelay = 5000;
           conflicts = 0;
         } catch (e) {
+          if (stale(mid)) return;
           if (e.offline) {
             // no answer: the online event flushes again, but the browser may
             // stay "online" while the server is unreachable, so retry anyway
@@ -200,8 +210,13 @@
           }
           if (e.status === 409) {
             if (++conflicts > 2) { keepDropped(id, ops); ops = []; saveOps(id, ops); showToast('Konflikt mit dem Server, eigene Aktionen verworfen', true); break; }
-            const m = await api(`/matches/${id}`).catch(() => null);
-            if (!m) break;
+            const m = await api(`/matches/${mid}`).catch(() => null);
+            if (stale(mid)) return;
+            if (!m) { // the recovery reload failed too: same backoff as any other error
+              retryTimer = setTimeout(flush, retryDelay);
+              retryDelay = Math.min(retryDelay * 2, 60000);
+              break;
+            }
             adopt(m);
             continue;
           }

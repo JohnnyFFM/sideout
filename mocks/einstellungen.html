@@ -14,12 +14,9 @@
     /* ---- concept ----
        Avatar (initials) in the top bar opens a menu, kursbude-style:
          Konto (the login: name, password, later e-mail) · Einstellungen (this device) · Abmelden
-       Teams is the big one and gets its own tab (5th): team cards with Stammdaten,
-       Kader summary, Trainer:innen & Helfer, Team-Code, plus anlegen / beitreten.
-       Every view is ONE column. Switch views via the menu, the tab bar or #konto #app #teams. */
-
-    /* five tabs on the phone bar */
-    @media (max-width: 760px) { .tabbar { grid-template-columns: repeat(5, 1fr); } }
+       Teams (menu only): anlegen / beitreten first, then one collapsed card per team with
+       Stammdaten, Kader summary, Trainer:innen & Helfer, Team-Code.
+       Every view is ONE column. Switch views via the menu or #konto #app #teams. */
 
     /* ---------- avatar + menu ---------- */
     .avatar-btn { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: var(--accent-soft); color: var(--accent-text); font-family: var(--disp); font-weight: 700; font-size: 14px; display: grid; place-items: center; cursor: pointer; padding: 0; }
@@ -112,7 +109,7 @@
     .invite .code { font-family: var(--disp); font-size: 26px; font-weight: 700; letter-spacing: 0.08em; }
     .invite .small { line-height: 1.35; }
     @media (max-width: 520px) { .invite { grid-template-columns: 1fr auto; grid-auto-flow: dense; } .invite .small { grid-column: 1 / -1; } }
-    .addteam { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+    .addteam { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     @media (max-width: 640px) { .addteam { grid-template-columns: 1fr; } }
     .addteam form { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
     .danger-link { color: var(--g-err); background: none; border: 0; font-weight: 600; cursor: pointer; font-size: 13px; padding: 0; }
@@ -122,11 +119,10 @@
   <header class="topbar">
     <a class="brand" href="index.html"><span class="tick">▲</span>SIDEOUT</a>
     <nav class="nav">
-      <a href="index.html">Start</a>
+      <a href="index.html">Team</a>
       <a href="live.html">Spiele</a>
       <a href="auswertung.html">Auswertung</a>
       <a href="spiel.html">Kader</a>
-      <a href="#teams" data-view="teams">Teams</a>
     </nav>
     <span class="spacer"></span>
     <span class="sync-chip" title="Live verbunden"><span class="dot"></span><span class="desk">TSV Eintracht Damen 1</span></span>
@@ -140,17 +136,16 @@
     <div class="sep"></div>
     <a href="#konto" data-view="konto"><span class="glyph av">JS</span><span>Konto<span class="sub2">Name, Passwort</span></span></a>
     <a href="#app" data-view="app"><span class="glyph">⚙</span><span>Einstellungen<span class="sub2">Darstellung, App, Diagnose</span></span></a>
-    <a href="#teams" data-view="teams"><span class="glyph">⚑</span><span>Teams<span class="sub2">3 Teams · Helfer, Team-Code</span></span></a>
+    <a href="#teams" data-view="teams"><span class="glyph">⚑</span><span>Teams<span class="sub2">3 Teams · Stammdaten, Helfer, Team-Code</span></span></a>
     <div class="sep"></div>
     <button class="row-btn out"><span class="glyph">⏻</span><span>Abmelden</span></button>
   </div>
 
   <nav class="tabbar">
-    <a href="index.html"><span class="ico">⌂</span>Start</a>
+    <a href="index.html"><span class="ico">⌂</span>Team</a>
     <a href="live.html"><span class="ico">●</span>Spiele</a>
     <a href="auswertung.html"><span class="ico">≡</span>Auswertung</a>
     <a href="spiel.html"><span class="ico">☷</span>Kader</a>
-    <a href="#teams" data-view="teams"><span class="ico">⚑</span>Teams</a>
   </nav>
 
   <!-- ===================== KONTO ===================== -->
@@ -228,9 +223,19 @@
 
   <!-- ===================== TEAMS ===================== -->
   <main class="page mid view" id="v-teams">
-    <div class="toolbar"><div><h1>Teams</h1><div class="tsub">ein Login, mehrere Teams · aufklappen zum Bearbeiten</div></div></div>
+    <div class="toolbar"><div><h1>Teams</h1><div class="tsub">ein Login, mehrere Teams · antippen zum Aufklappen</div></div></div>
 
-    <section class="panel team cur open" id="t1">
+    <section class="panel">
+      <div class="panel-head"><h2>Team hinzufügen</h2><span class="small muted">neu anlegen oder per Code beitreten</span></div>
+      <div class="addteam">
+      <form onsubmit="return false"><label class="f">Neues Team anlegen<input type="text" placeholder="z. B. TSV Eintracht III" /></label><button class="btn" type="submit">Anlegen</button></form>
+      <form onsubmit="return false"><label class="f">Team beitreten<input type="text" placeholder="Team-Code XXX-0000" autocapitalize="characters" /></label><button class="btn" type="submit">Beitreten</button></form>
+    </div>
+      <p class="hint">Wer per Code beitritt, kann erst mal nur lesen. Trainer:innen befördern im Team zur Co-Trainer:in.</p>
+    </section>
+    <p class="foot" style="margin:14px 0 8px">Das aktive Team steht oben in der Leiste. Spiele, Auswertung und Kader gehören immer zum aktiven Team.</p>
+
+    <section class="panel team cur" id="t1">
       <div class="team-head" role="button" tabindex="0" onclick="toggle('t1')">
         <span>
           <span class="t">TSV Eintracht Damen 1 <span class="caret">›</span></span>
@@ -254,15 +259,15 @@
           </form>
         </div>
         <div class="sub">
-          <div class="sub-head"><h3>Kader</h3><span class="small muted">Spielerinnen dieses Teams</span></div>
+          <div class="sub-head"><h3>Kader</h3><span class="small muted">öffnet den Kader dieses Teams</span></div>
           <div class="kader">
             <div class="n">14<small>aktiv · 2 ehemalige</small></div>
             <div class="pos"><span class="chip pos-Z">2 Zuspiel</span><span class="chip pos-A">4 Außen</span><span class="chip pos-M">3 Mitte</span><span class="chip pos-D">3 Diagonal</span><span class="chip pos-L">2 Libero</span></div>
-            <a class="btn go" href="spiel.html">Kader bearbeiten →</a>
+            <a class="btn go" href="spiel.html" title="wählt das Team und öffnet den Kader">Kader bearbeiten →</a>
           </div>
         </div>
         <div class="sub">
-          <div class="sub-head"><h3>Trainer:innen &amp; Helfer</h3><span class="small muted">wer scouten oder zuschauen darf</span></div>
+          <div class="sub-head"><h3>Trainer:innen &amp; Helfer</h3><span class="small muted">Rollen ändert nur die Trainer:in</span></div>
           <ul class="members">
             <li><span class="av me">JS</span><span><b>Jonas Steitz</b> <span class="muted small">(du)</span><div class="u">jonas</div></span><span class="chip">Trainer:in</span><span></span></li>
             <li><span class="av">PK</span><span><b>Petra Kuhn</b><div class="u">petra.k</div></span>
@@ -274,7 +279,7 @@
           </ul>
           <div class="invite">
             <div class="code">TSV-4821</div>
-            <div class="small muted">Team-Code zum Beitreten. Wer beitritt, ist Co-Trainer:in und kann scouten; die Rolle änderst du oben.</div>
+            <div class="small muted">Team-Code zum Beitreten. Wer beitritt, kann erst mal nur lesen. Zum Scouten oben auf Co-Trainer:in setzen.</div>
             <button class="btn">Neu erzeugen</button>
           </div>
         </div>
@@ -291,12 +296,12 @@
       </div>
       <div class="team-body">
         <div class="sub">
-          <div class="sub-head"><h3>Stammdaten</h3><span class="small muted">nur Trainer:innen ändern das</span></div>
+          <div class="sub-head"><h3>Stammdaten</h3><span class="small muted">nur die Trainer:in ändert das</span></div>
           <div class="small">TSV Eintracht Damen 2 · TSV2 · Bezirksliga · 2026/27</div>
         </div>
         <div class="sub">
           <div class="sub-head"><h3>Kader</h3></div>
-          <div class="kader"><div class="n">11<small>aktiv</small></div><div class="pos"><span class="chip pos-Z">2 Zuspiel</span><span class="chip pos-A">3 Außen</span><span class="chip pos-M">2 Mitte</span><span class="chip pos-D">2 Diagonal</span><span class="chip pos-L">2 Libero</span></div><a class="btn go" href="spiel.html">Kader ansehen →</a></div>
+          <div class="kader"><div class="n">11<small>aktiv</small></div><div class="pos"><span class="chip pos-Z">2 Zuspiel</span><span class="chip pos-A">3 Außen</span><span class="chip pos-M">2 Mitte</span><span class="chip pos-D">2 Diagonal</span><span class="chip pos-L">2 Libero</span></div><a class="btn go" href="spiel.html" title="wählt das Team und öffnet den Kader">Kader bearbeiten →</a></div>
         </div>
         <div class="sub">
           <div class="sub-head"><h3>Trainer:innen &amp; Helfer</h3></div>
@@ -304,7 +309,7 @@
             <li><span class="av">AB</span><span><b>Anna Berger</b><div class="u">anna.b</div></span><span class="chip">Trainer:in</span><span></span></li>
             <li><span class="av me">JS</span><span><b>Jonas Steitz</b> <span class="muted small">(du)</span><div class="u">jonas</div></span><span class="chip">Co-Trainer:in / Scout</span><span></span></li>
           </ul>
-          <p class="small muted" style="margin:10px 0 0"><button class="danger-link">Team verlassen</button> <span class="chip new">neu</span></p>
+          <p class="small muted" style="margin:10px 0 0">Du bist Co-Trainer:in: Rollen und Team-Code verwaltet Anna Berger. <button class="danger-link">Team verlassen</button> <span class="chip new">neu</span></p>
         </div>
       </div>
     </section>
@@ -334,23 +339,18 @@
         </div>
         <div class="sub">
           <div class="sub-head"><h3>Kader</h3></div>
-          <div class="kader"><div class="n">9<small>aktiv</small></div><div class="pos"><span class="chip pos-Z">1 Zuspiel</span><span class="chip pos-A">3 Außen</span><span class="chip pos-M">2 Mitte</span><span class="chip pos-D">2 Diagonal</span><span class="chip pos-L">1 Libero</span></div><a class="btn go" href="spiel.html">Kader bearbeiten →</a></div>
+          <div class="kader"><div class="n">9<small>aktiv</small></div><div class="pos"><span class="chip pos-Z">1 Zuspiel</span><span class="chip pos-A">3 Außen</span><span class="chip pos-M">2 Mitte</span><span class="chip pos-D">2 Diagonal</span><span class="chip pos-L">1 Libero</span></div><a class="btn go" href="spiel.html" title="wählt das Team und öffnet den Kader">Kader bearbeiten →</a></div>
         </div>
         <div class="sub">
           <div class="sub-head"><h3>Trainer:innen &amp; Helfer</h3></div>
           <ul class="members">
             <li><span class="av me">JS</span><span><b>Jonas Steitz</b> <span class="muted small">(du)</span><div class="u">jonas</div></span><span class="chip">Trainer:in</span><span></span></li>
           </ul>
-          <div class="invite"><div class="code">SVB-9037</div><div class="small muted">Noch niemand dabei. Code weitergeben, damit Co-Trainer:innen mitscouten können.</div><button class="btn">Neu erzeugen</button></div>
+          <div class="invite"><div class="code">SVB-9037</div><div class="small muted">Noch niemand dabei. Code weitergeben; wer beitritt, kann erst mal nur lesen.</div><button class="btn">Neu erzeugen</button></div>
         </div>
       </div>
     </section>
 
-    <div class="addteam">
-      <form onsubmit="return false"><label class="f">Neues Team anlegen<input type="text" placeholder="z. B. TSV Eintracht III" /></label><button class="btn" type="submit">Anlegen</button></form>
-      <form onsubmit="return false"><label class="f">Team beitreten<input type="text" placeholder="Team-Code XXX-0000" autocapitalize="characters" /></label><button class="btn" type="submit">Beitreten</button></form>
-    </div>
-    <p class="foot">Das aktive Team steht oben in der Leiste. Spiele, Auswertung und Kader gehören immer zum aktiven Team.</p>
   </main>
 
   <script>

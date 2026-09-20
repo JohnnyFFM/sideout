@@ -104,7 +104,7 @@ match ends at three sets.
 | `auswertung.html` | evaluation | tiles, box score (horizontal scroll), charts stacked | full box score, 2-col charts |
 | `spiel.html` | match setup | form, lineup court, roster | two columns |
 | `index.html` | team home | live card, season tiles, matches, top lists | three columns |
-| `einstellungen.html` | account menu + settings | avatar → menu (Konto · Einstellungen · Teams · Abmelden); Teams as 5th tab; every view one column | same, narrow column |
+| `einstellungen.html` | account menu + settings | avatar → menu (Konto · Einstellungen · Teams · Abmelden); Teams: hinzufügen first, then collapsed team cards; every view one column | same, narrow column |
 
 The live screen is designed for a 390 px phone first; tap targets are
 52 px minimum, contrast tuned for a bright hall, and the pad never
