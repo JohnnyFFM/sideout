@@ -262,6 +262,9 @@ input[type=text], input[type=date], input[type=time], input[type=number], select
 .row { display: flex; gap: 10px; flex-wrap: wrap; }
 .row > * { flex: 1; min-width: 120px; }
 
+/* a bench chip in flight: the whole page shows a grabbing hand and selects nothing */
+body.dragging, body.dragging * { cursor: grabbing !important; user-select: none; -webkit-user-select: none; }
+
 /* ---------- misc ---------- */
 .empty { color: var(--ink-3); text-align: center; padding: 24px; font-size: 14px; }
 .toast {

@@ -197,6 +197,12 @@
     try { e.currentTarget.setPointerCapture?.(e.pointerId); } catch { /* synthetic or already-released pointer */ }
     drag = { id: pid, x: e.clientX, y: e.clientY, moved: false };
   }
+  // grabbing cursor and no text selection while a chip is in flight
+  $effect(() => {
+    document.body.classList.toggle('dragging', !!drag?.moved);
+    return () => document.body.classList.remove('dragging');
+  });
+
   // the court positions a chip may be dropped on
   function validTargets(chipId) {
     if (!st) return [];
@@ -322,6 +328,10 @@
               {/each}
             </div>
           {/if}
+          {#if drag?.moved}
+            {@const gp = byId[drag.id]}
+            <div class="dragghost" class:libero={drag.id === st.libero} style="left:{drag.x}px; top:{drag.y}px"><b>{gp?.number}</b><span>{firstName(gp)}</span></div>
+          {/if}
           {#if selected && !drag}
             <div class="court-foot">
               <span class="chip pos-{byId[selected]?.position}">{byId[selected]?.number} {firstName(byId[selected])}</span><span>ausgewählt, jetzt Aktion tippen</span>
@@ -412,15 +422,6 @@
   /* tablet, portrait or landscape (760–1099px): left column = score, court,
      undo, then the live stats; the pad spans the right side; the timeline
      runs across the bottom. Natural heights, page scrolls if it must. */
-  @media (min-width: 760px) and (max-width: 999px) {
-    .live { grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); grid-template-rows: auto auto auto; align-items: start; }
-    .col.left { grid-column: 1; grid-row: 1; }
-    .col.mid { grid-column: 2; grid-row: 1 / span 2; position: sticky; top: 64px; }
-    .col.right { grid-column: 1; grid-row: 2; }
-    .col.right .stats-panel { max-height: 300px; overflow: auto; }
-    .timeline { grid-column: 1 / -1; grid-row: 3; }
-    .col.mid :global(.pad) { grid-template-rows: auto repeat(6, minmax(58px, auto)); }
-  }
   .col { display: grid; gap: 12px; align-content: start; min-width: 0; }
   .timeline { min-width: 0; }
   :global(.score .catch) { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 4px; }
@@ -454,8 +455,9 @@
     .live-page { padding-top: 10px; }
     .live { gap: 10px; } .col { gap: 8px; }
     :global(.score .pts) { font-size: 38px; }
-    .col.left .court-wrap :global(.court) { min-height: 200px; }
+    .col.left .court-wrap :global(.court) { min-height: 190px; }
     .col.left .court-wrap :global(.slot) { min-height: 0; }
+    #lastBox { padding: 8px 12px; }
     .col.mid :global(.pad) { grid-template-rows: auto repeat(6, minmax(50px, 1fr)); }
     .col.mid :global(.pad .cell) { min-height: 0; }
     .col.mid :global(.pad .cell b) { font-size: 17px; }
@@ -492,7 +494,17 @@
   .chipb.libero { border-color: var(--court-line); background: var(--court-soft); }
   .chipb.libero small { color: var(--court-line); }
   .chipb.out { border-style: dashed; }
-  .chipb.dragging { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 2px var(--accent-soft); }
+  .chipb.dragging { opacity: 0.35; }
+  .dragghost {
+    position: fixed; z-index: 50; transform: translate(-50%, -50%) scale(1.1); pointer-events: none;
+    display: grid; grid-template-columns: auto auto; align-items: baseline; column-gap: 6px;
+    height: 42px; padding: 0 14px; border-radius: 21px; border: 1px solid var(--accent);
+    background: var(--panel); color: var(--ink); box-shadow: 0 12px 32px #000b, 0 0 0 3px var(--accent-soft);
+  }
+  .dragghost b { font-family: var(--disp); font-size: 19px; font-weight: 700; }
+  .dragghost span { font-size: 13px; color: var(--ink-2); }
+  .dragghost.libero { border-color: var(--court-line); box-shadow: 0 12px 32px #000b, 0 0 0 3px var(--court-soft); }
+  .dragghost.libero span { color: var(--court-line); }
   .chipb:disabled { opacity: 0.4; cursor: default; }
   .btn.sm { height: 28px; padding: 0 10px; font-size: 12px; }
   .hint { padding: 8px 12px; font-size: 13px; color: var(--ink-2); }
@@ -647,6 +659,33 @@
     .col.mid > .done { grid-column: 2; grid-row: 4; }
     .col.right > .stats-panel { display: none; }
     .live.pv-stats .col.right > .stats-panel { display: block; grid-column: 2; grid-row: 1 / span 4; min-height: 0; overflow: auto; }
+    .live.pv-stats .col.mid > :global(.pad), .live.pv-stats .col.mid > .pad-foot { display: none; }
+  }
+  /* tablet portrait (760–999px): like the phone, but two columns. Left:
+     score with the two board icons, timeline, court + bench, undo. Right: the
+     pad with its buttons, or the stats when the chart icon is on. */
+  @media (min-width: 760px) and (max-width: 999px) and (min-height: 541px) {
+    .live { display: grid; grid-template-columns: minmax(300px, 400px) minmax(0, 1fr); grid-template-rows: auto auto auto auto; align-items: start; gap: 12px; }
+    /* rows: 1 score · 2 court · 3 undo · 4 timeline across both columns; the pad spans 1–2, its buttons sit in row 3 */
+    .col { display: contents; }
+    .col.left > :global(.score) { grid-column: 1; grid-row: 1; position: relative; padding: 8px 46px; }
+    .board-btn { display: grid; place-items: center; position: absolute; top: 8px; width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--line-soft); background: var(--raised); color: var(--ink-2); z-index: 1; }
+    .board-btn.left { left: 8px; } .board-btn.right { right: 8px; }
+    .board-btn.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-text); }
+    :global(.score .catch) { display: none; grid-template-columns: 1fr 1fr; margin-top: 8px; }
+    .live.extras :global(.score .catch) { display: grid; }
+    .timeline { grid-column: 1 / -1; grid-row: 4; display: flex; align-items: center; gap: 6px; padding: 6px 10px; min-width: 0; }
+    .tl-head { display: none; }
+    .tl { flex: 1 1 auto; min-width: 0; order: 1; padding: 2px 0; gap: 4px; }
+    .tl-undo { display: none; }
+    .col.left > .hint { grid-column: 1; grid-row: 2; }
+    .col.left > .court-wrap { grid-column: 1; grid-row: 2; }
+    #lastBox { grid-column: 1; grid-row: 3; }
+    .col.mid > :global(.pad) { grid-column: 2; grid-row: 1 / span 2; grid-template-rows: auto repeat(6, minmax(58px, auto)); }
+    .col.mid > .pad-foot { grid-column: 2; grid-row: 3; }
+    .col.mid > .done { grid-column: 2; grid-row: 3; }
+    .col.right > .stats-panel { display: none; }
+    .live.pv-stats .col.right > .stats-panel { display: block; grid-column: 2; grid-row: 1 / span 3; }
     .live.pv-stats .col.mid > :global(.pad), .live.pv-stats .col.mid > .pad-foot { display: none; }
   }
 </style>
