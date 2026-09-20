@@ -137,6 +137,7 @@ button { font: inherit; color: inherit; }
   .tabbar a .ico { display: block; font-size: 18px; line-height: 1.1; }
   .tabbar a.active { color: var(--accent-text); }
   body.has-tabbar { padding-bottom: calc(var(--tabbar-h) + 8px); }
+  body.live-phone .topbar { display: none; }
 }
 
 /* ---------- page ---------- */

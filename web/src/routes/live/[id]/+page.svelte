@@ -82,6 +82,13 @@
   });
   $effect(() => { if ($online) untrack(flush); });
 
+  // phone: the live screen has no top bar. Scoped via a body class, because a
+  // :global rule in this component would stay loaded after leaving the page.
+  $effect(() => {
+    document.body.classList.add('live-phone');
+    return () => document.body.classList.remove('live-phone');
+  });
+
   // keep the screen on while scouting
   $effect(() => {
     let lock = null;
@@ -492,7 +499,6 @@
      Feld/Werte toggle, court, pad, opponent buttons; the timeline is docked
      above the tab bar with the undo button; bench and catch-up fold away. */
   @media (max-width: 759px) {
-    :global(.topbar) { display: none; }
     .live-page { padding: calc(6px + env(safe-area-inset-top)) 8px calc(var(--tabbar-h) + 66px); }
     .live { gap: 6px; } .col { gap: 6px; }
     .phone-ctl { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 4px; margin-top: 4px; }
