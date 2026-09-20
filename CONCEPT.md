@@ -185,6 +185,9 @@ gets the full-screen, no-browser-chrome mode the pad needs.
 4. Later: attack direction / zones on the court, opponent scouting,
    second scouter (two phones, one match), share a read-only live link with
    parents/players, Data Volley `.dvw` export for the openvolley toolchain.
+5. After the domain (HTTPS, 2026-09-20 decision): fuller offline mode —
+   "offline ready" marker with prefetch of upcoming matches, evaluation
+   from the local log without server, creating matches offline.
 
 ## Decisions worth remembering
 

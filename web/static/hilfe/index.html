@@ -182,7 +182,7 @@
         <span class="l">Zuspiel</span><span class="c g-win"><b>#</b>Perfekt</span><span class="c g-pos"><b>+</b>Gut</span><span class="c g-mid"><b>!</b>OK</span><span class="c g-neg"><b>-</b>Schwach</span><span class="c none"></span><span class="c g-err"><b>=</b>Fehler</span>
         <span class="l">Angriff</span><span class="c g-win"><b>#</b>Punkt</span><span class="c g-pos"><b>+</b>Gut</span><span class="c g-mid"><b>!</b>Rally</span><span class="c g-neg"><b>-</b>Schwach</span><span class="c g-half"><b>/</b>Geblockt</span><span class="c g-err"><b>=</b>Fehler</span>
         <span class="l">Block</span><span class="c g-win"><b>#</b>Punkt</span><span class="c g-pos"><b>+</b>Touch+</span><span class="c g-mid"><b>!</b>Touch</span><span class="c g-neg"><b>-</b>Touch−</span><span class="c none"></span><span class="c g-err"><b>=</b>Fehler</span>
-        <span class="l">Abwehr</span><span class="c g-win"><b>#</b>Perfekt</span><span class="c g-pos"><b>+</b>Gut</span><span class="c g-mid"><b>!</b>OK</span><span class="c g-neg"><b>-</b>Schwach</span><span class="c none"></span><span class="c g-err"><b>=</b>Fehler</span>
+        <span class="l">Abwehr</span><span class="c g-win"><b>#</b>Perfekt</span><span class="c g-pos"><b>+</b>Gut</span><span class="c g-mid"><b>!</b>OK</span><span class="c g-neg"><b>-</b>Schwach</span><span class="c g-half"><b>/</b>Overpass</span><span class="c g-err"><b>=</b>Fehler</span>
       </div>
       <p><b>Diese Zellen beenden den Ballwechsel:</b></p>
       <ul>
@@ -209,7 +209,7 @@
         <li><b>Wechsel:</b> Chip aus der Bank auf die Karte ziehen (siehe oben).</li>
         <li><b>Rückgängig:</b> Der Knopf <span class="ui">Rückgängig</span> (Pfeil zurück) nimmt die letzte Aktion zurück, beliebig oft. Punkte, Rotation und Aufschlagrecht folgen automatisch.</li>
         <li><b>Laptop:</b> Tasten <kbd>1</kbd> bis <kbd>6</kbd> wählen die Positionen I bis VI, <kbd>Strg</kbd>+<kbd>Z</kbd> macht rückgängig, <kbd>Esc</kbd> hebt die Auswahl auf.</li>
-        <li><b>Live-Werte:</b> Rechts (oder auf dem Handy unter dem Pad) stehen Sideout, Break und Angriff-Effizienz mit einer kleinen Tabelle, umschaltbar zwischen <span class="ui">Satz</span> und <span class="ui">Spiel</span>.</li>
+        <li><b>Live-Werte:</b> Rechts (auf dem Handy und im Tablet-Hochformat hinter dem Diagramm-Symbol im Spielstand) stehen Sideout, Break und Angriff-Effizienz mit einer kleinen Tabelle, umschaltbar zwischen <span class="ui">Satz</span> und <span class="ui">Spiel</span>.</li>
         <li><b>Verlauf:</b> Der Verlauf läuft als Zeitstrahl von links nach rechts: ein Kästchen pro Aktion mit Nummer, Aktion und Bewertung, nach jedem Ballwechsel der Spielstand (grün gewonnen, rot verloren), ein Strich pro Satz. Er scrollt von selbst zur neuesten Aktion; nach links wischen zeigt frühere. Auf dem Laptop passt alles auf einen Bildschirm, lange Tabellen scrollen in ihrer Karte.</li>
       </ul>
 
@@ -271,7 +271,7 @@
         <li><b>Woher die Punkte kommen:</b> Angriff, Aufschlag, Block, Gegnerfehler.</li>
         <li><b>Wie Punkte verloren gehen:</b> Gegner-Punkt, Angriffsfehler, Aufschlagfehler, andere Fehler.</li>
         <li><b>Punkte pro Spielerin</b> als Balken.</li>
-        <li><b>Annahme-, Angriff- und Aufschlag-Qualität:</b> pro Spielerin die Verteilung der Bewertungen als farbiger Balken, mit der Zahl der Versuche rechts. Fahre mit dem Finger oder der Maus über ein Segment für die genaue Zahl.</li>
+        <li><b>Annahme-, Angriff- und Aufschlag-Qualität:</b> die Verteilung der Bewertungen als farbiger Balken, mit der Zahl der Versuche rechts. Die erste Zeile ist das Team, darunter jede Spielerin ab zwei Versuchen (Aufschlag ab einem). Fahre mit dem Finger oder der Maus über ein Segment für die genaue Zahl.</li>
       </ul>
       <h3>Export CSV</h3>
       <p><span class="ui">Export CSV</span> lädt das komplette Aktionsprotokoll als Tabelle: eine Zeile pro Aktion mit Satz, Ballwechsel, Spielstand davor, Aufschlagrecht, Rotation (Nummer auf Position I), Spielerin, Aktion, Bewertung, Ausgang und Wechsel. Damit kannst du in Excel oder in Statistik-Tools weiterrechnen.</p>
@@ -288,6 +288,9 @@
         <li><b>Mitglieder:</b> Rolle pro Person ändern oder Mitglied entfernen. Die eigene Trainer-Rolle lässt sich nicht abgeben.</li>
         <li><b>Abmelden</b> oben rechts beendet die Sitzung auf diesem Gerät.</li>
         <li><b>Hell oder dunkel:</b> die Sonne bzw. der Mond oben in der Leiste wechselt das Farbschema, pro Gerät gespeichert.</li>
+        <li><b>Meine Teams:</b> alle Teams deines Kontos mit Rolle. Hier legst du ein weiteres Team an oder trittst mit einem Team-Code bei; wechseln geht über die Auswahl oben in der Leiste.</li>
+        <li><b>Diagnose:</b> zeigt, ob die Live-Verbindung steht, und sammelt Fehler der App auf diesem Gerät. Hilfreich, wenn etwas hakt und du es melden willst.</li>
+        <li><b>Anleitung:</b> der Link zu dieser Seite.</li>
       </ul>
 
       <h2 id="faq">Häufige Fragen</h2>
@@ -297,13 +300,15 @@
         <dt>Der Satz wurde falsch beendet.</dt>
         <dd>Satzende ist nur gerechnet, nicht gespeichert. Rückgängig nimmt die letzte Aktion zurück, und der Satz läuft weiter.</dd>
         <dt>Die falsche Spielerin steht auf dem Feld.</dt>
-        <dd>Während des Satzes: <span class="ui">⇄ Wechsel</span>. Für den nächsten Satz: Aufstellung unter Spiele bearbeiten. Ist der Satz noch nicht gescoutet, kannst du seine Aufstellung frei ändern.</dd>
+        <dd>Während des Satzes: den Chip aus der Bank auf die Karte ziehen. Für den nächsten Satz: Aufstellung unter Spiele bearbeiten. Ist der Satz noch nicht gescoutet, kannst du seine Aufstellung frei ändern.</dd>
         <dt>Kein Empfang in der Halle.</dt>
         <dd>Weiter tippen. Alles wird lokal gespeichert und später gesendet. Die App vorher einmal mit Verbindung öffnen, damit das Spiel geladen ist.</dd>
         <dt>Wem gehören die Daten?</dt>
         <dd>Dem Verein. Sideout läuft auf eurem eigenen Server, es gibt keinen Anbieter dazwischen.</dd>
         <dt>Wo liegen die Daten?</dt>
         <dd>In einer SQLite-Datei auf dem Server, auf dem Sideout läuft. Ein Backup ist eine Kopie dieser Datei.</dd>
+        <dt>Unten erscheint „Neue Version verfügbar“.</dt>
+        <dd>Sideout wurde aktualisiert. Tippen lädt die App neu, ausstehende Aktionen bleiben erhalten. Ohne Tippen passiert es beim nächsten Seitenwechsel von selbst.</dd>
         <dt>Kann ich den Gegner mit scouten?</dt>
         <dd>Noch nicht. Sideout zählt das eigene Team; Gegnerpunkte und Gegnerfehler kommen über die beiden Knöpfe unter dem Pad.</dd>
       </dl>
