@@ -123,8 +123,12 @@ async fn main() {
         inner
     } else {
         let target = format!("{base}/");
+        // `nest` matches `{base}` and `{base}/anything` but not the bare `{base}/`,
+        // so the trailing-slash form (the redirect target) gets the SPA explicitly
+        let index = ServeFile::new(state.config.web_dir.join("index.html"));
         axum::Router::new()
             .route("/", axum::routing::get(move || { let t = target.clone(); async move { axum::response::Redirect::temporary(&t) } }))
+            .route_service(&format!("{base}/"), index)
             .nest(&base, inner)
     };
     let app = app

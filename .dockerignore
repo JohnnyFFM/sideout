@@ -1,8 +1,9 @@
-server/target/
+server/target*/
 server/data/
 data/
 web/node_modules/
 web/build/
+web/build-*/
 web/.svelte-kit/
 mocks/
 .git/
