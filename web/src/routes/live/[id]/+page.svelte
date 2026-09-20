@@ -18,6 +18,7 @@
   let scope = $state('set');
   let flushing = false;
   let inflight = null;      // the op whose request is on the wire
+  let gen = 0;              // bumps on every local change; a refresh started before it is stale
   let retryTimer = null;
   let retryDelay = 5000;
   let loadError = $state('');
@@ -63,8 +64,12 @@
     if (inflight) return; // a request is on the wire; its answer settles the queue
     const saved = loadOps(id);
     if (JSON.stringify(saved) !== JSON.stringify(ops)) ops = saved;
+    const g = gen;
     try {
       const m = await api(`/matches/${id}`);
+      // something changed locally while this answer was on its way (a tap,
+      // a save): it is older than what we show, so drop it and ask again
+      if (g !== gen) { load(); return; }
       adopt(m);
       loadError = '';
     } catch (e) {
@@ -85,6 +90,7 @@
       showToast(`Ein anderes Gerät hat gescoutet: ${r.dropped.length} eigene Aktionen verworfen`, true);
     }
     ops = r.ops;
+    gen++;
     saveOps(id, ops);
     match = m;
     cacheMatch(id, m);
@@ -99,7 +105,10 @@
     const m = $mutations;
     if (!m) return;
     untrack(() => {
-      if (match && ((m.entity === 'action' || m.entity === 'match') && m.id === id || m.entity === 'resync') && ops.length === 0) load();
+      if (!match) return;
+      const mine = (m.entity === 'action' || m.entity === 'match') && m.id === id;
+      if ((mine || m.entity === 'resync') && ops.length === 0) load();
+      else if (m.entity === 'resync' && ops.length) flush(); // the stream is back: connectivity too
     });
   });
   $effect(() => { if ($online) untrack(flush); });
@@ -139,6 +148,7 @@
     const before = st;
     const seq = (actionsAll[actionsAll.length - 1]?.seq || 0) + 1;
     ops = [...ops, { type: 'add', action: { id: -seq, seq, cid: newCid(), grade: null, player_id: null, sub_out: null, sub_in: null, ...a } }];
+    gen++;
     saveOps(id, ops);
     selected = null;
     const after = replay(cfg, applyOps(match.actions, ops));
@@ -175,12 +185,19 @@
             match = { ...match, actions: match.actions.filter(gone) };
           }
           ops = ops.filter((o) => o !== op);
+          gen++;
           saveOps(id, ops);
           cacheMatch(id, match);
           retryDelay = 5000;
           conflicts = 0;
         } catch (e) {
-          if (e.offline) break; // retry when back online
+          if (e.offline) {
+            // no answer: the online event flushes again, but the browser may
+            // stay "online" while the server is unreachable, so retry anyway
+            retryTimer = setTimeout(flush, retryDelay);
+            retryDelay = Math.min(retryDelay * 2, 60000);
+            break;
+          }
           if (e.status === 409) {
             if (++conflicts > 2) { keepDropped(id, ops); ops = []; saveOps(id, ops); showToast('Konflikt mit dem Server, eigene Aktionen verworfen', true); break; }
             const m = await api(`/matches/${id}`).catch(() => null);
@@ -353,6 +370,7 @@
     // undo, because the server may hold it
     if (lastOp?.type === 'add' && !lastOp.sent && lastOp !== inflight) ops = ops.slice(0, -1);
     else ops = [...ops, { type: 'undo', cid: a.cid ?? null, seq: a.seq }];
+    gen++;
     saveOps(id, ops);
     selected = null;
     showToast('Rückgängig: ' + describe(a));
