@@ -310,7 +310,7 @@
               <button onclick={() => queue({ skill: 'adj', grade: '#' })}>+1 wir</button>
               <button onclick={() => queue({ skill: 'adj', grade: '=' })}>+1 Gegner</button>
               <button onclick={() => queue({ skill: 'rot' })}>⟳ Rotieren</button>
-              <button onclick={() => queue({ skill: 'srv', grade: st.serving ? '=' : '#' })} title="Aufschlagrecht setzen"><span class="ballico"></span>→ {st.serving ? 'Gegner' : 'wir'}</button>
+              <button onclick={() => queue({ skill: 'srv', grade: st.serving ? '=' : '#' })} title="Aufschlagrecht wechseln">⇄ Aufschlag</button>
             </div>
           {/if}
         </section>
@@ -427,7 +427,6 @@
   :global(.score .catch) { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 4px; }
   :global(.score .catch button) { height: 30px; border-radius: 6px; border: 1px dashed var(--line); background: transparent; color: var(--ink-2); font-size: 12px; font-weight: 600; cursor: pointer; }
   :global(.score .catch button:hover) { background: var(--raised); color: var(--ink); }
-  :global(.score .catch .ballico) { display: inline-block; width: 12px; height: 12px; background: url(/icon.svg) center / contain no-repeat; margin-right: 3px; vertical-align: -2px; }
   /* desktop: one screen. Row 1 = three cards of equal height (each scrolls
      inside if it must), row 2 = the timeline across the full width. */
   /* desktop: the row takes its natural height (the taller of the left and
