@@ -308,9 +308,25 @@
   }
   $effect(() => {
     void benchChips; const el = benchEl; if (!el) return;
-    tick().then(layoutBench);
-    const ro = new ResizeObserver(() => layoutBench()); ro.observe(el);
-    return () => ro.disconnect();
+    let frame = null;
+    let disposed = false;
+    // Pagination can show/hide the arrows, which changes the observed width.
+    // Apply it next frame, outside ResizeObserver's notification delivery,
+    // and coalesce resize bursts (for example while rotating the phone).
+    const schedule = () => {
+      if (disposed || frame !== null) return;
+      frame = requestAnimationFrame(() => {
+        frame = null;
+        if (!disposed) layoutBench();
+      });
+    };
+    tick().then(schedule);
+    const ro = new ResizeObserver(schedule); ro.observe(el);
+    return () => {
+      disposed = true;
+      ro.disconnect();
+      if (frame !== null) cancelAnimationFrame(frame);
+    };
   });
   // show the page: shift the row so the page's first chip sits at the left
   // edge (a transform, not scrollLeft, which cannot go past the end)
