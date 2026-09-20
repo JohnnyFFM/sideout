@@ -39,6 +39,17 @@ let leader = false;
 let lockRequested = false;
 const bc = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('so-sse') : null;
 
+// the stream is scoped to the active team at connect time: whenever the
+// identity refresh lands on another team (a switch, a removal, leaving),
+// the stream reconnects for that team
+let streamTeam = null;
+me.subscribe((m) => {
+  const t = m?.team?.id ?? null;
+  if (t == null) return;
+  if (streamTeam != null && t !== streamTeam && wanted) reconnectSSE();
+  streamTeam = t;
+});
+
 function publish(d) {
   mutations.set(d);
   // a reconnect, or a change to someone's role or membership: my own role
@@ -123,8 +134,7 @@ export function reconnectSSE() {
 export async function switchTeam(teamId) {
   const { api } = await import('./api.js');
   await api('/teams/switch', { method: 'POST', body: { team_id: teamId } });
-  await refreshMe();
-  reconnectSSE();
+  await refreshMe(); // the team change reconnects the stream (see me.subscribe above)
 }
 
 /* ---------------------------------------------------------------- diagnostics
