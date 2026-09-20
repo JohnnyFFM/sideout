@@ -7,6 +7,8 @@ on:
   push:
     branches: [master, dev]
   pull_request:
+  # manual rebuild + redeploy of the current branch (e.g. after a variable change)
+  workflow_dispatch:
 
 concurrency:
   group: run-serialized-${{ github.ref }}
