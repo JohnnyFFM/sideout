@@ -47,6 +47,10 @@
 
   --r-s: 4px; --r-m: 8px; --r-l: 12px;
   --tap: 52px;
+  /* iPhone home indicator: the full inset makes a bottom bar float too high
+     (famcal lesson), so the tab bar takes the inset minus 12px */
+  --safe-bottom: max(0px, calc(env(safe-area-inset-bottom) - 12px));
+  --tabbar-h: calc(56px + var(--safe-bottom));
 }
 
 :root[data-theme="light"] {
@@ -94,7 +98,7 @@ button { font: inherit; color: inherit; }
 /* ---------- topbar ---------- */
 .topbar {
   display: flex; align-items: center; gap: 10px;
-  height: 52px; padding: 0 12px;
+  height: calc(52px + env(safe-area-inset-top)); padding: 0 12px;
   padding-top: env(safe-area-inset-top);
   background: var(--panel); border-bottom: 1px solid var(--line-soft);
   position: sticky; top: 0; z-index: 20;
@@ -120,16 +124,19 @@ button { font: inherit; color: inherit; }
 .tabbar { display: none; }
 @media (max-width: 760px) {
   .nav { display: none; }
+  /* clip, not hidden: overflow-x hidden makes BODY the scroll container and
+     iOS (worst in standalone) then mispositions position:fixed elements */
+  html, body { overflow-x: hidden; overflow-x: clip; }
   .tabbar {
     display: grid; grid-template-columns: repeat(4, 1fr);
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
     background: var(--panel); border-top: 1px solid var(--line-soft);
-    padding-bottom: env(safe-area-inset-bottom);
+    padding-bottom: var(--safe-bottom);
   }
   .tabbar a { padding: 8px 4px 9px; text-align: center; text-decoration: none; color: var(--ink-3); font-size: 11px; font-weight: 500; }
   .tabbar a .ico { display: block; font-size: 18px; line-height: 1.1; }
   .tabbar a.active { color: var(--accent-text); }
-  body.has-tabbar { padding-bottom: 64px; }
+  body.has-tabbar { padding-bottom: calc(var(--tabbar-h) + 8px); }
 }
 
 /* ---------- page ---------- */
@@ -261,7 +268,7 @@ input[type=text], input[type=date], input[type=time], input[type=number], select
 .corner-theme { position: fixed; top: 12px; right: 12px; }
 .err { color: var(--g-err); font-size: 13px; margin: 0; }
 .toast.err { border-color: var(--g-err); }
-.offline-bar { position: fixed; top: 52px; left: 0; right: 0; z-index: 19; background: var(--g-neg); color: var(--g-neg-ink); font-size: 12px; font-weight: 600; text-align: center; padding: 4px; }
+.offline-bar { position: fixed; top: calc(52px + env(safe-area-inset-top)); left: 0; right: 0; z-index: 19; background: var(--g-neg); color: var(--g-neg-ink); font-size: 12px; font-weight: 600; text-align: center; padding: 4px; }
 .mehr-backdrop { position: fixed; inset: 0; background: #00000059; border: none; z-index: 65; }
 .mehr-menu { position: fixed; right: 10px; bottom: calc(66px + env(safe-area-inset-bottom)); min-width: 230px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-l); box-shadow: 0 -8px 30px #00000059; padding: 6px; z-index: 70; }
 .mehr-menu a, .mehr-menu button { display: flex; align-items: center; gap: 6px; width: 100%; padding: 11px 14px; border-radius: var(--r-m); color: var(--ink); font-size: 14px; text-decoration: none; background: none; border: 0; text-align: left; cursor: pointer; }
