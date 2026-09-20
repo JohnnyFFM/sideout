@@ -1,6 +1,8 @@
 // Thin fetch wrapper: JSON in/out, CSRF header on every call, typed errors.
 // A 409 carries `err.current`. A network failure surfaces as `err.offline`.
 
+import { base } from '$app/paths';
+
 export class ApiError extends Error {
   constructor(status, message, current) {
     super(message);
@@ -14,7 +16,7 @@ export async function api(path, opts = {}) {
   const { method = 'GET', body } = opts;
   let res;
   try {
-    res = await fetch(`/api${path}`, {
+    res = await fetch(`${base}/api${path}`, {
       method,
       headers: {
         'X-Requested-By': 'sideout',
@@ -32,8 +34,8 @@ export async function api(path, opts = {}) {
     /* empty body */
   }
   if (!res.ok) {
-    if (res.status === 401 && !path.startsWith('/auth') && location.pathname !== '/login') {
-      location.href = '/login';
+    if (res.status === 401 && !path.startsWith('/auth') && location.pathname !== `${base}/login`) {
+      location.href = `${base}/login`;
     }
     throw new ApiError(res.status, data?.error || `HTTP ${res.status}`, data?.current);
   }

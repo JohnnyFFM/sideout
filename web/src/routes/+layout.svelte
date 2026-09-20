@@ -1,6 +1,7 @@
 <script>
   import '../app.css';
   import { goto } from '$app/navigation';
+  import { base } from '$app/paths';
   import { page } from '$app/stores';
   import Nav from '$lib/components/Nav.svelte';
   import { updated } from '$app/state';
@@ -19,7 +20,7 @@
       connectSSE();
     } else if (!data.me) {
       disconnectSSE();
-      if ($page.url.pathname !== '/login') goto('/login');
+      if ($page.url.pathname !== `${base}/login`) goto(`${base}/login`);
     }
   });
 </script>

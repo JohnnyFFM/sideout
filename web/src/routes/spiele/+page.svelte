@@ -1,4 +1,5 @@
 <script>
+  import { base } from '$app/paths';
   import { untrack } from 'svelte';
   import { api } from '$lib/api.js';
   import { me, mutations } from '$lib/stores.js';
@@ -16,11 +17,11 @@
 
 <svelte:head><title>Sideout — Spiele</title></svelte:head>
 <main class="page">
-  <div class="toolbar"><h1>Spiele</h1><span class="spacer"></span>{#if canScout}<a class="btn primary" href="/spiele/neu">+ Spiel anlegen</a>{/if}</div>
+  <div class="toolbar"><h1>Spiele</h1><span class="spacer"></span>{#if canScout}<a class="btn primary" href="{base}/spiele/neu">+ Spiel anlegen</a>{/if}</div>
   {#if error}<div class="panel empty">{error}</div>
   {:else if !matches}<div class="panel empty">Lade…</div>
   {:else if !matches.length}
-    <div class="panel empty">Noch kein Spiel. {#if canScout}<a href="/spiele/neu">Erstes Spiel anlegen</a>{/if}</div>
+    <div class="panel empty">Noch kein Spiel. {#if canScout}<a href="{base}/spiele/neu">Erstes Spiel anlegen</a>{/if}</div>
   {:else}
     {#each [['Läuft gerade', live], ['Geplant', planned], ['Gespielt', done]] as [title, list]}
       {#if list.length}
@@ -30,13 +31,13 @@
             {#each list as m (m.id)}
               <li>
                 <span class="d">{fmtDate(m.date)}{#if m.time}<br />{m.time}{/if}</span>
-                <span><a class="opp" href={m.status === 'planned' ? `/spiele/${m.id}` : `/live/${m.id}`}>{m.opponent}</a><div class="ha">{m.home ? 'Heim' : 'Auswärts'}{m.hall ? ' · ' + m.hall : ''}</div></span>
+                <span><a class="opp" href={m.status === 'planned' ? `${base}/spiele/${m.id}` : `${base}/live/${m.id}`}>{m.opponent}</a><div class="ha">{m.home ? 'Heim' : 'Auswärts'}{m.hall ? ' · ' + m.hall : ''}</div></span>
                 <span class="sets">{m.state.sets.map((s) => s.us + ':' + s.them).join(' ')}{#if m.status === 'live'} <em>({m.state.us}:{m.state.them})</em>{/if}</span>
                 <span class="res" class:w={m.status === 'done' && m.state.sets_won > m.state.sets_lost} class:l={m.status === 'done' && m.state.sets_won < m.state.sets_lost}>{m.status === 'planned' ? '–' : `${m.state.sets_won}:${m.state.sets_lost}`}</span>
                 <span class="acts">
-                  {#if m.status === 'live' && canScout}<a class="btn primary" href="/live/{m.id}">Scouten</a>
-                  {:else if m.status === 'planned' && canScout}<a class="btn" href="/live/{m.id}">Starten</a>
-                  {:else}<a class="btn" href="/auswertung/{m.id}">Auswertung</a>{/if}
+                  {#if m.status === 'live' && canScout}<a class="btn primary" href="{base}/live/{m.id}">Scouten</a>
+                  {:else if m.status === 'planned' && canScout}<a class="btn" href="{base}/live/{m.id}">Starten</a>
+                  {:else}<a class="btn" href="{base}/auswertung/{m.id}">Auswertung</a>{/if}
                 </span>
               </li>
             {/each}

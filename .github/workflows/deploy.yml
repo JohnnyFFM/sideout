@@ -67,6 +67,9 @@ jobs:
         with:
           context: .
           push: true
+          # path prefix for the SPA; repo variable SO_BASE (e.g. /sideout), empty for a domain
+          build-args: |
+            SO_BASE=${{ vars.SO_BASE }}
           tags: |
             ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.stack }}
             ${{ steps.meta.outputs.image }}:${{ github.sha }}
@@ -97,13 +100,15 @@ jobs:
           printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
-      - name: sync stack + caddy config
+      - name: sync stack
         if: steps.gate.outputs.skip != 'true'
+        # the shared Caddy on the VPS belongs to the UnserPlan deploy; this
+        # stack only syncs its own compose file
         run: |
           STACK='${{ needs.build.outputs.stack }}'
           DEST='${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}'
+          ssh "$DEST" "mkdir -p /srv/sideout/$STACK"
           rsync -az deploy/$STACK/docker-compose.yml "$DEST:/srv/sideout/$STACK/"
-          rsync -az deploy/caddy/docker-compose.yml deploy/caddy/Caddyfile "$DEST:/srv/caddy/"
       - name: pull + restart
         if: steps.gate.outputs.skip != 'true'
         run: |
@@ -111,8 +116,6 @@ jobs:
           ssh '${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}' "
             set -e
             echo '${{ secrets.GITHUB_TOKEN }}' | docker login ghcr.io -u '${{ github.actor }}' --password-stdin
-            cd /srv/caddy && docker compose up -d
-            docker exec caddy caddy reload --config /etc/caddy/Caddyfile
             cd /srv/sideout/$STACK
             docker compose pull
             docker compose up -d

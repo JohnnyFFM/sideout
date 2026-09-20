@@ -1,5 +1,6 @@
 import { writable } from 'svelte/store';
 import { invalidateAll } from '$app/navigation';
+import { base } from '$app/paths';
 
 /** me-shape from /api/me: { user, team, teams, members } */
 export const me = writable(null);
@@ -45,7 +46,7 @@ function publish(d) {
 
 function open() {
   if (source) return;
-  source = new EventSource('/api/events');
+  source = new EventSource(`${base}/api/events`);
   source.addEventListener('mutation', (ev) => {
     const d = JSON.parse(ev.data);
     publish(d);

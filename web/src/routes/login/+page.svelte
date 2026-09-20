@@ -1,4 +1,5 @@
 <script>
+  import { base } from '$app/paths';
   import { goto } from '$app/navigation';
   import { api } from '$lib/api.js';
   import { refreshMe } from '$lib/stores.js';
@@ -34,7 +35,7 @@
       else if (mode === 'register') await api('/auth/register-team', { method: 'POST', body: { team_name, display_name, username, password } });
       else await api('/auth/join', { method: 'POST', body: { code, display_name, username, password } });
       await refreshMe();
-      goto('/team');
+      goto(`${base}/team`);
     } catch (err) {
       error = err.offline ? 'Keine Verbindung' : err.message;
     } finally {
@@ -49,7 +50,7 @@
 
 <div class="login-wrap">
   <div class="login-card">
-    <div class="login-brand"><img class="brandico" src="/icon.svg" alt="" width="28" height="28" />SIDEOUT</div>
+    <div class="login-brand"><img class="brandico" src="{base}/icon.svg" alt="" width="28" height="28" />SIDEOUT</div>
     <p class="login-sub">
       {#if mode === 'login'}Einmal anmelden, dieses Gerät bleibt angemeldet.
       {:else if mode === 'register'}Neues Team anlegen. Du wirst Trainer:in.
@@ -74,11 +75,11 @@
     </form>
     {#if signupOpen}
       <p class="login-foot">
-        {#if mode !== 'login'}<a href="/login" onclick={(e) => { e.preventDefault(); mode = 'login'; error = ''; }}>Zurück zur Anmeldung</a> · {/if}
-        {#if mode !== 'register'}<a href="/login" onclick={(e) => { e.preventDefault(); mode = 'register'; error = ''; }}>Team anlegen</a> · {/if}
-        {#if mode !== 'join'}<a href="/login" onclick={(e) => { e.preventDefault(); mode = 'join'; error = ''; }}>Team-Code eingeben</a>{/if}
+        {#if mode !== 'login'}<a href="{base}/login" onclick={(e) => { e.preventDefault(); mode = 'login'; error = ''; }}>Zurück zur Anmeldung</a> · {/if}
+        {#if mode !== 'register'}<a href="{base}/login" onclick={(e) => { e.preventDefault(); mode = 'register'; error = ''; }}>Team anlegen</a> · {/if}
+        {#if mode !== 'join'}<a href="{base}/login" onclick={(e) => { e.preventDefault(); mode = 'join'; error = ''; }}>Team-Code eingeben</a>{/if}
       </p>
     {/if}
-    <p class="login-foot">Sideout ist Open Source. Sitzungen gelten 12 Monate pro Gerät. <a href="/hilfe/">Anleitung</a></p>
+    <p class="login-foot">Sideout ist Open Source. Sitzungen gelten 12 Monate pro Gerät. <a href="{base}/hilfe/">Anleitung</a></p>
   </div>
 </div>

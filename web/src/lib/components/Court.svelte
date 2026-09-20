@@ -4,6 +4,7 @@
   // a hint ring (server on I, setter when a set is expected); `over` is the
   // position a dragged chip is hovering; while `dragging`, only `targets`
   // (positions) accept the chip, the rest fade out.
+  import { base } from '$app/paths';
   import { ROMAN, firstName } from '$lib/engine.js';
   let { court, byId, selected = null, serving = false, suggested = [], over = null, dragging = false, targets = [], onselect } = $props();
   const byPos = $derived(Object.fromEntries(court.map((c) => [c.pos, c])));
@@ -32,6 +33,7 @@
           <span class="role">{p?.position || ''}</span>
           <span class="jersey">{p?.number ?? '–'}</span>
           <span class="nm">{firstName(p)}{#if c?.libero}<small> für {byId[c.replaced]?.number}</small>{/if}</span>
+          {#if pos === 1 && serving}<img class="srvball" src="{base}/icon.svg" alt="" />{/if}
         </button>
       {/each}
     </div>
@@ -60,7 +62,7 @@
   .slot.hint::before { content: 'erwartet'; position: absolute; top: 4px; right: 6px; font-size: 9px; color: var(--accent-text); font-weight: 600; }
   .slot.hint .role { visibility: hidden; }
   .slot.sel { border-color: var(--accent); border-style: solid; background: var(--accent-soft); }
-  .slot.srv::after { content: ''; position: absolute; right: 6px; bottom: 22px; width: 14px; height: 14px; background: url(/icon.svg) center / contain no-repeat; }
+  .slot .srvball { position: absolute; right: 6px; bottom: 22px; width: 14px; height: 14px; }
   .slot.lib { border-style: dashed; border-color: var(--court-line); }
   .slot.lib.hint { border-color: var(--accent); }
   .slot.lib .role { color: var(--court-line); }

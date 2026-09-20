@@ -1,4 +1,5 @@
 <script>
+  import { base } from '$app/paths';
   // Team home: the running match, season tiles, matches, top lists, trends.
   import { untrack } from 'svelte';
   import { api } from '$lib/api.js';
@@ -40,7 +41,7 @@
   <div class="toolbar">
     <div><h1>{$me?.team?.name}</h1><div class="small muted">{[$me?.team?.league, $me?.team?.season ? 'Saison ' + $me.team.season : ''].filter(Boolean).join(' · ')}</div></div>
     <span class="spacer"></span>
-    {#if canScout}<a class="btn primary" href="/spiele/neu">+ Spiel anlegen</a>{/if}
+    {#if canScout}<a class="btn primary" href="{base}/spiele/neu">+ Spiel anlegen</a>{/if}
   </div>
   {#if error}<div class="panel empty">{error}</div>
   {:else if !season || !matches}<div class="panel empty">Lade…</div>
@@ -52,23 +53,23 @@
           <div class="sc">{live.state.us}:{live.state.them}<small>Sätze {live.state.sets_won}:{live.state.sets_lost}</small></div>
           <div class="opp">gegen {live.opponent}</div>
           <div class="small muted">{live.state.sets.map((s) => s.us + ':' + s.them).join('  ')}{live.hall ? ' · ' + live.hall : ''}</div>
-          <div class="row" style="margin-top:12px"><a class="btn primary big" href="/live/{live.id}">{canScout ? 'Weiter scouten' : 'Live verfolgen'}</a><a class="btn big" href="/auswertung/{live.id}">Zwischenstand</a></div>
+          <div class="row" style="margin-top:12px"><a class="btn primary big" href="{base}/live/{live.id}">{canScout ? 'Weiter scouten' : 'Live verfolgen'}</a><a class="btn big" href="{base}/auswertung/{live.id}">Zwischenstand</a></div>
         {:else if next}
           <span class="pulse">Nächstes Spiel · {fmtDM(next.date)}{next.time ? ' ' + next.time : ''}</span>
           <div class="opp" style="font-size:24px;margin-top:8px">gegen {next.opponent}</div>
           <div class="small muted">{next.home ? 'Heim' : 'Auswärts'}{next.hall ? ' · ' + next.hall : ''}</div>
-          <div class="row" style="margin-top:12px">{#if canScout}<a class="btn primary big" href="/live/{next.id}">Scouting starten</a><a class="btn big" href="/spiele/{next.id}">Aufstellung</a>{/if}</div>
+          <div class="row" style="margin-top:12px">{#if canScout}<a class="btn primary big" href="{base}/live/{next.id}">Scouting starten</a><a class="btn big" href="{base}/spiele/{next.id}">Aufstellung</a>{/if}</div>
         {:else if lastDone}
           <span class="pulse">Letztes Spiel</span>
           <div class="sc">{lastDone.state.sets_won}:{lastDone.state.sets_lost}</div>
           <div class="opp">gegen {lastDone.opponent}</div>
           <div class="small muted">{lastDone.state.sets.map((s) => s.us + ':' + s.them).join('  ')}</div>
-          <div class="row" style="margin-top:12px"><a class="btn primary" href="/auswertung/{lastDone.id}">Auswertung</a>{#if canScout}<a class="btn" href="/spiele/neu">Nächstes Spiel anlegen</a>{/if}</div>
+          <div class="row" style="margin-top:12px"><a class="btn primary" href="{base}/auswertung/{lastDone.id}">Auswertung</a>{#if canScout}<a class="btn" href="{base}/spiele/neu">Nächstes Spiel anlegen</a>{/if}</div>
         {:else}
           <span class="pulse">Willkommen</span>
           <div class="opp" style="margin-top:8px">Noch kein Spiel gescoutet.</div>
           <p class="small muted">Erst den Kader anlegen, dann das erste Spiel mit Startaufstellung. Beim Scouten: Spielerin tippen, Aktion tippen. Alles andere rechnet Sideout.</p>
-          <div class="row" style="margin-top:8px">{#if canScout}<a class="btn primary big" href="/kader">Kader anlegen</a><a class="btn big" href="/spiele/neu">Spiel anlegen</a>{/if}</div>
+          <div class="row" style="margin-top:8px">{#if canScout}<a class="btn primary big" href="{base}/kader">Kader anlegen</a><a class="btn big" href="{base}/spiele/neu">Spiel anlegen</a>{/if}</div>
         {/if}
       </section>
       <section class="panel">
@@ -84,12 +85,12 @@
 
     <div class="grid3">
       <section class="panel">
-        <div class="panel-head"><h2>Spiele</h2><a class="small" href="/spiele">Alle</a></div>
+        <div class="panel-head"><h2>Spiele</h2><a class="small" href="{base}/spiele">Alle</a></div>
         <ul class="matches">
           {#each matches.slice(0, 8) as m (m.id)}
             <li>
               <span class="d">{fmtDM(m.date)}</span>
-              <span><a href={m.status === 'planned' ? `/spiele/${m.id}` : `/auswertung/${m.id}`}>{m.opponent}</a><div class="ha">{m.home ? 'Heim' : 'Auswärts'}{m.status === 'live' ? ' · läuft' : m.status === 'planned' ? ' · geplant' : ''}</div></span>
+              <span><a href={m.status === 'planned' ? `${base}/spiele/${m.id}` : `${base}/auswertung/${m.id}`}>{m.opponent}</a><div class="ha">{m.home ? 'Heim' : 'Auswärts'}{m.status === 'live' ? ' · läuft' : m.status === 'planned' ? ' · geplant' : ''}</div></span>
               <span class="sets">{m.state.sets.map((s) => s.us + ':' + s.them).join(' ')}</span>
               <span class="res" class:w={m.status === 'done' && m.state.sets_won > m.state.sets_lost} class:l={m.status === 'done' && m.state.sets_won < m.state.sets_lost}>{m.status === 'planned' ? '–' : `${m.state.sets_won}:${m.state.sets_lost}`}</span>
             </li>

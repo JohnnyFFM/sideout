@@ -57,7 +57,11 @@ environment called `vps`; without them the workflow only runs CI.
 Env vars: `SO_DB` (default `./data/sideout.db`), `SO_ADDR` (default
 `127.0.0.1:8080`; `0.0.0.0:8080` in the image), `SO_STATIC` (default
 `../web/build`), `SO_DATA` (default `./data`), `SO_SIGNUP` (`closed`
-disables self-registration and join-by-code).
+disables self-registration and join-by-code), `SO_BASE` (path prefix such
+as `/sideout` when the app shares a host with other apps; it is baked into
+the web build, so pass it as the Docker build arg `SO_BASE` and set the
+same value at runtime; the workflow reads it from the repo variable
+`SO_BASE`).
 
 A gated instance seeds accounts with the CLI:
 

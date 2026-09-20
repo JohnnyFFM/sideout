@@ -1,4 +1,5 @@
 <script>
+  import { base } from '$app/paths';
   // Picks a match to evaluate: the running one first, then the finished ones.
   import { api } from '$lib/api.js';
   import { fmtDate } from '$lib/engine.js';
@@ -17,7 +18,7 @@
     <section class="panel">
       <ul class="list">
         {#each matches as m (m.id)}
-          <li><a href="/auswertung/{m.id}"><span class="d">{fmtDate(m.date)}</span><b>{m.opponent}</b><span class="muted small">{m.state.sets.map((s) => s.us + ':' + s.them).join(' ')}{m.status === 'live' ? ' · läuft' : ''}</span><span class="res">{m.state.sets_won}:{m.state.sets_lost}</span></a></li>
+          <li><a href="{base}/auswertung/{m.id}"><span class="d">{fmtDate(m.date)}</span><b>{m.opponent}</b><span class="muted small">{m.state.sets.map((s) => s.us + ':' + s.them).join(' ')}{m.status === 'live' ? ' · läuft' : ''}</span><span class="res">{m.state.sets_won}:{m.state.sets_lost}</span></a></li>
         {/each}
       </ul>
     </section>

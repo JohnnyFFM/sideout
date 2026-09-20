@@ -9,7 +9,9 @@ services:
     restart: unless-stopped
     environment:
       - SO_SIGNUP=open
-      - RUST_LOG=sideout_server=debug
+      - RUST_LOG=sideout_server=info
+      # must match the SO_BASE the image was built with (repo variable SO_BASE)
+      - SO_BASE=/sideout
     volumes:
       - ./data:/data
     networks:

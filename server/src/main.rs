@@ -113,17 +113,28 @@ async fn main() {
         axum::routing::get(move |headers: axum::http::HeaderMap| serve_manifest(path.clone(), headers))
     };
 
-    let app = axum::Router::new()
+    let inner = axum::Router::new()
         .nest("/api", api::router(state.clone()))
         .route("/manifest.webmanifest", manifest_route)
-        .fallback_service(spa)
+        .fallback_service(spa);
+    // path prefix: everything lives under SO_BASE, the root redirects there
+    let base = state.config.base.clone();
+    let app = if base.is_empty() {
+        inner
+    } else {
+        let target = format!("{base}/");
+        axum::Router::new()
+            .route("/", axum::routing::get(move || { let t = target.clone(); async move { axum::response::Redirect::temporary(&t) } }))
+            .nest(&base, inner)
+    };
+    let app = app
         .layer(axum::middleware::from_fn(cache_policy))
         .layer(CompressionLayer::new())
         .layer(TraceLayer::new_for_http());
 
     let bind = state.config.bind.clone();
     let listener = tokio::net::TcpListener::bind(&bind).await.expect("bind");
-    tracing::info!("sideout listening on http://{bind}");
+    tracing::info!("sideout listening on http://{bind}{}", state.config.base);
     axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>())
         .await
         .expect("server");

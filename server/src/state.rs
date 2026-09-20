@@ -13,6 +13,9 @@ pub struct Config {
     /// SO_SIGNUP=closed gates register-team AND join-by-code — accounts are
     /// then seeded via the CLI only (the gated-production mode).
     pub signup_open: bool,
+    /// SO_BASE: path prefix the whole app is mounted under (e.g. "/sideout"
+    /// behind a shared reverse proxy). Must match the web build's SO_BASE.
+    pub base: String,
 }
 
 impl Config {
@@ -29,6 +32,7 @@ impl Config {
                 std::env::var("SO_STATIC").unwrap_or_else(|_| "../web/build".into()),
             ),
             signup_open: std::env::var("SO_SIGNUP").map(|v| v != "closed").unwrap_or(true),
+            base: std::env::var("SO_BASE").map(|b| b.trim_end_matches('/').to_string()).unwrap_or_default(),
         }
     }
 }

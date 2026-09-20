@@ -1,4 +1,5 @@
 <script>
+  import { base } from '$app/paths';
   // Create / edit a match: opponent & frame, starting six per set, libero.
   import { goto } from '$app/navigation';
   import { untrack } from 'svelte';
@@ -58,11 +59,11 @@
         await api(`/matches/${match.id}`, { method: 'PATCH', body: { version: match.version, opponent, date, time, hall, home, first_serve, notes } });
         await api(`/matches/${match.id}/lineups/${set}`, { method: 'PUT', body: lineup });
         showToast('Gespeichert');
-        goto(`/live/${match.id}`);
+        goto(`${base}/live/${match.id}`);
       } else {
         const m = await api('/matches', { method: 'POST', body: { opponent, date, time, hall, home, first_serve, notes, lineup } });
         showToast('Spiel angelegt');
-        goto(`/live/${m.id}`);
+        goto(`${base}/live/${m.id}`);
       }
     } catch (err) {
       error = err.status === 409 ? 'Jemand hat das Spiel zwischenzeitlich geändert. Seite neu laden.' : err.message;
@@ -93,7 +94,7 @@
     <section class="panel">
       <div class="panel-head"><h2>Startaufstellung Satz {set}</h2><span class="small muted">Position I schlägt auf</span></div>
       {#if fieldPlayers.length < 6}
-        <p class="err">Mindestens sechs Feldspielerinnen im Kader nötig. <a href="/kader">Zum Kader</a></p>
+        <p class="err">Mindestens sechs Feldspielerinnen im Kader nötig. <a href="{base}/kader">Zum Kader</a></p>
       {/if}
       <div class="court">
         {#each [[3, 2, 1], [4, 5, 0]] as row}
@@ -119,7 +120,7 @@
     {#if error}<p class="err" style="margin-top:10px">{error}</p>{/if}
     <div class="row" style="margin-top:14px">
       <button class="btn primary big" type="submit" disabled={busy || fieldPlayers.length < 6}>{match ? 'Speichern & zum Live-Scouting' : 'Spiel anlegen & starten'}</button>
-      <a class="btn big" href={match ? `/live/${match.id}` : '/spiele'}>Abbrechen</a>
+      <a class="btn big" href={match ? `${base}/live/${match.id}` : '/spiele'}>Abbrechen</a>
     </div>
   </div>
 </form>

@@ -1,5 +1,8 @@
 # ── 1: SvelteKit static build ────────────────────────────────────
 FROM node:24-alpine AS web
+# path prefix baked into the SPA (e.g. /sideout); empty = served at /
+ARG SO_BASE=""
+ENV SO_BASE=$SO_BASE
 WORKDIR /app/web
 COPY web/package.json web/package-lock.json ./
 RUN npm ci
@@ -16,6 +19,7 @@ RUN cargo build --release
 
 # ── 3: slim runtime ──────────────────────────────────────────────
 FROM debian:bookworm-slim
+ARG SO_BASE=""
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates \
     && rm -rf /var/lib/apt/lists/*
@@ -24,7 +28,8 @@ COPY --from=rust /app/server/target/release/sideout-server /app/server
 COPY --from=web /app/web/build /app/web/build
 ENV SO_DATA=/data \
     SO_STATIC=/app/web/build \
-    SO_ADDR=0.0.0.0:8080
+    SO_ADDR=0.0.0.0:8080 \
+    SO_BASE=$SO_BASE
 VOLUME /data
 EXPOSE 8080
 ENTRYPOINT ["/app/server"]

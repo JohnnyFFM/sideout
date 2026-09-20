@@ -1,4 +1,5 @@
 <script>
+  import { base } from '$app/paths';
   // Box score, score flow, side-out by rotation, point sources, quality
   // stacks. Computed client-side with the engine from the action log, so
   // it also works from the offline cache.
@@ -100,8 +101,8 @@
         {#each Array.from({ length: nSets }, (_, i) => i + 1) as n}<button class:active={set === n} onclick={() => (set = n)}>Satz {n}</button>{/each}
       </div>
       <span class="spacer"></span>
-      {#if match.status !== 'done'}<a class="btn" href="/live/{id}">Live</a>{/if}
-      <a class="btn" href="/api/matches/{id}/export.csv" download>Export CSV</a>
+      {#if match.status !== 'done'}<a class="btn" href="{base}/live/{id}">Live</a>{/if}
+      <a class="btn" href="{base}/api/matches/{id}/export.csv" download>Export CSV</a>
     </div>
 
     {@const t = s.team}

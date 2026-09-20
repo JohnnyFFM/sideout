@@ -1,4 +1,5 @@
 <script>
+  import { base } from '$app/paths';
   // Team settings, members & roles, join code, logout.
   import { goto } from '$app/navigation';
   import { api } from '$lib/api.js';
@@ -13,12 +14,12 @@
   let joinCode = $state('');
   async function createTeam(e) {
     e.preventDefault();
-    try { await api('/teams', { method: 'POST', body: { name: newTeam } }); newTeam = ''; await refreshMe(); reconnectSSE(); showToast('Team angelegt und gewechselt'); goto('/team'); }
+    try { await api('/teams', { method: 'POST', body: { name: newTeam } }); newTeam = ''; await refreshMe(); reconnectSSE(); showToast('Team angelegt und gewechselt'); goto(`${base}/team`); }
     catch (err) { showToast(err.message, true); }
   }
   async function joinTeam(e) {
     e.preventDefault();
-    try { await api('/teams/join', { method: 'POST', body: { code: joinCode } }); joinCode = ''; await refreshMe(); reconnectSSE(); showToast('Beigetreten und gewechselt'); goto('/team'); }
+    try { await api('/teams/join', { method: 'POST', body: { code: joinCode } }); joinCode = ''; await refreshMe(); reconnectSSE(); showToast('Beigetreten und gewechselt'); goto(`${base}/team`); }
     catch (err) { showToast(err.message, true); }
   }
   async function pick(t) {
@@ -44,13 +45,13 @@
     try { await api('/team/rotate-code', { method: 'POST' }); await refreshMe(); } catch (err) { showToast(err.message, true); }
   }
   async function setRole(m, role) {
-    try { await api(`/team/members/${m.id}`, { method: 'PATCH', body: { role } }); await refreshMe(); showToast('Rolle geändert'); } catch (err) { showToast(err.message, true); }
+    try { await api(`${base}/team/members/${m.id}`, { method: 'PATCH', body: { role } }); await refreshMe(); showToast('Rolle geändert'); } catch (err) { showToast(err.message, true); }
   }
   async function removeMember(m) {
     if (!confirm(`${m.display_name} aus dem Team entfernen?`)) return;
-    try { await api(`/team/members/${m.id}`, { method: 'DELETE' }); await refreshMe(); } catch (err) { showToast(err.message, true); }
+    try { await api(`${base}/team/members/${m.id}`, { method: 'DELETE' }); await refreshMe(); } catch (err) { showToast(err.message, true); }
   }
-  async function logout() { await api('/auth/logout', { method: 'POST' }); meCache.value = null; goto('/login'); }
+  async function logout() { await api('/auth/logout', { method: 'POST' }); meCache.value = null; goto(`${base}/login`); }
   function installHint() { return /iphone|ipad/i.test(navigator.userAgent) ? 'Safari: Teilen → „Zum Home-Bildschirm“.' : 'Browser-Menü → „App installieren“ oder „Zum Startbildschirm“.'; }
 </script>
 
@@ -107,7 +108,7 @@
       </section>
       <section class="panel">
         <div class="panel-head"><h2>Anleitung</h2></div>
-        <p class="small" style="margin:0">Alles zum Scouten, zur Bewertungsskala und zur Auswertung: <a href="/hilfe/">Anleitung öffnen</a>.</p>
+        <p class="small" style="margin:0">Alles zum Scouten, zur Bewertungsskala und zur Auswertung: <a href="{base}/hilfe/">Anleitung öffnen</a>.</p>
       </section>
       <section class="panel">
         <div class="panel-head"><h2>Diagnose</h2><span class="small muted">bei Problemen kopieren und schicken</span></div>

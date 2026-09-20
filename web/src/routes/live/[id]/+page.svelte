@@ -1,4 +1,5 @@
 <script>
+  import { base } from '$app/paths';
   // The capture screen. Renders from confirmed actions + a local op queue,
   // so every tap shows instantly and survives a dead connection.
   import { page } from '$app/stores';
@@ -289,7 +290,7 @@
     <div class="panel">
       <h2>Aufstellung fehlt</h2>
       <p class="muted">Ohne Startaufstellung kann nicht gescoutet werden.</p>
-      <a class="btn primary big" href="/spiele/{id}">Aufstellung eintragen</a>
+      <a class="btn primary big" href="{base}/spiele/{id}">Aufstellung eintragen</a>
     </div>
   {:else}
     <div class="live" class:pv-stats={phoneView === 'stats'} class:extras={extrasOpen}>
@@ -297,9 +298,9 @@
         <section class="score">
           <button class="board-btn left" class:on={phoneView === 'stats'} onclick={() => (phoneView = phoneView === 'stats' ? 'pad' : 'stats')} title="Live-Werte"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M4 20h16v-2H4v2zm2-4h3V7H6v9zm5 0h3V4h-3v12zm5 0h3v-6h-3v6z"/></svg></button>
           <button class="board-btn right" class:on={extrasOpen} onclick={() => (extrasOpen = !extrasOpen)} title="Nachtragen: Spielstand, Rotation, Aufschlag"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm17.71-10.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>
-          <div class="side us"><span class="serve" class:on={st.serving}></span><span class="team">{$me?.team?.short || 'Wir'}</span><span class="pts">{st.us}</span></div>
+          <div class="side us"><img class="serve" class:on={st.serving} src="{base}/icon.svg" alt="" /><span class="team">{$me?.team?.short || 'Wir'}</span><span class="pts">{st.us}</span></div>
           <div class="colon">:</div>
-          <div class="side them"><span class="pts">{st.them}</span><span class="team">{match.opponent.split(' ')[0]}</span><span class="serve" class:on={!st.serving}></span></div>
+          <div class="side them"><span class="pts">{st.them}</span><span class="team">{match.opponent.split(' ')[0]}</span><img class="serve" class:on={!st.serving} src="{base}/icon.svg" alt="" /></div>
           <div class="meta">
             <span>Satz <b>{st.set}</b></span><span>Sätze <b>{st.sets_won}:{st.sets_lost}</b></span>
             {#if st.sets.length}<span><b>{st.sets.map((s) => s.us + ':' + s.them).join('  ')}</b></span>{/if}
@@ -315,7 +316,7 @@
           {/if}
         </section>
         {#if missingLineupForSet}
-          <div class="panel hint">Satz {st.set}: Aufstellung von Satz {st.set - 1} übernommen. <a href="/spiele/{id}?set={st.set}">Anpassen</a></div>
+          <div class="panel hint">Satz {st.set}: Aufstellung von Satz {st.set - 1} übernommen. <a href="{base}/spiele/{id}?set={st.set}">Anpassen</a></div>
         {/if}
         <section class="court-wrap">
           <Court {court} {byId} {selected} serving={st.serving} {suggested} {over} dragging={!!drag} {targets} onselect={slotTap} />
@@ -354,7 +355,7 @@
           <div class="panel done">
             <h2>Spiel beendet {st.sets_won}:{st.sets_lost}</h2>
             <p class="muted">{st.sets.map((s) => s.us + ':' + s.them).join('   ')}</p>
-            <a class="btn primary" href="/auswertung/{id}">Zur Auswertung</a>
+            <a class="btn primary" href="{base}/auswertung/{id}">Zur Auswertung</a>
           </div>
         {/if}
       </div>
@@ -383,7 +384,7 @@
         </section>
       </div>
       <section class="panel timeline">
-        <div class="tl-head"><h2>Verlauf</h2><span class="small muted">{actionsAll.length} Aktionen</span><span class="spacer"></span><a class="small" href="/auswertung/{id}">Auswertung →</a></div>
+        <div class="tl-head"><h2>Verlauf</h2><span class="small muted">{actionsAll.length} Aktionen</span><span class="spacer"></span><a class="small" href="{base}/auswertung/{id}">Auswertung →</a></div>
         <button class="tl-undo" onclick={undo} disabled={!last || !canScout} title={last ? 'Rückgängig: ' + describe(last) : 'Nichts zum Rückgängigmachen'}><svg class="ico-undo" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>{#if ops.length}<i>{ops.length}</i>{/if}</button>
         <div class="tl" bind:this={tlEl}>
           {#each timeline as e (e.key)}

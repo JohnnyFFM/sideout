@@ -6,11 +6,11 @@
       offline fallback, so an old build is never pinned but a coach in a
       hall without reception still gets the app.
    3. Hashed build assets are cache-first, keyed per version. */
-import { build, files, version } from '$service-worker';
+import { base, build, files, version } from '$service-worker';
 
 const CACHE = `sideout-${version}`;
 const ASSETS = [...build, ...files];
-const SHELL = '/__shell';
+const SHELL = `${base}/__shell`;
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -35,7 +35,7 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
   if (url.origin !== location.origin) return;
-  if (url.pathname.startsWith('/api/')) return;
+  if (url.pathname.startsWith(`${base}/api/`)) return;
 
   if (request.mode === 'navigate') {
     event.respondWith(
