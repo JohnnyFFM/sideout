@@ -515,7 +515,10 @@
     .live.pv-stats .col.left > .court-wrap, .live.pv-stats .col.mid > :global(.pad), .live.pv-stats .col.mid > .pad-foot { display: none; }
     .timeline { display: flex; align-items: center; gap: 6px; padding: 6px 8px; }
     .tl-head { display: none; }
-    .tl-undo { display: grid; place-items: center; position: relative; flex: 0 0 auto; width: 44px; height: 44px; border-radius: 8px; border: 1px solid var(--line); background: var(--raised); font-size: 18px; }
+    /* undo sits at the right, next to the newest entry, and stays small */
+    .tl-undo { display: grid; place-items: center; position: relative; flex: 0 0 auto; order: 2; width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--line); background: var(--raised); }
+    .tl-undo .ico-undo { width: 16px; height: 16px; }
+    .tl { order: 1; }
     .tl-undo:disabled { opacity: 0.4; }
     .tl-undo i { position: absolute; top: -5px; right: -5px; min-width: 16px; height: 16px; border-radius: 8px; background: var(--g-neg); color: var(--g-neg-ink); font-size: 10px; font-style: normal; font-weight: 700; display: grid; place-items: center; padding: 0 3px; }
     .tl { flex: 1 1 auto; min-width: 0; padding: 2px 0; gap: 4px; }
@@ -533,7 +536,7 @@
     .live-page { padding-top: calc(4px + env(safe-area-inset-top)); }
     .tl-item { width: 40px; padding: 3px 0 2px; }
     .tl-item b { font-size: 15px; }
-    .tl-undo { width: 36px; height: 36px; }
+    .tl-undo { width: 32px; height: 32px; }
   }
   @media (max-width: 759px) {
     :global(.score) { padding: 2px 10px 6px; row-gap: 0; }
