@@ -172,7 +172,6 @@
   // to arm it, then the target slot is tapped. -----
   let phoneView = $state('pad');   // phone: 'pad' | 'stats'
   let extrasOpen = $state(false);  // phone: bench + catch-up shown
-  let armed = $state(null);   // chip id waiting for a slot
   let drag = $state(null);    // { id, x, y, moved }
   let over = $state(null);    // court position under the dragged chip
   // the bench = everyone not on the court right now. The libero leads it
@@ -198,20 +197,36 @@
     try { e.currentTarget.setPointerCapture?.(e.pointerId); } catch { /* synthetic or already-released pointer */ }
     drag = { id: pid, x: e.clientX, y: e.clientY, moved: false };
   }
+  // the court positions a chip may be dropped on
+  function validTargets(chipId) {
+    if (!st) return [];
+    if (chipId === st.libero) {
+      return [5, 6, 1].filter((pos) => !(pos === 1 && st.serving) && court[pos - 1].id !== st.libero);
+    }
+    if (liberoCard && chipId === liberoCard.replaced) return [liberoCard.pos];
+    return [1, 2, 3, 4, 5, 6];
+  }
+  const targets = $derived(drag?.moved ? validTargets(drag.id) : []);
   function chipMove(e) {
     if (!drag) return;
     const moved = drag.moved || Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 6;
     drag = { ...drag, x: e.clientX, y: e.clientY, moved };
-    over = moved ? slotUnder(e.clientX, e.clientY) : null;
+    const pos = moved ? slotUnder(e.clientX, e.clientY) : null;
+    over = pos && validTargets(drag.id).includes(pos) ? pos : null;
   }
   function chipUp(e) {
     if (!drag) return;
     const d = drag; drag = null; over = null;
-    if (d.moved) { const pos = slotUnder(e.clientX, e.clientY); if (pos) dropOn(d.id, pos); }
-    else armed = armed === d.id ? null : d.id;   // a tap arms the chip
+    if (!d.moved) { showToast('Zum Wechseln den Chip auf eine Karte ziehen'); return; }
+    const pos = slotUnder(e.clientX, e.clientY);
+    if (!pos) return;
+    if (!validTargets(d.id).includes(pos)) {
+      showToast(d.id === st.libero ? 'Die Libera kann nur hinten stehen: V, VI und I bei gegnerischem Aufschlag' : liberoCard && d.id === liberoCard.replaced ? `${byId[d.id]?.number} gehört zu Position ${ROMAN[liberoCard.pos - 1]}` : 'Hier nicht ablegbar');
+      return;
+    }
+    dropOn(d.id, pos);
   }
-  function slotTap(pid, pos) {
-    if (armed) { dropOn(armed, pos); armed = null; return; }
+  function slotTap(pid) {
     selected = selected === pid ? null : pid;
   }
   function dropOn(chipId, pos) {
@@ -251,7 +266,7 @@
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
     if (e.key >= '1' && e.key <= '6' && court.length) { selected = court[+e.key - 1].id; }
     if (e.key === 'z' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); undo(); }
-    if (e.key === 'Escape') { selected = null; armed = null; }
+    if (e.key === 'Escape') { selected = null; }
   }
 </script>
 
@@ -296,11 +311,11 @@
           <div class="panel hint">Satz {st.set}: Aufstellung von Satz {st.set - 1} übernommen. <a href="/spiele/{id}?set={st.set}">Anpassen</a></div>
         {/if}
         <section class="court-wrap">
-          <Court {court} {byId} {selected} serving={st.serving} {suggested} {over} armed={!!armed} onselect={slotTap} />
+          <Court {court} {byId} {selected} serving={st.serving} {suggested} {over} dragging={!!drag?.moved} {targets} onselect={slotTap} />
           {#if benchChips.length}
             <div class="bench" onpointermove={chipMove} onpointerup={chipUp} onpointercancel={chipUp}>
               {#each benchChips as p (p.id)}
-                <button class="chipb" class:libero={p.id === st.libero} class:out={liberoCard?.replaced === p.id} class:armed={armed === p.id} class:dragging={drag?.id === p.id} onpointerdown={(e) => chipDown(e, p.id)} disabled={!canScout || st.finished}>
+                <button class="chipb" class:libero={p.id === st.libero} class:out={liberoCard?.replaced === p.id} class:dragging={drag?.id === p.id} onpointerdown={(e) => chipDown(e, p.id)} disabled={!canScout || st.finished}>
                   <b>{p.number}</b><span>{firstName(p)}</span><small>{chipNote(p)}</small>
                 </button>
               {/each}
@@ -310,8 +325,8 @@
             <div class="dragghost" style="left:{drag.x}px; top:{drag.y}px">{byId[drag.id]?.number} {firstName(byId[drag.id])}</div>
           {/if}
           <div class="court-foot">
-            {#if armed}
-              <span class="chip pos-{byId[armed]?.position}">{byId[armed]?.number} {firstName(byId[armed])}</span><span>{armed === st.libero ? 'auf eine Hinterzonen-Karte tippen (I, V, VI)' : liberoCard?.replaced === armed ? 'auf ihre Karte tippen, dann geht die Libera raus' : 'Position tippen, die sie übernimmt'}</span><span class="spacer"></span><button class="btn ghost sm" onclick={() => (armed = null)}>Abbrechen</button>
+            {#if drag?.moved}
+              <span class="chip pos-{byId[drag.id]?.position}">{byId[drag.id]?.number} {firstName(byId[drag.id])}</span><span>{drag.id === st.libero ? 'auf eine markierte Karte hinten ziehen' : liberoCard?.replaced === drag.id ? 'auf ihre eigene Karte ziehen, dann geht die Libera raus' : 'auf die Karte ziehen, die sie übernimmt'}</span>
             {:else if selected}
               <span class="chip pos-{byId[selected]?.position}">{byId[selected]?.number} {firstName(byId[selected])}</span><span>ausgewählt, jetzt Aktion tippen</span>
             {:else}
@@ -449,7 +464,6 @@
   .chipb.libero { border-color: var(--court-line); background: var(--court-soft); }
   .chipb.libero small { color: var(--court-line); }
   .chipb.out { border-style: dashed; }
-  .chipb.armed { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 2px var(--accent-soft); }
   .chipb.dragging { opacity: 0.4; }
   .chipb:disabled { opacity: 0.4; cursor: default; }
   .dragghost {

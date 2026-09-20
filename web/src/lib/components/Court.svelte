@@ -2,14 +2,14 @@
   // Own half seen from behind the baseline: front row IV III II at the net,
   // back row V VI I. Tapping a slot selects that player. `suggested` ids get
   // a hint ring (server on I, setter when a set is expected); `over` is the
-  // position a dragged chip is hovering; `armed` means a chip waits for a
-  // target slot, so slots read as drop targets.
+  // position a dragged chip is hovering; while `dragging`, only `targets`
+  // (positions) accept the chip, the rest fade out.
   import { ROMAN, firstName } from '$lib/engine.js';
-  let { court, byId, selected = null, serving = false, suggested = [], over = null, armed = false, onselect } = $props();
+  let { court, byId, selected = null, serving = false, suggested = [], over = null, dragging = false, targets = [], onselect } = $props();
   const byPos = $derived(Object.fromEntries(court.map((c) => [c.pos, c])));
 </script>
 
-<div class="court" class:armed>
+<div class="court" class:dragging>
   {#each [[4, 3, 2], [5, 6, 1]] as row}
     <div class="rowp">
       {#each row as pos}
@@ -20,7 +20,9 @@
           class:sel={selected === c?.id}
           class:lib={c?.libero}
           class:srv={pos === 1 && serving}
-          class:hint={!armed && suggested.includes(c?.id)}
+          class:hint={!dragging && suggested.includes(c?.id)}
+          class:target={dragging && targets.includes(pos)}
+          class:blocked={dragging && !targets.includes(pos)}
           class:over={over === pos}
           data-pos={pos}
           onclick={() => onselect?.(c.id, pos)}
@@ -62,8 +64,9 @@
   .slot.lib { border-style: dashed; border-color: var(--court-line); }
   .slot.lib.hint { border-color: var(--accent); }
   .slot.lib .role { color: var(--court-line); }
-  .court.armed .slot { border-style: dashed; border-color: var(--line); }
-  .slot.over { border-color: var(--court-line); border-style: solid; background: var(--court-soft); box-shadow: 0 0 0 3px var(--court-soft); }
+  .slot.target { border-style: dashed; border-color: var(--court-line); box-shadow: 0 0 0 2px var(--court-soft); }
+  .slot.blocked { opacity: 0.3; filter: grayscale(1); }
+  .slot.over { border-color: var(--accent); border-style: solid; background: var(--accent-soft); box-shadow: 0 0 0 3px var(--accent-soft); transform: scale(1.03); }
   @media (max-width: 759px) and (max-height: 700px) {
     .slot { min-height: 44px !important; }
     .slot .jersey { font-size: 19px !important; }
