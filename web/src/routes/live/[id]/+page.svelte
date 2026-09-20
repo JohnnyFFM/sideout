@@ -206,7 +206,8 @@
     if (liberoCard && chipId === liberoCard.replaced) return [liberoCard.pos];
     return [1, 2, 3, 4, 5, 6];
   }
-  const targets = $derived(drag?.moved ? validTargets(drag.id) : []);
+  // targets light up the moment a finger lands on a chip, not only once it moves
+  const targets = $derived(drag ? validTargets(drag.id) : []);
   function chipMove(e) {
     if (!drag) return;
     const moved = drag.moved || Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 6;
@@ -311,7 +312,7 @@
           <div class="panel hint">Satz {st.set}: Aufstellung von Satz {st.set - 1} übernommen. <a href="/spiele/{id}?set={st.set}">Anpassen</a></div>
         {/if}
         <section class="court-wrap">
-          <Court {court} {byId} {selected} serving={st.serving} {suggested} {over} dragging={!!drag?.moved} {targets} onselect={slotTap} />
+          <Court {court} {byId} {selected} serving={st.serving} {suggested} {over} dragging={!!drag} {targets} onselect={slotTap} />
           {#if benchChips.length}
             <div class="bench" onpointermove={chipMove} onpointerup={chipUp} onpointercancel={chipUp}>
               {#each benchChips as p (p.id)}
@@ -321,7 +322,7 @@
               {/each}
             </div>
           {/if}
-          {#if selected && !drag?.moved}
+          {#if selected && !drag}
             <div class="court-foot">
               <span class="chip pos-{byId[selected]?.position}">{byId[selected]?.number} {firstName(byId[selected])}</span><span>ausgewählt, jetzt Aktion tippen</span>
             </div>
