@@ -130,7 +130,10 @@ const firstOf = (p) => (p?.name || '?').split(' ')[0];
  * end-pointing splits utterances at ~0.5 s of silence.
  *
  * start({ modelUrl, grammar, onState, onPartial, onResult }) → controller
- *   controller.gate(open: boolean)   controller.stop()
+ *   controller.gate(open: boolean)   controller.beep(ok: boolean)   controller.stop()
+ * beep: a short tone on the same output the headset uses (rising pair for a
+ * recorded action, a low buzz for a rejected one); the microphone gate stays
+ * shut while it plays so the tone never reaches the recognizer.
  */
 export async function start({ modelUrl, grammar: words, onState, onPartial, onResult }) {
   // AudioContext and microphone first, synchronously inside the tap that
@@ -159,8 +162,24 @@ export async function start({ modelUrl, grammar: words, onState, onPartial, onRe
   src.connect(node);
   node.connect(ctx.destination); // a ScriptProcessor only runs when it is wired to the graph; it outputs silence
   onState?.('bereit');
+  let muteUntil = 0, wanted = false;
+  const setOpen = (v) => { wanted = v; open = v && performance.now() >= muteUntil; };
+  function tone(at, freq, dur, type, vol) {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(vol, at + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+    o.connect(g); g.connect(ctx.destination); o.start(at); o.stop(at + dur + 0.02);
+  }
   return {
-    gate(v) { if (open && !v) rec.retrieveFinalResult(); open = v; },
+    gate(v) { if (open && !v) rec.retrieveFinalResult(); setOpen(v); },
+    beep(ok) {
+      const t = ctx.currentTime, len = ok ? 0.2 : 0.24;
+      if (ok) { tone(t, 880, 0.09, 'sine', 0.25); tone(t + 0.09, 1320, 0.12, 'sine', 0.25); }
+      else tone(t, 200, len, 'sawtooth', 0.12);
+      // shut the microphone for the tone (plus a little tail) and reopen if it was open
+      const was = open || wanted; muteUntil = performance.now() + len * 1000 + 120; open = false;
+      setTimeout(() => { if (was && wanted) open = true; }, len * 1000 + 120);
+    },
     stop() { open = false; try { node.disconnect(); src.disconnect(); } catch {} stream.getTracks().forEach((t) => t.stop()); ctx.close().catch(() => {}); try { rec.remove(); model.terminate(); } catch {} }
   };
 }

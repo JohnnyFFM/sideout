@@ -478,6 +478,11 @@
   // dragged onto a court slot (pointer events, works with touch) or tapped
   // to arm it, then the target slot is tapped. -----
   let phoneView = $state('pad');   // phone: 'pad' | 'stats'
+  // below 1000 px the mic button swaps the pad for the voice card; the card
+  // starts listening inside that tap and only shuts its gate while the pad is back
+  let voiceMode = $state(false);
+  let voice = $state(null);
+  function toggleVoiceMode() { voiceMode = !voiceMode; if (voiceMode) voice?.open(); else voice?.pause(); }
   let extrasOpen = $state(false);  // phone: bench + catch-up shown
   let drag = $state(null);    // { id, x, y, moved }
   let over = $state(null);    // court position under the dragged chip
@@ -663,7 +668,7 @@
       <a class="btn primary big" href="{base}/spiele/{id}">Aufstellung eintragen</a>
     </div>
   {:else}
-    <div class="live" class:pv-stats={phoneView === 'stats'} class:extras={extrasOpen}>
+    <div class="live" class:pv-stats={phoneView === 'stats'} class:extras={extrasOpen} class:vm={voiceMode}>
       <div class="col left">
         <section class="score">
           <button class="board-btn left" class:on={phoneView === 'stats'} onclick={() => (phoneView = phoneView === 'stats' ? 'pad' : 'stats')} title="Live-Werte"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M4 20h16v-2H4v2zm2-4h3V7H6v9zm5 0h3V4h-3v12zm5 0h3v-6h-3v6z"/></svg></button>
@@ -734,12 +739,18 @@
 
       <div class="col mid">
         <Pad {expected} idle={!selected} disabled={!canScout || !(canWrite || claimable) || st.finished || tossPending} ontap={tapCell} />
-        <div class="pad-foot">
+        <div class="pad-foot" class:has-mic={canScout}>
           <button class="btn big us" disabled={!canScout || !(canWrite || claimable) || st.finished || tossPending} onclick={() => queue({ skill: 'opp', grade: '=' })}>Fehler Gegner <span class="muted">+1 wir</span></button>
+          {#if canScout}
+            <button class="btn big mic" class:on={voiceMode} onclick={toggleVoiceMode} title={voiceMode ? 'Zurück zum Pad' : 'Sprache'} aria-label={voiceMode ? 'Zurück zum Pad' : 'Sprache'}>
+              {#if voiceMode}<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z"/></svg>
+              {:else}<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>{/if}
+            </button>
+          {/if}
           <button class="btn big them" disabled={!canScout || !(canWrite || claimable) || st.finished || tossPending} onclick={() => queue({ skill: 'opp', grade: '#' })}>Punkt Gegner</button>
         </div>
         {#if canScout}
-          <Voice players={match.players} onCourt={court.map((c) => c.id)} disabled={!(canWrite || claimable) || st.finished || tossPending} onaction={queue} />
+          <Voice bind:this={voice} players={match.players} onCourt={court.map((c) => c.id)} disabled={!(canWrite || claimable) || st.finished || tossPending} onaction={queue} />
         {/if}
         {#if st.finished}
           <div class="panel done">
@@ -833,6 +844,8 @@
     .col.left :global(.catch) { grid-column: 1 / -1; }
     .col.left .court-wrap :global(.court) { flex: 1 1 auto; min-height: 250px; }
     .col.mid :global(.pad) { flex: 1 1 auto; grid-template-rows: auto repeat(6, minmax(64px, 1fr)); }
+    .col.mid .pad-foot.has-mic { grid-template-columns: 1fr 1fr; }
+    .col.mid .pad-foot .btn.mic { display: none; }
     .col.right .stats-panel { flex: 1 1 0; min-height: 0; overflow: auto; }
     .timeline { grid-column: 1 / -1; }
   }
@@ -911,6 +924,9 @@
   .pad-foot .btn { justify-content: center; }
   .pad-foot .btn.us { border-color: var(--g-win); color: var(--g-win); }
   .pad-foot .btn.them { border-color: var(--g-err); color: var(--g-err); }
+  .pad-foot.has-mic { grid-template-columns: 1fr auto 1fr; }
+  .pad-foot .btn.mic { width: 56px; padding: 0; color: var(--ink-2); }
+  .pad-foot .btn.mic.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-text); }
   .done { text-align: center; display: grid; gap: 8px; justify-items: center; }
   .last { display: flex; align-items: center; gap: 10px; }
   .last .txt { flex: 1; font-size: 13px; color: var(--ink-2); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -959,6 +975,10 @@
     .col.left > .hint { order: 3; }
     .col.left > .court-wrap { order: 4; }
     .col.mid > :global(.pad) { order: 5; }
+    /* same vertical padding as the pad: with flex-basis 0 the padding is added on top of the shared height, so a thicker card would steal from the court */
+    .col.mid > :global(.voice) { order: 5; flex: 4 1 0; min-height: 0; overflow: auto; display: none; padding: 6px 10px; }
+    .live.vm .col.mid > :global(.voice) { display: grid; }
+    .live.vm .col.mid > :global(.pad) { display: none; }
     .col.mid > .pad-foot { order: 6; }
     .col.mid > .done { order: 7; }
     .col.right > .stats-panel { order: 8; }
@@ -976,10 +996,11 @@
     .court-wrap { padding: 6px; }
     .court-foot { margin-top: 4px; min-height: 18px; font-size: 11px; }
     .pad-foot .btn { height: 44px; font-size: 15px; }
+    .pad-foot.has-mic .btn .muted { display: none; }
     #lastBox { display: none; }
     .col.right > .stats-panel { display: none; }
     .live.pv-stats .col.right > .stats-panel { display: block; }
-    .live.pv-stats .col.left > .court-wrap, .live.pv-stats .col.mid > :global(.pad), .live.pv-stats .col.mid > .pad-foot { display: none; }
+    .live.pv-stats .col.left > .court-wrap, .live.pv-stats .col.mid > :global(.pad), .live.pv-stats .col.mid > :global(.voice), .live.pv-stats .col.mid > .pad-foot { display: none; }
     .timeline { display: flex; align-items: center; gap: 6px; padding: 6px 8px; }
     .tl-head { display: none; }
     /* undo sits at the right, next to the newest entry, and stays small */
@@ -1054,11 +1075,14 @@
     .col.mid > :global(.pad .prow .lbl) { font-size: 11px; }
     .col.mid > :global(.pad .prow .lbl small) { display: none; }
     .col.mid > .pad-foot { grid-column: 2; grid-row: 4; position: static; }
+    .col.mid > :global(.voice) { grid-column: 2; grid-row: 1 / span 3; min-height: 0; overflow: auto; display: none; }
+    .live.vm .col.mid > :global(.voice) { display: grid; }
+    .live.vm .col.mid > :global(.pad) { display: none; }
     .pad-foot .btn { height: 34px; font-size: 13px; }
     .col.mid > .done { grid-column: 2; grid-row: 4; }
     .col.right > .stats-panel { display: none; }
     .live.pv-stats .col.right > .stats-panel { display: block; grid-column: 2; grid-row: 1 / span 4; min-height: 0; overflow: auto; }
-    .live.pv-stats .col.mid > :global(.pad), .live.pv-stats .col.mid > .pad-foot { display: none; }
+    .live.pv-stats .col.mid > :global(.pad), .live.pv-stats .col.mid > :global(.voice), .live.pv-stats .col.mid > .pad-foot { display: none; }
   }
   /* tablet portrait (760–999px): like the phone, but two columns. Left:
      score with the two board icons, timeline, court + bench, undo. Right: the
@@ -1082,9 +1106,12 @@
     #lastBox { grid-column: 1; grid-row: 3; }
     .col.mid > :global(.pad) { grid-column: 2; grid-row: 1 / span 2; grid-template-rows: auto repeat(6, minmax(58px, auto)); }
     .col.mid > .pad-foot { grid-column: 2; grid-row: 3; }
+    .col.mid > :global(.voice) { grid-column: 2; grid-row: 1 / span 2; min-height: 0; overflow: auto; display: none; }
+    .live.vm .col.mid > :global(.voice) { display: grid; }
+    .live.vm .col.mid > :global(.pad) { display: none; }
     .col.mid > .done { grid-column: 2; grid-row: 3; }
     .col.right > .stats-panel { display: none; }
     .live.pv-stats .col.right > .stats-panel { display: block; grid-column: 2; grid-row: 1 / span 3; }
-    .live.pv-stats .col.mid > :global(.pad), .live.pv-stats .col.mid > .pad-foot { display: none; }
+    .live.pv-stats .col.mid > :global(.pad), .live.pv-stats .col.mid > :global(.voice), .live.pv-stats .col.mid > .pad-foot { display: none; }
   }
 </style>
