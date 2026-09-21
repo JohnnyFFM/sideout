@@ -92,6 +92,23 @@ await t3.tap(); await sleep(1200); sv = await server();
 check('tab 3 writes', sv.seq === seq0 + 2, { sv });
 await t3.go('/spiele', 1500);
 
+// ---- 1b. the editor keeps its writer lock across a claim answer; a waiting live tab stays a watcher ----
+{
+  const E = await browser(9399, 'edge-profile74', 'jonas');
+  const e1 = E.first;                                  // editor tab, opened first → writer
+  await e1.go(`/spiele/${M}?set=2`, 2500);
+  const l2 = await E.newTab();                         // live tab, waits for the lock
+  await l2.go(`/live/${M}`, 2500);
+  check('editor tab is the writer, live tab watches', (await e1.ev(`!document.querySelector('button[type=submit]')?.disabled`)) === true && (await l2.state()).banner.includes('anderen Tab'));
+  await e1.ev(`document.querySelector('button[type=submit]').click()`); await sleep(3500);
+  const l2s = await l2.state(); sv = await server();
+  check('save succeeded (lineup 2 written) and landed on live as the writer', (await e1.ev('location.pathname')) === `/live/${M}` && (await e1.ev(`!document.querySelector('.scoutbar')`)) === true, { path: await e1.ev('location.pathname'), bannerEditor: await e1.ev(`document.querySelector('.scoutbar')?.textContent||''`) });
+  check('the waiting live tab did not grab the lock during the claim', l2s.banner.includes('anderen Tab') && l2s.padOn === 0, { l2s });
+  const lu = await (await fetch(`${origin}/api/matches/${M}`, { headers: { cookie } })).json();
+  check('server holds lineup 2 from the editor', Object.keys(lu.lineups).includes('2'), { lineups: Object.keys(lu.lineups) });
+  await e1.go('/spiele', 1500); await l2.go('/spiele', 1500);
+}
+
 // ---- 2. the same without Web Locks (heartbeat fallback) ----
 const K = await browser(9396, 'edge-profile71', 'jonas', true);
 const k1 = K.first;

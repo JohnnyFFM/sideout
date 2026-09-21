@@ -50,7 +50,7 @@
     </div>
     <div class="app-row">
       <div><div class="k">Anleitung</div><div class="d">Scouten, Bewertungsskala, Auswertung</div></div>
-      <a class="btn" href="{base}/hilfe/">Öffnen</a>
+      <a class="btn" href="{base}/anleitung">Öffnen</a>
     </div>
     <details class="diag app-row">
       <summary>

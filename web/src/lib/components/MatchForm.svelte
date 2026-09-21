@@ -16,10 +16,13 @@
   // the live page, so a second tab cannot change lineup or first serve
   // while another tab of this browser is scouting
   let tabOwner = $state(false);
+  // the lock follows the match id only: a refreshed match object (a claim
+  // answer, a scout event) must not release and re-request it
+  const mid = $derived(match?.id ?? null);
   $effect(() => {
-    const mid = match?.id;
-    if (!mid) { tabOwner = true; return; }
-    const lock = tabWriter(mid, (held) => (tabOwner = held));
+    const m = mid;
+    if (!m) { tabOwner = true; return; }
+    const lock = tabWriter(m, (held) => (tabOwner = held));
     return () => lock.release();
   });
 
@@ -115,6 +118,8 @@
           if (holderElse) { error = `${scout.actor || 'Jemand'} scoutet gerade auf einem anderen Gerät. Zum Speichern erst übernehmen.`; return; }
           lease = await acquire('claim');
           if (!lease) return;
+          // ownership is rechecked after the wait: the writer role may have moved to another tab meanwhile
+          if (!tabOwner) { error = 'Dieses Spiel wird in einem anderen Tab dieses Browsers gescoutet.'; return; }
         }
         await api(`/matches/${match.id}`, { method: 'PATCH', body: { version: match.version, opponent, date, time, hall, home, first_serve, notes }, lease });
         await api(`/matches/${match.id}/lineups/${set}`, { method: 'PUT', body: lineup, lease });
