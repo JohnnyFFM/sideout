@@ -6,6 +6,10 @@ ENV SO_BASE=$SO_BASE
 WORKDIR /app/web
 COPY web/package.json web/package-lock.json ./
 RUN npm ci
+# voice scouting model (~46 MB, git-ignored locally): fetched in its own layer so a
+# source change does not download it again
+COPY web/scripts/voice-model.mjs scripts/
+RUN apk add --no-cache unzip && node scripts/voice-model.mjs
 COPY web/ .
 RUN npm run build
 
