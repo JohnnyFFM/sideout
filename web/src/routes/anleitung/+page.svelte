@@ -21,7 +21,7 @@
           else if (h === './') a.setAttribute('href', `${base}/anleitung`);
           else if (h.startsWith('/') && !h.startsWith(base + '/')) a.setAttribute('href', base + h);
         }
-        html = (toc ? toc.outerHTML : '') + (article ? article.outerHTML : '');
+        html = article ? article.outerHTML : ''; // the inline table of contents already sits inside the article
         if (!article) error = 'Anleitung nicht gefunden.';
         // an anchor in the URL: scroll to it once the article is in the DOM
         if (location.hash) setTimeout(() => document.getElementById(location.hash.slice(1))?.scrollIntoView(), 50);
