@@ -295,6 +295,23 @@ async fn takeover_and_in_flight_writes_never_interleave() {
 }
 
 #[tokio::test]
+async fn concurrent_match_lists_do_not_exhaust_the_read_pool() {
+    // the read pool has four connections; a list request that kept one while
+    // loading state through others could deadlock under concurrency
+    let app = app().await;
+    let (c, _mid, _) = fixture(&app).await;
+    for i in 0..3 {
+        call(&app, Method::POST, "/matches", Some(&c), Some(json!({ "opponent": format!("G{i}"), "date": "2026-09-22" }))).await;
+    }
+    let calls: Vec<_> = (0..12).map(|_| call(&app, Method::GET, "/matches", Some(&c), None)).collect();
+    let all = tokio::time::timeout(std::time::Duration::from_secs(10), futures::future::join_all(calls)).await.expect("concurrent list requests must not stall");
+    for (st, body, _) in all {
+        assert_eq!(st, StatusCode::OK, "{body}");
+        assert_eq!(body["matches"].as_array().unwrap().len(), 4);
+    }
+}
+
+#[tokio::test]
 async fn finishing_and_reopening_through_leases() {
     let app = app().await;
     let (a1, mid, _) = fixture(&app).await;

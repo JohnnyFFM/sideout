@@ -45,11 +45,16 @@ pub async fn list(State(state): State<AppState>, user: CurrentUser) -> ApiResult
         .fetch_all(&state.db)
         .await?;
     let mut out = Vec::with_capacity(rows.len());
-    let mut conn = state.db.acquire().await?;
     for r in &rows {
         let mut m = match_json(r);
+        // state first (it borrows pool connections of its own); the connection
+        // for the scout block is taken afterwards and dropped per row, so
+        // concurrent list requests cannot pin the whole read pool
         m["state"] = state_json(&state, r).await?;
-        m["scout"] = scout_json(&mut conn, r.get("id"), &user).await?;
+        m["scout"] = {
+            let mut conn = state.db.acquire().await?;
+            scout_json(&mut conn, r.get("id"), &user).await?
+        };
         out.push(m);
     }
     Ok(Json(json!({ "matches": out })))

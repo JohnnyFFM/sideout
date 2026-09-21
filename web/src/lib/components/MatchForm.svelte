@@ -8,8 +8,20 @@
   import { ROMAN, POS_NAME, todayIso } from '$lib/engine.js';
   import { loadOps, saveLease, newCid } from '$lib/offline.js';
   import { initialsOf } from '$lib/people.js';
+  import { tabWriter } from '$lib/scoutlock.js';
 
   let { match = null, players = [], set = 1, onscout = null } = $props();
+
+  // the editor is a writer too: it takes the same per-match writer lock as
+  // the live page, so a second tab cannot change lineup or first serve
+  // while another tab of this browser is scouting
+  let tabOwner = $state(false);
+  $effect(() => {
+    const mid = match?.id;
+    if (!mid) { tabOwner = true; return; }
+    const lock = tabWriter(mid, (held) => (tabOwner = held));
+    return () => lock.release();
+  });
 
   // ----- scouting ownership: editing a lineup or the first serve of an
   // existing match is a protected write. The form never takes the match
@@ -93,6 +105,7 @@
     const lineup = { pos: pos.slice(), libero: libero || null };
     try {
       if (match) {
+        if (!tabOwner) { error = 'Dieses Spiel wird in einem anderen Tab dieses Browsers gescoutet.'; return; }
         // unsent actions of this device change the replay: they go first
         if (loadOps(match.id).length) { error = 'Dieses Gerät hat noch nicht gesendete Aktionen. Erst die Live-Seite öffnen und senden lassen.'; return; }
         // the lease: ours, or a conditional claim of a free/stale match; a
@@ -173,12 +186,14 @@
         <span class="txt"><b>{scout.actor || 'Jemand'}</b> scoutet auf einem anderen Gerät{scout.device ? ` (${scout.device})` : ''} · seit {hhmm(scout.since)}. Aufstellung und Aufschlag gehören zum Scouting.</span>
         <button class="btn primary" type="button" onclick={takeover} disabled={acquiring || !$online}>Scouting übernehmen</button>
       </div>
+    {:else if match && !tabOwner}
+      <div class="scoutbar" role="status"><span class="txt">Dieses Spiel wird in einem anderen Tab dieses Browsers gescoutet. Aufstellung und Aufschlag lassen sich nur dort ändern.</span></div>
     {:else if match && pendingOps}
       <p class="err" style="margin-top:10px">Dieses Gerät hat {pendingOps} nicht gesendete Aktionen. Erst die Live-Seite öffnen und senden lassen.</p>
     {/if}
     {#if error}<p class="err" style="margin-top:10px">{error}</p>{/if}
     <div class="row" style="margin-top:14px">
-      <button class="btn primary big" type="submit" disabled={busy || acquiring || fieldPlayers.length < 6 || (match && (holderElse || pendingOps > 0))}>{match ? 'Speichern & zum Live-Scouting' : 'Spiel anlegen & starten'}</button>
+      <button class="btn primary big" type="submit" disabled={busy || acquiring || fieldPlayers.length < 6 || (match && (holderElse || pendingOps > 0 || !tabOwner))}>{match ? 'Speichern & zum Live-Scouting' : 'Spiel anlegen & starten'}</button>
       <a class="btn big" href={match ? `${base}/live/${match.id}` : '/spiele'}>Abbrechen</a>
     </div>
   </div>

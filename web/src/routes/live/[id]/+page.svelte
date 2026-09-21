@@ -50,6 +50,13 @@
   // may this device acquire the match right now (free, stale, or already ours)?
   const claimable = $derived(canScout && tabOwner && !!scout && (!scout.held || scout.stale || scout.mine));
   const hhmm = (iso) => { const d = iso ? new Date(iso) : null; return d && !isNaN(d) ? d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '–'; };
+  // persisted state (queue, lease, set-aside ops) belongs to the writer tab:
+  // a watching tab renders from storage but must never write it back, or a
+  // refresh that was pending in the watcher could overwrite the writer's
+  // newer queue with its older copy
+  const persistOps = (mid, o) => { if (tabOwner) saveOps(mid, o); };
+  const persistLease = (mid, l) => { if (tabOwner) saveLease(mid, l); };
+  const persistDropped = (mid, o) => { if (tabOwner) keepDropped(mid, o); };
   const REQ_KEY = (mid) => `so_scout_req_${mid}`;
   const loadReq = (mid) => { try { return JSON.parse(localStorage.getItem(REQ_KEY(mid)) || 'null'); } catch { return null; } };
   const saveReq = (mid, v) => { try { if (v) localStorage.setItem(REQ_KEY(mid), JSON.stringify(v)); else localStorage.removeItem(REQ_KEY(mid)); } catch { /* ignore */ } };
@@ -127,12 +134,12 @@
     const knownTop = (match || cachedMatch(id))?.actions?.slice(-1)[0]?.seq || 0;
     const r = reconcileOps(m.actions, ops, knownTop);
     if (r.conflict) {
-      keepDropped(id, r.dropped);
+      persistDropped(id, r.dropped);
       showToast(`Ein anderes Gerät hat gescoutet: ${r.dropped.length} eigene Aktionen verworfen`, true);
     }
     ops = r.ops;
     gen++;
-    saveOps(id, ops);
+    persistOps(id, ops);
     match = m;
     cacheMatch(id, m);
     if (sc && sc.revision >= (scout?.revision ?? -1)) setScout(sc);
@@ -143,9 +150,9 @@
     if (sc.mine && sc.lease) {
       lease = sc.lease; leaseRev = sc.revision;
       if (sc.revision >= doubtRev) needVerify = false; // an answer from before the doubt does not settle it
-      saveLease(id, { lease, rev: leaseRev });
+      persistLease(id, { lease, rev: leaseRev });
     } else if (lease && sc.revision >= leaseRev) {
-      lease = null; saveLease(id, null);
+      lease = null; persistLease(id, null);
     }
   }
   // the lease is gone (takeover, expiry, refusal): whatever the server
@@ -153,11 +160,11 @@
   // lease and is kept aside for the record
   function ownershipLost(m) {
     const rest = settleAfterLoss(m.actions, ops);
-    keepDropped(id, rest);
+    persistDropped(id, rest);
     const who = m.scout?.actor ? `${m.scout.actor} scoutet jetzt` : 'Das Scouting ist beendet';
     showToast(rest.length ? `${who}: ${rest.length} nicht gesendete Aktionen beiseitegelegt` : who, true);
-    ops = []; gen++; saveOps(id, ops);
-    lease = null; saveLease(id, null); needVerify = true;
+    ops = []; gen++; persistOps(id, ops);
+    lease = null; persistLease(id, null); needVerify = true;
     match = m; cacheMatch(id, m); scout = m.scout;
   }
   // conditional acquisition on entry when the match is free or stale (never
@@ -216,7 +223,7 @@
     // nothing can be released: the device stays the holder of record, so a
     // reload in the hall keeps capturing (the server holds the lease anyway)
     if (!l || !tabOwner || ops.length || inflight || !navigator.onLine) return;
-    lease = null; saveLease(mid, null);
+    lease = null; persistLease(mid, null);
     api(`/matches/${mid}/scout?lease=${encodeURIComponent(l)}`, { method: 'DELETE', keepalive }).catch(() => {});
   }
   // ask the server whether our lease still holds before anything is sent
@@ -253,10 +260,12 @@
       if (!held) return;
       needVerify = true;
       untrack(() => {
+        // the persisted queue is the truth, not this tab's copy of it
+        if (info?.handoff) { const saved = loadOps(mid); if (JSON.stringify(saved) !== JSON.stringify(ops)) { ops = saved; gen++; } }
         // a hand-off from another tab of this browser: that tab may have
         // released the lease we restored from storage, so acquire afresh
         // (the server starts a new period for the same session)
-        if (info?.handoff && $online) { lease = null; saveLease(mid, null); }
+        if (info?.handoff && $online) { lease = null; persistLease(mid, null); }
         if (!lease) maybeClaim();
         flush();
       });
@@ -345,7 +354,7 @@
     const seq = (actionsAll[actionsAll.length - 1]?.seq || 0) + 1;
     ops = [...ops, { type: 'add', action: { id: -seq, seq, cid: newCid(), grade: null, player_id: null, sub_out: null, sub_in: null, ...a } }];
     gen++;
-    saveOps(id, ops);
+    persistOps(id, ops);
     selected = null;
     const after = replay(cfg, applyOps(match.actions, ops));
     if (after.set !== before.set) { const s = after.sets[after.sets.length - 1]; showToast(`Satz ${before.set} beendet ${s.us}:${s.them}` + (after.finished || match.lineups?.[after.set] ? '' : ' · Aufstellung übernommen, Wechsel per Drag & Drop')); }
@@ -375,7 +384,7 @@
         }
         const op = ops[0];
         inflight = op; inflightFor = mid;
-        if (op.type === 'add' && !op.sent) { op.sent = true; saveOps(id, ops); } // from here on the server may hold it
+        if (op.type === 'add' && !op.sent) { op.sent = true; persistOps(id, ops); } // from here on the server may hold it
         try {
           if (op.type === 'add') {
             const res = await api(`/matches/${mid}/actions`, { method: 'POST', body: op.action, lease });
@@ -394,7 +403,7 @@
           }
           ops = ops.filter((o) => o !== op);
           gen++;
-          saveOps(mid, ops);
+          persistOps(mid, ops);
           cacheMatch(id, match);
           retryDelay = 5000;
           conflicts = 0;
@@ -413,11 +422,11 @@
             const m = await api(`/matches/${mid}`).catch(() => null);
             if (stale(mid)) return;
             if (m) ownershipLost(m);
-            else { saveLease(mid, { lost: true }); lease = null; scout = e.current?.scout || scout; } // settled on the next successful load
+            else { persistLease(mid, { lost: true }); lease = null; scout = e.current?.scout || scout; } // settled on the next successful load
             break;
           }
           if (e.status === 409) {
-            if (++conflicts > 2) { keepDropped(id, ops); ops = []; saveOps(id, ops); showToast('Konflikt mit dem Server, eigene Aktionen verworfen', true); break; }
+            if (++conflicts > 2) { persistDropped(id, ops); ops = []; persistOps(id, ops); showToast('Konflikt mit dem Server, eigene Aktionen verworfen', true); break; }
             const m = await api(`/matches/${mid}`).catch(() => null);
             if (stale(mid)) return;
             if (!m) { // the recovery reload failed too: same backoff as any other error
@@ -438,7 +447,7 @@
           showToast(e.message, true);
           const rest = ops.filter((o) => o !== op && !(op.type === 'add' && o.type === 'undo' && o.cid === op.action.cid));
           ops = reconcileOps(match.actions, rest, match.actions.slice(-1)[0]?.seq || 0).ops;
-          saveOps(id, ops);
+          persistOps(id, ops);
         } finally {
           inflight = null;
         }
@@ -624,7 +633,7 @@
     if (lastOp?.type === 'add' && !lastOp.sent && lastOp !== inflight) ops = ops.slice(0, -1);
     else ops = [...ops, { type: 'undo', cid: a.cid ?? null, seq: a.seq }];
     gen++;
-    saveOps(id, ops);
+    persistOps(id, ops);
     selected = null;
     showToast('Rückgängig: ' + describe(a));
     flush();

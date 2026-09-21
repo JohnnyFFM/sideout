@@ -64,6 +64,19 @@ check('tab 2 of the same session: watches, "anderer Tab" notice, no scoring', s2
 await t1.tap(); await sleep(1200); sv = await server();
 const seq0 = sv.seq;
 check('tab 1 writes; tab 2 does not flush the shared queue', sv.seq >= 1 && (await t2.state()).queue === 0, { sv });
+// a watching tab's pending refresh must not overwrite the writer's persisted queue
+await t1.send('Network.emulateNetworkConditions', { offline: true, latency: 0, downloadThroughput: -1, uploadThroughput: -1 }); await sleep(200);
+await t1.tap(); await sleep(300);
+check('writer tab queued one action offline (persisted)', (await t2.ev(`(JSON.parse(localStorage.getItem('so_ops_${M}')||'[]')).length`)) === 1);
+await t2.ev(`document.dispatchEvent(new Event('visibilitychange'))`); await sleep(2000);   // watcher refreshes (resync → load → adopt)
+check('watcher refresh leaves the persisted queue untouched', (await t2.ev(`(JSON.parse(localStorage.getItem('so_ops_${M}')||'[]')).length`)) === 1 && (await t2.state()).queue === 1);
+await t1.send('Network.emulateNetworkConditions', { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 }); await sleep(2500);
+sv = await server();
+check('writer sends it after reconnect', sv.seq === seq0 + 1 && (await t1.state()).queue === 0, { sv });
+// the editor in a second tab is a writer too: it does not get the lock while tab 1 scouts
+await t2.go(`/spiele/${M}?set=2`, 2500);
+const ed = await t2.ev(`JSON.stringify({ notice: document.querySelector('form .scoutbar')?.textContent.trim() || '', saveOn: !document.querySelector('button[type=submit]')?.disabled })`).then((x) => JSON.parse(x));
+check('editor in a second tab: "anderer Tab" notice, save disabled', ed.notice.includes('anderen Tab') && !ed.saveOn, { ed });
 // tab 2 leaving must not release tab 1's lease
 await t2.go('/spiele', 1500);
 sv = await server();
@@ -76,7 +89,7 @@ await t1.go('/spiele', 2000);
 let took = false; for (let i = 0; i < 20 && !took; i++) { await sleep(300); const s = await t3.state(); took = !s.banner && s.lease && s.padOn > 0; }
 check('tab 3 takes the writer role when tab 1 leaves and holds a lease', took, { s3: await t3.state() });
 await t3.tap(); await sleep(1200); sv = await server();
-check('tab 3 writes', sv.seq === seq0 + 1, { sv });
+check('tab 3 writes', sv.seq === seq0 + 2, { sv });
 await t3.go('/spiele', 1500);
 
 // ---- 2. the same without Web Locks (heartbeat fallback) ----
