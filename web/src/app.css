@@ -163,6 +163,10 @@ button { font: inherit; color: inherit; }
    therefore at least one pixel taller than the screen, so all of them are
    in the same, scrollable state. The live screen has its own fixed layout. */
 @media (max-width: 760px) { body:not(.live-phone) { min-height: calc(100dvh + 1px); } }
+/* iOS again: a navigation onto a page that cannot scroll as far as the
+   previous one left the viewport rubber-banded, and fixed elements ride
+   along with it. No overscroll on the document: the bar stays put. */
+@media (max-width: 760px) { html, body { overscroll-behavior-y: none; } }
 /* phone login: readable without pinching */
 @media (max-width: 760px) {
   .login-card { padding: 24px 20px; }
