@@ -157,6 +157,12 @@ button { font: inherit; color: inherit; }
 }
 /* the fixed tab bar covers the end of every scrolling page: reserve its height */
 @media (max-width: 760px) { .page { padding-bottom: calc(var(--tabbar-h) + 16px); } }
+/* iOS (installed app): on a page shorter than the screen WebKit places
+   fixed elements differently until a scroll gesture re-lays them out, and
+   the tab bar showed up too high on Einstellungen and Teams. Every page is
+   therefore at least one pixel taller than the screen, so all of them are
+   in the same, scrollable state. The live screen has its own fixed layout. */
+@media (max-width: 760px) { body:not(.live-phone) { min-height: calc(100dvh + 1px); } }
 /* phone login: readable without pinching */
 @media (max-width: 760px) {
   .login-card { padding: 24px 20px; }
