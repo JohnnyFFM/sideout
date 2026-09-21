@@ -6,6 +6,7 @@
   import { onDestroy } from 'svelte';
   import { base } from '$app/paths';
   import { grammar, parse, start } from '$lib/voice.js';
+  import { logDiag, showToast } from '$lib/stores.js';
   let { players = [], onCourt = null, disabled = false, onaction } = $props();
 
   const MODEL = `${base}/models/vosk-model-small-de-0.15.tar.gz`;
@@ -27,16 +28,20 @@
   async function toggle() {
     if (ctl) { stop(); return; }
     busy = true; log = [];
+    const t0 = performance.now();
+    logDiag('voice', 'Einschalten · ' + (window.isSecureContext ? 'secure' : 'INSECURE ' + location.origin) + ' · ' + (navigator.mediaDevices ? 'mediaDevices ok' : 'kein mediaDevices') + ' · ' + (typeof AudioContext) + ' · mem ' + (navigator.deviceMemory || '?'));
     try {
       ctl = await start({
         modelUrl: MODEL, grammar: grammar(roster),
-        onState: (s) => (status = s),
+        onState: (s) => { status = s; logDiag('voice', s + ' · ' + Math.round(performance.now() - t0) + ' ms'); },
         onPartial: (p) => (partial = p),
         onResult: heard
       });
       if (mode === 'cont') ctl.gate(true);
     } catch (e) {
       status = 'Start fehlgeschlagen: ' + (e?.message || e);
+      logDiag('voice', 'fehlgeschlagen: ' + (e?.message || e));
+      showToast(status, true);
       ctl = null;
     } finally { busy = false; }
   }

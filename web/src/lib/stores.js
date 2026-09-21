@@ -144,10 +144,14 @@ export const DIAG_KEY = 'so_errors';
 export function readDiag() {
   try { return JSON.parse(localStorage.getItem(DIAG_KEY) || '[]'); } catch { return []; }
 }
-function logError(kind, msg) {
+/** record-only note for the Diagnose panel (no toast): phases of a feature under test */
+export function logDiag(kind, msg) {
   const e = { t: new Date().toISOString(), kind, msg: String(msg || '').slice(0, 300), path: location.pathname };
   try { localStorage.setItem(DIAG_KEY, JSON.stringify(readDiag().concat([e]).slice(-10))); } catch { /* ignore */ }
-  showToast('Fehler: ' + e.msg, true);
+}
+function logError(kind, msg) {
+  logDiag(kind, msg);
+  showToast('Fehler: ' + String(msg || '').slice(0, 300), true);
 }
 
 if (typeof window !== 'undefined') {

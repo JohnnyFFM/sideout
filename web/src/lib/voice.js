@@ -136,6 +136,8 @@ export async function start({ modelUrl, grammar: words, onState, onPartial, onRe
   // AudioContext and microphone first, synchronously inside the tap that
   // called us: iOS/Android only grant them from a user gesture, and the
   // gesture is spent once the model download below has been awaited
+  if (!navigator.mediaDevices?.getUserMedia) throw new Error(window.isSecureContext ? 'Dieser Browser hat keinen Mikrofonzugriff' : 'Mikrofon nur über https oder localhost, nicht über eine http-Adresse im WLAN');
+  if (typeof AudioContext === 'undefined') throw new Error('Kein Web Audio in diesem Browser');
   const ctx = new AudioContext();
   ctx.resume().catch(() => {});
   onState?.('Mikrofon …');
