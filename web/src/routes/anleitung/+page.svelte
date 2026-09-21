@@ -31,7 +31,7 @@
 </script>
 
 <svelte:head><title>Sideout — Anleitung</title></svelte:head>
-<main class="page doc guide">
+<main class="page guide">
   {#if error}<div class="panel empty">{error}</div>
   {:else if !html}<div class="panel empty">Lade…</div>
   {:else}
@@ -41,8 +41,11 @@
 </main>
 
 <style>
+  /* one column at every width: the standalone page's sidebar grid (.doc) is
+     not used here, and its inline table of contents stays visible on
+     desktop too (the embedded stylesheet hides it from 1000 px) */
   .guide { max-width: 800px; }
-  /* the standalone page's own layout rules do not apply inside the app */
-  .guide :global(.toc-inline) { margin-bottom: 16px; }
+  .guide :global(.toc-inline) { display: block !important; margin-bottom: 16px; }
+  .guide :global(article) { min-width: 0; }
   .guide :global(article h1) { margin-top: 0; }
 </style>

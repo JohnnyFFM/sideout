@@ -30,6 +30,12 @@ await ev(`window.soTheme.set('light')`); await sleep(300);
 const bg = await ev(`getComputedStyle(document.body).backgroundColor`);
 check('light theme applies to the guide page', (await ev(`document.documentElement.dataset.theme`)) === 'light' && bg !== 'rgb(15, 19, 27)', { bg });
 await shot('guide-phone-light');
+// desktop: one wide column, inline contents still visible
+await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false }); await sleep(500);
+const dk = JSON.parse(await ev(`JSON.stringify({ article: Math.round(document.querySelector('.guide article').getBoundingClientRect().width), main: Math.round(document.querySelector('main.guide').getBoundingClientRect().width), toc: getComputedStyle(document.querySelector('.guide .toc-inline')).display, sideToc: !!document.querySelector('.guide .toc') })`));
+check('desktop 1280: article fills the column (≥ 600 px), inline contents visible, no sidebar', dk.article >= 600 && dk.article <= dk.main && dk.toc !== 'none' && !dk.sideToc, dk);
+await shot('guide-desktop');
+await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true }); await sleep(300);
 // deep link with anchor
 await send('Page.navigate', { url: `${origin}/anleitung#zwei` }); await sleep(2500);
 const y = await ev(`document.getElementById('zwei')?.getBoundingClientRect().top`);
