@@ -78,6 +78,7 @@
       <a class="sub" href="#pad">Das Pad</a>
       <a class="sub" href="#automatik">Was automatisch passiert</a>
       <a class="sub" href="#helfer">Schneller tippen</a>
+      <a class="sub" href="#sprache">Per Sprache</a>
       <a class="sub" href="#nachtragen">Nachtragen</a>
       <a class="sub" href="#offline">Ohne Empfang</a>
       <a href="#skala">Bewertungsskala</a>
@@ -213,6 +214,18 @@
         <li><b>Verlauf:</b> Der Verlauf läuft als Zeitstrahl von links nach rechts: ein Kästchen pro Aktion mit Nummer, Aktion und Bewertung, nach jedem Ballwechsel der Spielstand (grün gewonnen, rot verloren), ein Strich pro Satz. Er scrollt von selbst zur neuesten Aktion; nach links wischen zeigt frühere. Auf dem Laptop passt alles auf einen Bildschirm, lange Tabellen scrollen in ihrer Karte.</li>
       </ul>
 
+      <h3 id="sprache">Per Sprache</h3>
+      <p>Statt zu tippen kannst du jede Aktion sagen: <b>Spielerin, Aktion, Note</b>, in beliebiger Reihenfolge. <span class="ui">zwölf Block Punkt</span>, <span class="ui">Lena Annahme gut</span>, <span class="ui">Angriff drei Fehler</span>. Die beiden Knöpfe unter dem Pad gehen auch: <span class="ui">Fehler Gegner</span> und <span class="ui">Punkt Gegner</span>. Die Spielerin nennst du mit ihrer Nummer oder ihrem Vornamen (der Vorname zählt nur, wenn er im Kader eindeutig ist), und sie muss auf dem Feld stehen.</p>
+      <ul>
+        <li><b>Handy und Tablet:</b> Der Mikrofon-Knopf zwischen <span class="ui">Fehler Gegner</span> und <span class="ui">Punkt Gegner</span> tauscht das Pad gegen die Karte <span class="ui">Sprache</span> und hört sofort zu. Derselbe Knopf (jetzt ein Raster) holt das Pad zurück; das Mikrofon pausiert dann und ist beim nächsten Tippen ohne Wartezeit wieder da.</li>
+        <li><b>Laptop:</b> Die Karte <span class="ui">Sprache</span> steht unter dem Pad, <span class="ui">Einschalten</span> startet sie.</li>
+        <li><b>Halten oder Dauernd:</b> Bei <span class="ui">Halten</span> hört Sideout nur zu, solange du den großen Knopf gedrückt hältst oder eine Taste (Leertaste; <span class="ui">Taste</span> lernt jede andere, auch die eines Bluetooth-Clickers oder Fußpedals). Bei <span class="ui">Dauernd</span> hört es immer zu und trennt die Sätze an kurzen Pausen. In der lauten Halle ist Halten die sichere Wahl, weil Zurufe ans Team sonst mitgehört werden.</li>
+        <li><b>Töne:</b> Ein aufsteigender Doppelton heißt gebucht, ein tiefer Ton heißt verworfen. Mit Kopfhörer oder Headset musst du also nicht aufs Handy schauen. Die Karte zeigt zusätzlich, was verstanden wurde; <span class="ui">Rückgängig</span> gilt wie beim Tippen.</li>
+        <li><b>Streng, mit Absicht:</b> Nur ein vollständiger Satz aus genau einer Spielerin, einer Aktion und einer Note wird gebucht. Alles andere (halbe Sätze, zwei Spielerinnen, unbekannte Wörter, eine Note, die es für die Aktion nicht gibt) wird mit Grund verworfen. Eine verpasste Aktion kostet dich einen Tipp, eine falsche eine Statistik.</li>
+        <li><b>Wörter:</b> Aktionen heißen Aufschlag, Annahme, Zuspiel, Angriff, Block, Abwehr. Noten: <span class="ui">Punkt</span>, <span class="ui">Ass</span> oder <span class="ui">perfekt</span> für #, <span class="ui">gut</span> für +, <span class="ui">okay</span> für !, <span class="ui">schwach</span> für −, <span class="ui">geblockt</span> oder <span class="ui">drüber</span> für /, <span class="ui">Fehler</span> für =.</li>
+        <li><b>Technik und Datenschutz:</b> Die Erkennung läuft komplett auf deinem Gerät, es wird kein Ton irgendwohin geschickt. Beim ersten Einschalten lädt Sideout einmalig ein Sprachmodell (46 MB), danach geht es auch ohne Empfang. Das Mikrofon gibt der Browser nur über die verschlüsselte App-Adresse (https) frei, nicht über eine http-Adresse im WLAN. Ein Headset oder Ansteckmikrofon nah am Mund hilft in der Halle sehr.</li>
+      </ul>
+
       <h3 id="nachtragen">Nachtragen nach einem Blackout</h3>
       <p>Manchmal bist du als Trainer:in ein paar Ballwechsel lang beschäftigt und tippst nichts. Dann gleichst du die App danach an die Anzeigetafel an, ohne Aktionen zu erfinden. Dafür gibt es vier gestrichelte Knöpfe unter dem Spielstand (auf dem Handy hinter dem Stift-Symbol rechts im Spielstand):</p>
       <ul>
@@ -324,6 +337,10 @@
         <dd>In einer SQLite-Datei auf dem Server, auf dem Sideout läuft. Ein Backup ist eine Kopie dieser Datei.</dd>
         <dt>Unten erscheint „Neue Version verfügbar“.</dt>
         <dd>Sideout wurde aktualisiert. Tippen lädt die App neu, ausstehende Aktionen bleiben erhalten. Ohne Tippen passiert es beim nächsten Seitenwechsel von selbst.</dd>
+        <dt>Sprache: „Mikrofon nur über https oder localhost“.</dt>
+        <dd>Du hast Sideout über eine http-Adresse geöffnet, etwa die IP eines Rechners im WLAN. Browser geben das Mikrofon dort nicht frei. Öffne die App über ihre normale verschlüsselte Adresse; am Laptop geht auch localhost.</dd>
+        <dt>Sprache versteht mich nicht.</dt>
+        <dd>Näher ans Mikrofon, langsamer, drei Wörter mit kleinen Pausen. Die Karte zeigt unter <span class="ui">gehört</span>, was angekommen ist. Nummern werden sicherer erkannt als Namen; „zwo“ statt „zwei“ hilft. Bei viel Hallenlärm <span class="ui">Halten</span> statt <span class="ui">Dauernd</span>.</dd>
         <dt>Kann ich den Gegner mit scouten?</dt>
         <dd>Noch nicht. Sideout zählt das eigene Team; Gegnerpunkte und Gegnerfehler kommen über die beiden Knöpfe unter dem Pad.</dd>
       </dl>

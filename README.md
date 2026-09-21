@@ -156,23 +156,32 @@ answers got lost. Not yet: creating a match offline.
 
 MIT. Every coach deserves this.
 
-## Voice scouting (prototype, branch `voice`)
+## Voice scouting
 
-One spoken utterance is one action: *"zwölf Block Punkt"*, *"Lena Annahme
-gut"*, *"Fehler Gegner"*. Recognition runs on the device with
-[Vosk](https://alphacephei.com/vosk/) (WebAssembly via `vosk-browser`,
-Apache 2.0) and its small German model, so no audio leaves the phone and
-it works offline once the model (~46 MB, fetched on first use, never
-precached) is cached. The recognizer only gets a *grammar*: the roster's
-numbers and first names, the six skills, a handful of grade words. Anything
-else comes out as `[unk]` and the parser (`web/src/lib/voice.js`) drops the
-utterance unless it is exactly one player, one skill and one grade. Every
-result is echoed in the panel under the pad, wrong ones are one
-"Rückgängig" away. Two modes: **Halten** (a big button, or a key — Space by
+One spoken utterance is one action, words in any order: *"zwölf Block
+Punkt"*, *"Lena Annahme gut"*, *"Fehler Gegner"*. Recognition runs on the
+device with [Vosk](https://alphacephei.com/vosk/) (WebAssembly via
+`vosk-browser`, Apache 2.0) and its small German model, so no audio leaves
+the phone and it works offline once the model (~46 MB, fetched on first
+use, never precached) is cached. The recognizer only gets a *grammar*: the
+roster's numbers and first names, the six skills, a handful of grade words.
+Anything else comes out as `[unk]` and the parser (`web/src/lib/voice.js`)
+drops the utterance unless it is exactly one player on the court, one skill
+and one grade. Every result is echoed in the card and answered with a tone
+(rising pair = recorded, low buzz = rejected); wrong ones are one
+"Rückgängig" away.
+
+Below 1000 px a mic button between the two team buttons swaps the pad for
+the card and starts listening in that tap; the same button brings the pad
+back and only shuts the microphone gate (model kept). Desktop shows the card
+below the pad. Two modes: **Halten** (a big button, or a key — Space by
 default, learnable, so a Bluetooth page-turner or presenter clicker works)
 and **Dauernd** (always listening, Vosk splits at ~0.5 s of silence).
+Browsers grant the microphone only on https or localhost, so phones test
+against the https stacks, not a LAN address.
 
 Setup: `cd web && npm run voice-model` downloads the model into
-`static/models/` (git-ignored). Checks: `node tests/voice-parse.mjs`
-(parser), `node tests/browser/voice.mjs <outdir> <wav>` (fake microphone
-end to end, see `tests/browser/README.md`).
+`static/models/` (git-ignored); the Docker web stage does the same. Checks:
+`node tests/voice-parse.mjs` (parser), `node tests/browser/voice.mjs <outdir>
+<wav>` (fake microphone end to end, phone and desktop, see
+`tests/browser/README.md`).
