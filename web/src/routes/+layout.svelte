@@ -17,6 +17,30 @@
   let scrollEl = $state(null);
   afterNavigate((nav) => { if (scrollEl && !nav.to?.url.hash) scrollEl.scrollTop = 0; });
 
+  // iOS installed app (translucent status bar, viewport-fit=cover): the
+  // viewport height WebKit reports at launch and after navigations can be
+  // one status bar shorter than the screen, and it corrects itself only
+  // after a document scroll, which the shell never does. So the tab bar hung
+  // above the bottom edge on every page. There the shell takes the screen's
+  // height for the current orientation (screen.width/height are the fixed
+  // portrait values on iOS); other browsers keep 100dvh. Applied only while
+  // the window is at most 80 px shorter than the screen, so split views on
+  // iPad keep the window's height.
+  function fitShell() {
+    if (!navigator.standalone) return;
+    const portrait = matchMedia('(orientation: portrait)').matches;
+    const screenH = portrait ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
+    const h = innerHeight;
+    const use = screenH > h && screenH - h <= 80 ? screenH : h;
+    document.documentElement.style.setProperty('--app-h', use + 'px');
+  }
+  $effect(() => {
+    fitShell();
+    addEventListener('resize', fitShell);
+    addEventListener('orientationchange', fitShell);
+    return () => { removeEventListener('resize', fitShell); removeEventListener('orientationchange', fitShell); };
+  });
+
   $effect(() => {
     me.set(data.me);
   });
@@ -43,12 +67,12 @@
   <div class="shell-main" bind:this={scrollEl}>
     {@render children()}
   </div>
+
+  <!-- overlays are positioned within the shell, not the viewport, so they follow its height -->
+  {#if updated.current}
+    <button class="update-bar" onclick={() => location.reload()}>Neue Version verfügbar – neu laden</button>
+  {/if}
+  {#if $toast}
+    <div class="toast show" class:err={$toast.isErr}>{$toast.text}</div>
+  {/if}
 </div>
-
-{#if updated.current}
-  <button class="update-bar" onclick={() => location.reload()}>Neue Version verfügbar – neu laden</button>
-{/if}
-
-{#if $toast}
-  <div class="toast show" class:err={$toast.isErr}>{$toast.text}</div>
-{/if}
