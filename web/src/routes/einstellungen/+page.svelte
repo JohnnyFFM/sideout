@@ -24,19 +24,7 @@
 
   let diag = $state([]);
   $effect(() => { diag = readDiag(); });
-  // screen geometry (the iOS installed app has laid out the tab bar off the screen's edge)
-  let geo = $state('');
-  let probe = $state(null);
-  function measure() {
-    const bar = document.querySelector('.tabbar')?.getBoundingClientRect();
-    const shell = document.querySelector('.shell')?.getBoundingClientRect();
-    const cs = probe ? getComputedStyle(probe) : null;
-    geo = `Bildschirm ${screen.width}×${screen.height} · Fenster ${innerWidth}×${innerHeight} · sichtbar ${Math.round(visualViewport?.height ?? innerHeight)} · dvh ${probe && cs ? probe.offsetHeight - parseInt(cs.paddingTop) - parseInt(cs.paddingBottom) : '?'}`
-      + ` · Ränder ${cs ? parseInt(cs.paddingTop) : '?'}/${cs ? parseInt(cs.paddingBottom) : '?'} · Shell ${shell ? Math.round(shell.height) : '–'}`
-      + ` · Leiste ${bar ? `${Math.round(bar.top)}–${Math.round(bar.bottom)}` : '–'}`;
-  }
-  $effect(() => { measure(); addEventListener('resize', measure); return () => removeEventListener('resize', measure); });
-  const diagText = $derived(JSON.stringify({ version, ua: navigator.userAgent, online: $online, stream: $sseConnected, role: $sseRole, path: location.pathname, installed, geo, errors: diag }, null, 1));
+  const diagText = $derived(JSON.stringify({ version, ua: navigator.userAgent, online: $online, stream: $sseConnected, role: $sseRole, path: location.pathname, installed, errors: diag }, null, 1));
   async function copyDiag() { try { await navigator.clipboard.writeText(diagText); showToast('Diagnose kopiert'); } catch { showToast('Kopieren nicht möglich, Text markieren', true); } }
   function clearDiag() { try { localStorage.removeItem(DIAG_KEY); } catch { /* ignore */ } diag = []; }
 </script>
@@ -73,7 +61,6 @@
         {#if diag.length}
           <ul>{#each diag as e}<li><span class="muted">{e.t.slice(11, 19)}</span> <b>{e.kind}</b> {e.msg} <span class="muted">{e.path}</span></li>{/each}</ul>
         {:else}<p class="small muted" style="margin:0 0 10px">Keine Fehler aufgezeichnet.</p>{/if}
-        <p class="small muted geo">{geo}</p><div class="probe" bind:this={probe}></div>
         <div class="row"><button class="btn" onclick={copyDiag}>Diagnose kopieren</button>{#if diag.length}<button class="btn ghost" onclick={clearDiag}>Leeren</button>{/if}</div>
       </div>
     </details>
@@ -101,9 +88,6 @@
   details.diag .caret { display: inline-block; color: var(--ink-3); font-size: 12px; transition: transform .15s; }
   details.diag[open] .caret { transform: rotate(90deg); }
   .diag-body { margin-top: 10px; }
-  .geo { margin: 0 0 10px; word-break: break-word; }
-  /* measures env() insets and 100dvh */
-  .probe { position: absolute; left: 0; top: 0; width: 1px; height: 100dvh; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); box-sizing: content-box; visibility: hidden; pointer-events: none; }
   .diag ul { list-style: none; margin: 0 0 10px; padding: 0; font-size: 12px; }
   .diag li { padding: 4px 0; border-bottom: 1px solid var(--line-soft); word-break: break-word; }
   .status { display: inline-flex; align-items: center; gap: 6px; }

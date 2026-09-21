@@ -1,6 +1,6 @@
 <script>
   import '../app.css';
-  import { goto, afterNavigate } from '$app/navigation';
+  import { goto } from '$app/navigation';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
   import Nav from '$lib/components/Nav.svelte';
@@ -8,14 +8,6 @@
   import { me, toast, online, connectSSE, disconnectSSE } from '$lib/stores.js';
 
   let { data, children } = $props();
-
-  // the app is a screen-sized shell: top bar, a scrolling content area and
-  // the tab bar as ordinary elements inside a non-fixed shell, avoiding
-  // iOS fixed-position viewport anchoring for the persistent navigation.
-  // The document itself never scrolls, so the
-  // content area resets its own scroll on navigation (not for hash jumps).
-  let scrollEl = $state(null);
-  afterNavigate((nav) => { if (scrollEl && !nav.to?.url.hash) scrollEl.scrollTop = 0; });
 
   $effect(() => {
     me.set(data.me);
@@ -33,22 +25,18 @@
   });
 </script>
 
-<div class="shell">
-  {#if data.me}
-    <Nav />
-    {#if !$online}
-      <div class="offline-bar">Offline — Aktionen werden gespeichert und später gesendet</div>
-    {/if}
+{#if data.me}
+  <Nav />
+  {#if !$online}
+    <div class="offline-bar">Offline — Aktionen werden gespeichert und später gesendet</div>
   {/if}
-  <div class="shell-main" bind:this={scrollEl}>
-    {@render children()}
-  </div>
+{/if}
+{@render children()}
 
-  <!-- overlays are positioned within the shell, not the viewport, so they follow its height -->
-  {#if updated.current}
-    <button class="update-bar" onclick={() => location.reload()}>Neue Version verfügbar – neu laden</button>
-  {/if}
-  {#if $toast}
-    <div class="toast show" class:err={$toast.isErr}>{$toast.text}</div>
-  {/if}
-</div>
+{#if updated.current}
+  <button class="update-bar" onclick={() => location.reload()}>Neue Version verfügbar – neu laden</button>
+{/if}
+
+{#if $toast}
+  <div class="toast show" class:err={$toast.isErr}>{$toast.text}</div>
+{/if}
