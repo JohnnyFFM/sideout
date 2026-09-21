@@ -107,8 +107,7 @@ button { font: inherit; color: inherit; }
 /* Keep navigation in normal flow, including its ancestors. A fixed shell
    still takes WebKit's fixed-position viewport path. Only shell-main
    scrolls; short pages and long pages therefore use the same layout. */
-/* --app-h: the real screen height in the iOS installed app (set by the layout), see +layout.svelte */
-.shell { position: relative; height: 100vh; height: 100dvh; height: var(--app-h, 100dvh); display: flex; flex-direction: column; overflow: hidden; }
+.shell { position: relative; height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
 .shell-main { position: relative; order: 1; flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: clip; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
 .brand { font-family: var(--disp); font-weight: 700; font-size: 20px; letter-spacing: 0.06em; display: flex; align-items: center; gap: 6px; text-decoration: none; color: var(--ink); }
 .brand .tick { color: var(--accent); }
