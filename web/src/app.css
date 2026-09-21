@@ -76,12 +76,12 @@
 
 /* ---------- base ---------- */
 * { box-sizing: border-box; touch-action: manipulation; }
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; height: 100%; overflow: hidden; }
 body {
   margin: 0; background: var(--bg); color: var(--ink);
   font-family: var(--ui); font-size: 15px; line-height: 1.4;
   font-feature-settings: "tnum" 1;
-  min-height: 100dvh;
+  height: 100%; overflow: hidden;
   -webkit-tap-highlight-color: transparent;
 }
 h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: 0.005em; }
@@ -101,8 +101,14 @@ button { font: inherit; color: inherit; }
   height: calc(52px + env(safe-area-inset-top)); padding: 0 12px;
   padding-top: env(safe-area-inset-top);
   background: var(--panel); border-bottom: 1px solid var(--line-soft);
-  position: sticky; top: 0; z-index: 20;
+  flex: 0 0 auto; order: 0; z-index: 20;
 }
+/* ---------- app shell: top bar / scrolling content / tab bar ---------- */
+/* Keep navigation in normal flow, including its ancestors. A fixed shell
+   still takes WebKit's fixed-position viewport path. Only shell-main
+   scrolls; short pages and long pages therefore use the same layout. */
+.shell { position: relative; height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+.shell-main { position: relative; order: 1; flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: clip; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
 .brand { font-family: var(--disp); font-weight: 700; font-size: 20px; letter-spacing: 0.06em; display: flex; align-items: center; gap: 6px; text-decoration: none; color: var(--ink); }
 .brand .tick { color: var(--accent); }
 .nav { display: flex; gap: 2px; margin-left: 8px; }
@@ -124,19 +130,15 @@ button { font: inherit; color: inherit; }
 .tabbar { display: none; }
 @media (max-width: 760px) {
   .nav { display: none; }
-  /* clip, not hidden: overflow-x hidden makes BODY the scroll container and
-     iOS (worst in standalone) then mispositions position:fixed elements */
-  html, body { overflow-x: hidden; overflow-x: clip; }
   .tabbar {
     display: grid; grid-template-columns: repeat(4, 1fr);
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+    order: 2; flex: 0 0 auto; z-index: 20;
     background: var(--panel); border-top: 1px solid var(--line-soft);
     padding-bottom: var(--safe-bottom);
   }
   .tabbar a { padding: 8px 4px 9px; text-align: center; text-decoration: none; color: var(--ink-3); font-size: 11px; font-weight: 500; }
   .tabbar a .ico { display: block; font-size: 18px; line-height: 1.1; }
   .tabbar a.active { color: var(--accent-text); }
-  body.has-tabbar { padding-bottom: calc(var(--tabbar-h) + 8px); }
   body.live-phone .topbar { display: none; }
 }
 
@@ -147,7 +149,7 @@ button { font: inherit; color: inherit; }
   body.live-phone .topbar { display: none; }
   body.live-phone .tabbar {
     display: grid; grid-template-columns: repeat(4, 1fr);
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+    order: 2; flex: 0 0 auto; z-index: 20;
     background: var(--panel); border-top: 1px solid var(--line-soft);
     padding-bottom: var(--safe-bottom);
   }
@@ -155,18 +157,9 @@ button { font: inherit; color: inherit; }
   body.live-phone .tabbar a .ico { display: block; font-size: 16px; line-height: 1.1; }
   body.live-phone .tabbar a.active { color: var(--accent-text); }
 }
-/* the fixed tab bar covers the end of every scrolling page: reserve its height */
-@media (max-width: 760px) { .page { padding-bottom: calc(var(--tabbar-h) + 16px); } }
-/* iOS (installed app): on a page shorter than the screen WebKit places
-   fixed elements differently until a scroll gesture re-lays them out, and
-   the tab bar showed up too high on Einstellungen and Teams. Every page is
-   therefore at least one pixel taller than the screen, so all of them are
-   in the same, scrollable state. The live screen has its own fixed layout. */
-@media (max-width: 760px) { body:not(.live-phone) { min-height: calc(100dvh + 1px); } }
-/* iOS again: a navigation onto a page that cannot scroll as far as the
-   previous one left the viewport rubber-banded, and fixed elements ride
-   along with it. No overscroll on the document: the bar stays put. */
-@media (max-width: 760px) { html, body { overscroll-behavior-y: none; } }
+/* the tab bar sits below the content area now (app shell), the pages only
+   keep a little air at the end */
+@media (max-width: 760px) { .page { padding-bottom: 24px; } html, body { overscroll-behavior-y: none; } }
 /* phone login: readable without pinching */
 @media (max-width: 760px) {
   .login-card { padding: 24px 20px; }

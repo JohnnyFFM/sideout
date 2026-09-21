@@ -933,7 +933,8 @@
        tab bar: a flex column where the pad absorbs the remaining height, so
        it fits any display without scrolling; the two opponent buttons are
        pinned to the bottom edge */
-    .live-page { position: fixed; top: 0; left: 0; right: 0; bottom: var(--tabbar-h); padding: calc(6px + env(safe-area-inset-top)) 8px 58px; overflow: hidden; display: flex; flex-direction: column; }
+    /* fills the shell's content area (the tab bar sits below it), no fixed positioning to the viewport */
+    .live-page { position: absolute; top: 0; left: 0; right: 0; bottom: 0; padding: calc(6px + env(safe-area-inset-top)) 8px 58px; overflow: hidden; display: flex; flex-direction: column; }
     .live { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 6px; }
     .col { display: contents; }
     .col.left > :global(.score), .timeline, .col.left > .hint, .col.left > .court-wrap { flex: 0 0 auto; }
@@ -1014,7 +1015,7 @@
      tall): two columns. Left: score, timeline, court + bench. Right: the pad
      with the two buttons under it. Stats replace the pad on demand. */
   @media (max-width: 1099px) and (max-height: 540px) and (orientation: landscape) {
-    .live-page { position: fixed; top: 0; left: 0; right: 0; bottom: var(--tabbar-h); padding: calc(4px + env(safe-area-inset-top)) calc(8px + env(safe-area-inset-right)) 4px calc(8px + env(safe-area-inset-left)); overflow: hidden; display: flex; flex-direction: column; max-width: none; }
+    .live-page { position: absolute; top: 0; left: 0; right: 0; bottom: 0; padding: calc(4px + env(safe-area-inset-top)) calc(8px + env(safe-area-inset-right)) 4px calc(8px + env(safe-area-inset-left)); overflow: hidden; display: flex; flex-direction: column; max-width: none; }
     .live { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); grid-template-rows: auto auto minmax(0, 1fr) auto; gap: 6px; height: auto; align-items: stretch; }
     .col { display: contents; }
     .col.left > :global(.score) { grid-column: 1; grid-row: 1; position: relative; padding: 4px 42px; row-gap: 0; }
