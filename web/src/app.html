@@ -6,7 +6,9 @@
     <meta name="theme-color" content="#0F131B" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- Keep opaque: translucent mode caused a 62px viewport jump on short
+         pages in the iPhone Home Screen app. Existing installs needed reinstalling. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <link rel="icon" href="%sveltekit.assets%/icon.svg" type="image/svg+xml" />
     <link rel="manifest" href="%sveltekit.assets%/manifest.webmanifest" />
     <link rel="apple-touch-icon" href="%sveltekit.assets%/apple-touch-icon.png" />

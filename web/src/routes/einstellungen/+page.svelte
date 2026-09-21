@@ -24,8 +24,23 @@
 
   let diag = $state([]);
   $effect(() => { diag = readDiag(); });
-  const diagText = $derived(JSON.stringify({ version, ua: navigator.userAgent, online: $online, stream: $sseConnected, role: $sseRole, path: location.pathname, installed, errors: diag }, null, 1));
-  async function copyDiag() { try { await navigator.clipboard.writeText(diagText); showToast('Diagnose kopiert'); } catch { showToast('Kopieren nicht möglich, Text markieren', true); } }
+  function captureDiag() {
+    return JSON.stringify({ version, ua: navigator.userAgent, online: $online, stream: $sseConnected, role: $sseRole, path: location.pathname, installed, errors: readDiag() }, null, 1);
+  }
+  async function copyDiag() {
+    try { await navigator.clipboard.writeText(captureDiag()); showToast('Diagnose kopiert'); }
+    catch { showToast('Kopieren nicht möglich. Bitte „Datei herunterladen“ nutzen.', true); }
+  }
+  function downloadDiag() {
+    const url = URL.createObjectURL(new Blob([captureDiag()], { type: 'application/json' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'sideout-diagnose.json';
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  }
   function clearDiag() { try { localStorage.removeItem(DIAG_KEY); } catch { /* ignore */ } diag = []; }
 </script>
 
@@ -61,7 +76,7 @@
         {#if diag.length}
           <ul>{#each diag as e}<li><span class="muted">{e.t.slice(11, 19)}</span> <b>{e.kind}</b> {e.msg} <span class="muted">{e.path}</span></li>{/each}</ul>
         {:else}<p class="small muted" style="margin:0 0 10px">Keine Fehler aufgezeichnet.</p>{/if}
-        <div class="row"><button class="btn" onclick={copyDiag}>Diagnose kopieren</button>{#if diag.length}<button class="btn ghost" onclick={clearDiag}>Leeren</button>{/if}</div>
+        <div class="row" style="flex-wrap:wrap"><button class="btn" onclick={downloadDiag}>Datei herunterladen</button><button class="btn" onclick={copyDiag}>Diagnose kopieren</button>{#if diag.length}<button class="btn ghost" onclick={clearDiag}>Leeren</button>{/if}</div>
       </div>
     </details>
   </section>
