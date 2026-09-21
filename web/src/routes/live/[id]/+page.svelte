@@ -11,7 +11,6 @@
   import { tabWriter } from '$lib/scoutlock.js';
   import Court from '$lib/components/Court.svelte';
   import Pad from '$lib/components/Pad.svelte';
-  import Voice from '$lib/components/Voice.svelte';
 
   const id = $derived(Number($page.params.id));
   let match = $state(null);
@@ -738,9 +737,6 @@
           <button class="btn big us" disabled={!canScout || !(canWrite || claimable) || st.finished || tossPending} onclick={() => queue({ skill: 'opp', grade: '=' })}>Fehler Gegner <span class="muted">+1 wir</span></button>
           <button class="btn big them" disabled={!canScout || !(canWrite || claimable) || st.finished || tossPending} onclick={() => queue({ skill: 'opp', grade: '#' })}>Punkt Gegner</button>
         </div>
-        {#if canScout}
-          <Voice players={match.players} onCourt={court.map((c) => c.id)} disabled={!(canWrite || claimable) || st.finished || tossPending} onaction={queue} />
-        {/if}
         {#if st.finished}
           <div class="panel done">
             <h2>Spiel beendet {st.sets_won}:{st.sets_lost}</h2>

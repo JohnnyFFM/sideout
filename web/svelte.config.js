@@ -11,8 +11,6 @@ const config = {
     // static SPA: the Axum binary serves build/ with index.html fallback
     adapter: adapter({ fallback: 'index.html', pages: out, assets: out }),
     paths: { base },
-    // the voice model (static/models, ~45 MB) is fetched on demand, never precached
-    serviceWorker: { files: (f) => !f.startsWith('models/') },
     // an open tab notices a new deploy within a minute and turns its next
     // navigation into a full reload, instead of dead-ending on a chunk that
     // no longer exists (looks like "the app is locked" until F5)
