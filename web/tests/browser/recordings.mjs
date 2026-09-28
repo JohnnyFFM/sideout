@@ -17,16 +17,25 @@ async function attach(port, pick) {
   let page;
   for (let i = 0; i < 50; i++) { try { const list = await (await fetch(`http://127.0.0.1:${port}/json`)).json(); page = pick(list.filter((t) => t.type === 'page')); if (page) break; } catch { /* not up yet */ } await sleep(200); }
   const ws = new WebSocket(page.webSocketDebuggerUrl); await new Promise((r) => (ws.onopen = r));
-  let id = 0; const pending = new Map(); const errors = [];
+  let id = 0; const pending = new Map(); const errors = []; let intercept = null; const seen = [];
   ws.onmessage = (m) => {
     const d = JSON.parse(m.data);
     if (d.id && pending.has(d.id)) { pending.get(d.id)(d); pending.delete(d.id); }
     if (d.method === 'Runtime.exceptionThrown') errors.push((d.params.exceptionDetails?.exception?.description || '').split('\n')[0]);
+    if (d.method === 'Fetch.requestPaused') {
+      const { requestId, request } = d.params;
+      seen.push(request.method + ' ' + request.url.replace(origin, ''));
+      const r = intercept ? intercept(request.method, request.url) : null;
+      if (r) send('Fetch.fulfillRequest', { requestId, responseCode: r.status, responseHeaders: [{ name: 'Content-Type', value: 'application/json' }], body: Buffer.from(JSON.stringify(r.body || { error: 'intercepted' })).toString('base64') });
+      else send('Fetch.continueRequest', { requestId });
+    }
   };
   const send = (method, params = {}) => new Promise((r) => { const i = ++id; pending.set(i, r); ws.send(JSON.stringify({ id: i, method, params })); });
   const ev = async (expr) => { const r = await send('Runtime.evaluate', { expression: expr, awaitPromise: true, returnByValue: true }); if (r.result?.exceptionDetails) return 'EXC:' + (r.result.exceptionDetails.exception?.description || '').split('\n')[0]; return r.result?.result?.value; };
   await send('Runtime.enable'); await send('Network.enable');
-  return { page, send, ev, errors };
+  await send('Fetch.enable', { patterns: [{ urlPattern: '*/api/*', requestStage: 'Request' }] });
+  const setIntercept = (fn) => { intercept = fn; };
+  return { page, send, ev, errors, setIntercept, seen };
 }
 
 async function browser(port, profile, user, width = 390, height = 844) {
@@ -50,7 +59,8 @@ function wrap(t, port) {
   const local = () => t.ev(`(async()=>{const db=await new Promise((res,rej)=>{const r=indexedDB.open('sideout');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}); const all=await new Promise((res,rej)=>{const r=db.transaction('recordings').objectStore('recordings').getAll();r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}); db.close(); return JSON.stringify(all.map(r=>({id:r.id,match:r.match_id,next:r.next_n,confirmed:r.confirmed_n,created:r.created,error:r.error,imported:r.imported,device:r.device_id})))})()`).then((s) => JSON.parse(s));
   const click = (sel) => t.ev(`(()=>{const b=document.querySelector('${sel}'); if(!b||b.disabled) return 'blocked'; b.click(); return 'clicked'})()`);
   const clickText = (sel, text) => t.ev(`(()=>{const b=[...document.querySelectorAll('${sel}')].find(x=>x.textContent.trim().startsWith('${text}')); if(!b||b.disabled) return 'blocked'; b.click(); return 'clicked'})()`);
-  return { ...t, port, go, txt, offline, shot, state, tap, tapThem, undo, local, click, clickText };
+  const login = async (user) => { await t.ev(`fetch('/api/auth/logout',{method:'POST',headers:{'X-Requested-By':'x'}}).catch(()=>0)`); await t.ev(`fetch('/api/auth/login',{method:'POST',headers:{'X-Requested-By':'x','Content-Type':'application/json'},body:JSON.stringify({username:'${user}',password:'geheim123'})}).then(r=>r.status)`); };
+  return { ...t, port, go, txt, offline, shot, state, tap, tapThem, undo, local, click, clickText, login };
 }
 async function secondTab(b) {
   const r = await b.send('Target.createTarget', { url: 'about:blank' });
@@ -63,7 +73,7 @@ async function secondTab(b) {
 const lr = await fetch(`${origin}/api/auth/login`, { method: 'POST', headers: { 'X-Requested-By': 'x', 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'jonas', password: 'geheim123' }) });
 const cookie = lr.headers.get('set-cookie').split(';')[0];
 const J = async (path, opts = {}) => { const r = await fetch(`${origin}/api${path}`, { method: opts.method || 'GET', headers: { 'X-Requested-By': 'x', 'Content-Type': 'application/json', cookie }, body: opts.body ? JSON.stringify(opts.body) : undefined }); return { status: r.status, data: await r.json().catch(() => null) }; };
-const server = async (mid = 1) => { const m = (await J(`/matches/${mid}`)).data; return { us: m.state.us, them: m.state.them, last_seq: m.state.last_seq, status: m.status, selected: m.selected, recs: m.recordings.map((r) => ({ id: r.id, n: r.n, device: r.device, user: r.user, us: r.state?.us, active: r.active })) }; };
+const server = async (mid = 1) => { const m = (await J(`/matches/${mid}`)).data; return { us: m.state.us, them: m.state.them, last_seq: m.state.last_seq, status: m.status, selected: m.selected, recs: m.recordings.map((r) => ({ id: r.id, n: r.n, device: r.device, user: r.user, us: r.state?.us, active: r.active, origin_id: r.origin_id })) }; };
 const waitServer = async (mid, pred, ms = 8000) => { const t0 = Date.now(); let s; do { s = await server(mid); if (pred(s)) return s; await sleep(300); } while (Date.now() - t0 < ms); return s; };
 
 const A = await browser(9490, 'edge-profile70', 'jonas');          // device A: coach
@@ -213,6 +223,114 @@ sv = await server(1);
 check('server unchanged by the identical import (still 3 recordings, A at 10)', sv.recs.length === 3 && sv.recs.find((r) => r.id === recA).n === 10, { sv });
 const vloc2 = await V.local();
 check('viewer: import confirmed after upload (a viewer may not write → visible error instead)', vloc2.find((r) => r.id === recA).error !== null || vloc2.find((r) => r.id === recA).confirmed === 10, { vloc2 });
+
+// 10. A → B → A: A continues the result (B's recording) as a new copy of its own; the old one stays
+await A.go('/live/1', 2500);
+sA = await A.state();
+check('A: bar offers "Ergebnis als Kopie fortsetzen"', /Ergebnis als Kopie fortsetzen/.test(sA.bar) && sA.us === 8, { sA });
+check('A continues the result', (await A.clickText('.scoutbar button', 'Ergebnis als Kopie')) === 'clicked');
+await sleep(800);
+sA = await A.state();
+check('A: now on a copy of B (2:0), no dialog', sA.us === 2 && !sA.dialog, { sA });
+await A.tap(); await sleep(1500);
+sv = await waitServer(1, (s) => s.recs.length === 4);
+const copyA = (await J('/matches/1')).data.recordings.find((r) => r.origin_id === recB);
+check('server: the copy arrived with origin = B, one edit, 3:0; A\'s older recording untouched (10)', !!copyA && copyA.n === 1 && copyA.state.us === 3 && sv.recs.find((r) => r.id === recA).n === 10, { sv, copyA });
+loc = await A.local();
+check('A local: three own recordings of match 1 exist side by side', loc.filter((r) => r.match === 1 && !r.imported).length === 2 && loc.filter((r) => r.match === 1).length >= 2, { loc });
+await A.shot('rec-a-copy');
+
+// 11. rapid first taps make exactly one recording (a fresh match, no dialog)
+const m3 = (await J('/matches', { method: 'POST', body: { opponent: 'Dritter Gegner', date: '2026-09-23', lineup: { pos: pl.slice(0, 6), libero: pl[6] } } })).data;
+check('third match created', m3.id === 3, { m3 });
+await A.go('/live/3', 2500);
+await A.ev(`(()=>{const b=document.querySelector('.btn.big.us'); b.click(); b.click(); b.click(); return 1})()`);
+await sleep(1500);
+loc = await A.local();
+sv = await waitServer(3, (s) => s.recs.length === 1 && s.recs[0].n === 3);
+check('A: three rapid first taps → one recording with 3 edits, 3:0', loc.filter((r) => r.match === 3).length === 1 && loc.find((r) => r.match === 3).next === 4 && sv.recs.length === 1 && sv.recs[0].n === 3 && sv.us === 3, { loc, sv });
+const recA3 = sv.recs[0].id;
+
+// 12. taps during the copy/fresh question are kept (B on match 3, where A already records)
+await B.go('/live/3', 2500);
+await B.ev(`(()=>{const b=document.querySelector('.btn.big.us'); b.click(); b.click(); return 1})()`);
+await sleep(500);
+sB = await B.state();
+check('B: question open after two quick taps, nothing recorded yet', sB.dialog && (await B.local()).filter((r) => r.match === 3).length === 0, { sB });
+check('B: fresh', (await B.clickText('.scoutbar[role=dialog] button', 'Neu beginnen')) === 'clicked');
+await sleep(1200);
+sB = await B.state();
+sv = await waitServer(3, (s) => s.recs.length === 2);
+check('B: both taps landed in the new recording (2:0), uploaded', sB.us === 2 && sv.recs.length === 2 && sv.recs.find((r) => r.id !== recA3)?.n === 2, { sB, sv });
+
+// 13. a failing recording (5xx) does not block the others; it retries later on its own
+A.setIntercept((method, url) => (method === 'PUT' && url.includes(`/api/matches/1/recordings/`) ? { status: 503, body: { error: 'down' } } : null));
+await A.go('/live/1', 2500);
+await A.tap(); await sleep(400);
+await A.go('/live/3', 2500);
+await A.tap(); await sleep(1500);
+sv = await waitServer(3, (s) => s.recs.find((r) => r.id === recA3)?.n === 4);
+loc = await A.local();
+check('A: match 3 uploads (4) while match 1 is stuck on 503 and stays pending', sv.recs.find((r) => r.id === recA3).n === 4 && loc.find((r) => r.match === 1 && r.id !== recA && !r.imported && r.next - 1 > r.confirmed) != null, { sv, loc });
+A.setIntercept(null);
+sv = await waitServer(1, (s) => s.recs.find((r) => r.origin_id === recB)?.n === 2, 15000);
+check('A: after the server recovers the paused recording is retried without any tap', sv.recs.find((r) => r.origin_id === recB)?.n === 2, { sv });
+
+// 14. a permanent error (403) is shown once and does not loop
+A.setIntercept((method, url) => (method === 'PUT' && url.includes(`/api/matches/3/recordings/`) ? { status: 403, body: { error: 'forbidden' } } : null));
+const before = A.seen.filter((x) => x.startsWith('PUT /api/matches/3/')).length;
+await A.tap(); await sleep(5000);
+const after = A.seen.filter((x) => x.startsWith('PUT /api/matches/3/')).length;
+loc = await A.local();
+check('A: one refused attempt, then quiet (no retry storm), error recorded', after - before <= 2 && /forbidden/.test(loc.find((r) => r.match === 3)?.error || ''), { before, after, loc });
+// a page load is a fresh uploader: one more attempt, still refused, the error stays visible
+await A.go('/einstellungen', 2500);
+await A.ev(`[...document.querySelectorAll('details')].forEach(d=>d.open=true)`);
+const rl = await A.txt('.reclist');
+check('A einstellungen shows the error', /Fehler: forbidden/.test(rl), { rl });
+A.setIntercept(null);
+const lift = await A.clickText('button', 'Jetzt hochladen');
+check('A: "Jetzt hochladen" lifts the pause', lift === 'clicked', { lift });
+sv = await waitServer(3, (s) => s.recs.find((r) => r.id === recA3)?.n === 5);
+check('A: the recording uploads after the explicit retry', sv.recs.find((r) => r.id === recA3)?.n === 5, { sv });
+
+// 15. importing a later backup of a known recording appends the missing edits
+const exp1 = JSON.parse(exported); // 10 edits of A's first recording
+const cut = { ...exp1, edits: exp1.edits.slice(0, 6) };
+await B.go('/einstellungen', 2500);
+const importOn = async (b, data) => b.ev(`(async()=>{const f=new File([${JSON.stringify(JSON.stringify(data))}],'x.json',{type:'application/json'}); const dt=new DataTransfer(); dt.items.add(f); const inp=document.querySelector('input[type=file]'); inp.files=dt.files; inp.dispatchEvent(new Event('change',{bubbles:true})); return 1})()`);
+await importOn(B, cut); await sleep(1500);
+let bl = (await B.local()).find((r) => r.id === recA);
+check('B: early backup imported (6 edits)', bl && bl.next === 7, { bl });
+await importOn(B, exp1); await sleep(1500);
+bl = (await B.local()).find((r) => r.id === recA);
+check('B: later backup appends the missing 4 edits (10)', bl && bl.next === 11, { bl });
+const bad = { ...exp1, edits: exp1.edits.map((e, i) => (i === 2 ? { ...e, body: { op: 'add', action: { ...e.body.action, grade: '#' } } } : e)) };
+await importOn(B, bad); await sleep(1200);
+const msg = await B.txt('.importmsg');
+bl = (await B.local()).find((r) => r.id === recA);
+check('B: a backup with different content under the same id is refused, nothing changed', /anderer Änderung Nr. 3/.test(msg) && bl.next === 11, { msg, bl });
+
+// 16. another account on the same browser neither continues nor uploads petra's recording
+B.setIntercept((method, url) => (method === 'PUT' && url.includes(`/api/matches/1/recordings/${recB}`) ? { status: 503, body: { error: 'down' } } : null));
+await B.go('/live/1', 2500);
+await B.tap(); await sleep(1200);
+bl = (await B.local()).find((r) => r.id === recB);
+check('B (petra): one edit pending on her recording', bl && bl.next - 1 - bl.confirmed === 1, { bl });
+await B.login('jonas');
+await B.go('/live/1', 2500);
+B.setIntercept(null);
+await sleep(3000);
+sB = await B.state();
+bl = (await B.local()).find((r) => r.id === recB);
+sv = await server(1);
+check('B (jonas): petra\'s recording is not his, not shown as own, and not uploaded under his account', sB.us === 2 && !sB.dialog && bl.next - 1 - bl.confirmed === 1 && sv.recs.find((r) => r.id === recB).n === 2, { sB, bl, sv });
+await B.go('/einstellungen', 2500);
+check('B (jonas): settings mention the other account\'s pending recording', /anderen Kontos/.test(await A.txt('body') + await B.txt('.app-row .d')) || /anderen Kontos/.test(await B.ev(`document.body.textContent`)));
+await B.login('petra.k');
+await B.go('/spiele', 2500);
+sv = await waitServer(1, (s) => s.recs.find((r) => r.id === recB)?.n === 3);
+check('B (petra again): her pending edit uploads', sv.recs.find((r) => r.id === recB).n === 3, { sv });
 
 for (const [n, b] of [['A', A], ['B', B], ['V', V]]) check(`${n}: no page errors`, b.errors.length === 0, b.errors);
 console.log(fails ? `\n${fails} FAILED` : '\nall ok');

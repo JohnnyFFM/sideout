@@ -128,7 +128,7 @@ POST /auth/register-team · /auth/join · /auth/login · /auth/logout   GET /con
 PATCH /team · POST /team/rotate-code · PATCH|DELETE /team/members/{id}
 POST /teams {name} · POST /teams/join {code} · POST /teams/switch {team_id}
 GET|POST /players · PATCH|DELETE /players/{id}
-GET|POST /matches · GET|PATCH|DELETE /matches/{id}     (DELETE archives a match that has recordings)
+GET|POST /matches · GET|PATCH|DELETE /matches/{id}     (DELETE archives; a phone may hold an unsent recording)
 PUT /matches/{id}/lineups/{set}          {pos:[6 player ids], libero}   planning, before scouting starts
 PUT /matches/{id}/recordings/{rid}       {device_id, device_label, base?, edits:[{n, body}]} → {confirmed, selected, status, state}
 GET /matches/{id}/recordings/{rid}       meta, base, edits, folded snapshot (copy, export)

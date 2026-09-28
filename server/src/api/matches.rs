@@ -267,23 +267,18 @@ pub async fn update(
     get_one(State(state), user, Path(id)).await
 }
 
-/// A match with recordings is archived (hidden from the lists, still a
-/// target for late uploads); one without is deleted for good.
+/// A match is archived, never deleted: hidden from the lists, still a target
+/// for late uploads. The server cannot know whether a phone has recorded the
+/// match offline, so even a "planned" match keeps its id.
 pub async fn remove(State(state): State<AppState>, user: CurrentUser, Path(id): Path<i64>) -> ApiResult<Json<Value>> {
     user.require(Role::Coach)?;
     let mut tx = state.dbw.begin().await?;
     fetch_match_row_conn(&mut tx, user.team_id, id).await?;
-    let has_rec = !recordings_of_conn(&mut tx, id).await?.is_empty();
-    if has_rec {
-        sqlx::query("UPDATE matches SET archived = 1, version = version + 1, updated_at = datetime('now') WHERE id = ?").bind(id).execute(&mut *tx).await?;
-        audit_conn(&mut tx, user.team_id, "match", id, "archived", "", Some(user.id)).await?;
-    } else {
-        sqlx::query("DELETE FROM matches WHERE id = ?").bind(id).execute(&mut *tx).await?;
-        audit_conn(&mut tx, user.team_id, "match", id, "deleted", "", Some(user.id)).await?;
-    }
+    sqlx::query("UPDATE matches SET archived = 1, version = version + 1, updated_at = datetime('now') WHERE id = ?").bind(id).execute(&mut *tx).await?;
+    audit_conn(&mut tx, user.team_id, "match", id, "archived", "", Some(user.id)).await?;
     tx.commit().await?;
     publish(&state, &user, "match", id, 0, "deleted");
-    Ok(Json(json!({ "ok": true, "archived": has_rec })))
+    Ok(Json(json!({ "ok": true, "archived": true })))
 }
 
 /// PUT /matches/{id}/lineups/{set} — the planning lineup. A recording that

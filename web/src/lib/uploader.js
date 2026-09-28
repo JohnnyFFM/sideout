@@ -1,49 +1,60 @@
 // One uploader per browser profile (Web Lock), independent of the open
-// page: whatever recording has edits beyond its confirmed number goes out
-// in small batches, oldest recording first. Runs on start, on login, when
-// the tab returns, on the online event, after every saved edit and on a
-// timer while anything is pending. Errors never delete anything: a dead
-// connection or a 5xx retries with backoff, a 4xx is recorded on the
-// recording and shown; the other recordings keep uploading.
+// page: whatever recording of the signed-in account (or an imported one)
+// has edits beyond its confirmed number goes out in small batches, oldest
+// recording first. Runs on start, on login, when the tab returns, on the
+// online event, after every saved edit and on a timer while anything is
+// pending. Errors never delete anything and never block the other
+// recordings: a dead connection or a missing login ends the pass (it
+// affects everything), a 5xx puts that one recording on a growing pause,
+// a 4xx is recorded on the recording, shown, and retried much later or on
+// an explicit "Jetzt hochladen".
 
-import { writable } from 'svelte/store';
+import { get, writable } from 'svelte/store';
 import { api } from './api.js';
 import { pendingRecordings, editsFrom, markConfirmed, setError, pendingSummary, onChange, hasStorage } from './recstore.js';
-import { logDiag } from './stores.js';
+import { logDiag, me } from './stores.js';
 
-/** { total, byMatch, errors, uploading, transient, supported } */
-export const sync = writable({ total: 0, byMatch: {}, errors: [], uploading: false, transient: '', supported: true, unsupportedReason: '' });
+/** { total, byMatch, errors, foreign, uploading, transient, supported, unsupportedReason } */
+export const sync = writable({ total: 0, byMatch: {}, errors: [], foreign: 0, uploading: false, transient: '', supported: true, unsupportedReason: '' });
 
 const BATCH = 200;
+const PERMANENT_PAUSE = 10 * 60 * 1000;
 let started = false;
 let running = false;
 let again = false;
 let timer = null;
 let delay = 5000;
+/** per-recording pause after a failure: id → { until, delay } */
+const paused = new Map();
 
 export const locksSupported = () => typeof navigator !== 'undefined' && !!navigator.locks?.request;
 export const supported = () => hasStorage() && locksSupported();
+const userId = () => get(me)?.user?.id ?? null;
 
 export async function refreshSummary() {
   try {
-    const s = await pendingSummary();
+    const s = await pendingSummary(userId());
     sync.update((v) => ({ ...v, ...s }));
   } catch (e) {
     logDiag('store', e?.message || e);
   }
 }
 
-/** ask for a run soon (coalesced) */
-export function kick() {
+/** ask for a run soon (coalesced); `force` lifts every per-recording pause */
+export function kick(opts = {}) {
   if (!started) return;
+  if (opts === true || opts?.force) paused.clear();
   clearTimeout(timer);
   timer = setTimeout(run, 60);
 }
 
-function later() {
+function later(ms) {
   clearTimeout(timer);
-  timer = setTimeout(run, delay);
-  delay = Math.min(delay * 2, 60000);
+  timer = setTimeout(run, ms);
+}
+
+function pause(id, ms) {
+  paused.set(id, { until: Date.now() + ms, delay: ms });
 }
 
 async function uploadOne(rec) {
@@ -61,17 +72,26 @@ async function uploadOne(rec) {
     if (res.confirmed < sentTo && res.confirmed <= rec.confirmed_n && edits.length) {
       // the server stored none of what we sent although the numbers should continue: a hole on our side
       await setError(rec.id, `Server bestätigt nur bis ${res.confirmed}, lokal fehlt Nr. ${res.confirmed + 1}`);
-      return 'error';
+      pause(rec.id, PERMANENT_PAUSE);
+      return 'defer';
     }
+    paused.delete(rec.id);
     return 'progress';
   } catch (e) {
-    if (e.offline || e.status >= 500 || e.status === 401) {
-      sync.update((v) => ({ ...v, transient: e.offline ? 'keine Verbindung' : e.status === 401 ? 'Anmeldung nötig' : 'Server antwortet nicht' }));
+    if (e.offline || e.status === 401) {
+      sync.update((v) => ({ ...v, transient: e.offline ? 'keine Verbindung' : 'Anmeldung nötig' }));
       return 'stop';
     }
+    if (e.status >= 500) {
+      const prev = paused.get(rec.id)?.delay || 0;
+      pause(rec.id, Math.min(Math.max(prev * 2, 5000), 60000));
+      sync.update((v) => ({ ...v, transient: 'Server antwortet nicht' }));
+      return 'defer';
+    }
     await setError(rec.id, e.message || `HTTP ${e.status}`);
+    pause(rec.id, PERMANENT_PAUSE);
     logDiag('upload', `${rec.id}: ${e.message || e.status}`);
-    return 'error';
+    return 'defer';
   }
 }
 
@@ -83,10 +103,13 @@ async function run() {
   try {
     await navigator.locks.request('so-uploader', { ifAvailable: true }, async (lock) => {
       if (!lock) return; // another tab is uploading the same store
+      const uid = userId();
+      if (uid == null) return; // nobody signed in: nothing goes out under a guessed identity
       sync.update((v) => ({ ...v, uploading: true }));
       let guard = 0;
       while (guard++ < 500) {
-        const recs = await pendingRecordings();
+        const now = Date.now();
+        const recs = (await pendingRecordings(uid)).filter((r) => !(paused.get(r.id)?.until > now));
         if (!recs.length) break;
         let progressed = false;
         for (const rec of recs) {
@@ -96,7 +119,7 @@ async function run() {
         }
         if (stopped || !progressed) break;
       }
-      if (!stopped) { delay = 5000; sync.update((v) => ({ ...v, transient: '' })); }
+      if (!stopped) { delay = 5000; if (![...paused.values()].some((p) => p.delay < PERMANENT_PAUSE)) sync.update((v) => ({ ...v, transient: '' })); }
     });
   } catch (e) {
     logDiag('upload', e?.message || e);
@@ -105,7 +128,12 @@ async function run() {
     running = false;
     sync.update((v) => ({ ...v, uploading: false }));
     await refreshSummary();
-    if (stopped) later();
+    if (stopped) { later(delay); delay = Math.min(delay * 2, 60000); }
+    else {
+      // wake up when the earliest pause ends
+      const next = Math.min(...[...paused.values()].map((p) => p.until));
+      if (Number.isFinite(next)) later(Math.max(500, next - Date.now()));
+    }
     if (again) { again = false; kick(); }
   }
 }
@@ -118,12 +146,14 @@ export function startUploader() {
     return;
   }
   started = true;
-  window.addEventListener('online', kick);
-  window.addEventListener('focus', kick);
+  window.addEventListener('online', () => kick({ force: true }));
+  window.addEventListener('focus', () => kick());
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') kick(); });
-  onChange(() => { refreshSummary(); kick(); });
+  // new data nudges the uploader; a status change (confirmed, error) only refreshes the counts
+  onChange((kind) => { refreshSummary(); if (kind === 'data') kick(); });
+  me.subscribe(() => { refreshSummary(); kick(); });
   // the retry timer: while anything is pending, try again every half minute
-  setInterval(async () => { const s = await pendingSummary().catch(() => null); if (s?.total) kick(); }, 30000);
+  setInterval(async () => { const s = await pendingSummary(userId()).catch(() => null); if (s?.total) kick(); }, 30000);
   refreshSummary();
   kick();
 }

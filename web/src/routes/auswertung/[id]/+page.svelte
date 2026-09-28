@@ -29,10 +29,11 @@
     catch (e) { const c = cachedMatch(id); if (c) match = c; else error = e.offline ? 'Keine Verbindung.' : e.message; }
   }
   async function loadLocal() {
-    try { const r = await myRecording(id); rec = r; edits = r ? (await editsFrom(r.id, 1)).map((e) => e.body) : []; }
+    try { const r = await myRecording(id, $me?.user?.id ?? null); rec = r; edits = r ? (await editsFrom(r.id, 1)).map((e) => e.body) : []; }
     catch { rec = null; edits = []; }
   }
-  $effect(() => { void id; untrack(() => { load(); loadLocal(); deviceId().then((d) => (myDevice = d)).catch(() => {}); }); });
+  $effect(() => { void id; untrack(() => { load(); deviceId().then((d) => (myDevice = d)).catch(() => {}); }); });
+  $effect(() => { void id; void $me?.user?.id; untrack(loadLocal); });
   $effect(() => { if ($mutations && (($mutations.entity === 'action' || $mutations.entity === 'match') && $mutations.id === id || $mutations.entity === 'resync')) untrack(load); });
   $effect(() => onChange(() => untrack(loadLocal)));
 

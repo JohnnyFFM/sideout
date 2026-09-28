@@ -34,10 +34,11 @@
   let recLoaded = $state(false);
   $effect(() => {
     const m = mid;
+    void $me?.user?.id;
     recLoaded = false;
     if (!m) { rec = null; edits = []; recLoaded = true; return; }
     untrack(async () => {
-      try { const r = await myRecording(m); rec = r; edits = r ? (await editsFrom(r.id, 1)).map((e) => e.body) : []; }
+      try { const r = await myRecording(m, $me?.user?.id ?? null); rec = r; edits = r ? (await editsFrom(r.id, 1)).map((e) => e.body) : []; }
       catch (e) { logDiag('store', e?.message || e); }
       recLoaded = true;
     });
@@ -46,6 +47,8 @@
   const hasRecordings = $derived((match?.recordings?.length || 0) > 0);
   // lineup and first serve belong to a recording once one exists
   const mode = $derived(!match ? 'new' : rec ? 'mine' : hasRecordings ? 'foreign' : 'planning');
+  // my recording exists but the coach chose another one: a copy of the result is offered too
+  const resultIsOther = $derived(mode === 'mine' && !!match?.selected && match.selected !== rec.id);
 
   let opponent = $state(match?.opponent || '');
   let date = $state(match?.date || todayIso());
@@ -213,7 +216,7 @@
     {#if match && !tabOwner}
       <div class="scoutbar" role="status"><span class="txt">Dieses Spiel wird in einem anderen Tab dieses Browsers gescoutet. Aufstellung und Aufschlag lassen sich nur dort ändern.</span></div>
     {:else if mode === 'mine'}
-      <p class="small muted" style="margin-top:10px">Aufstellung und Aufschlag gehören zur Aufzeichnung dieses Geräts und werden mit ihr hochgeladen.</p>
+      <p class="small muted" style="margin-top:10px">Aufstellung und Aufschlag gehören zur Aufzeichnung dieses Geräts und werden mit ihr hochgeladen.{#if resultIsOther} Als Ergebnis zählt derzeit eine andere Aufzeichnung; „Ergebnis als Kopie fortsetzen“ übernimmt deren Stand in eine neue eigene Aufzeichnung.{/if}</p>
     {:else if mode === 'foreign' && recLoaded}
       <div class="scoutbar" role="status">
         <span class="txt">Dieses Spiel wird auf einem anderen Gerät aufgezeichnet. Aufstellung und Aufschlag gehören zu dieser Aufzeichnung. „Rahmen speichern“ ändert nur Gegner, Datum und Notizen; eine geänderte Aufstellung setzt den angezeigten Stand als eigene Aufzeichnung (Kopie) fort.</span>
@@ -222,7 +225,8 @@
     {#if error}<p class="err" style="margin-top:10px">{error}</p>{/if}
     <div class="row" style="margin-top:14px">
       <button class="btn primary big" type="submit" disabled={busy || fieldPlayers.length < 6 || (match && !tabOwner)}>{match ? (mode === 'foreign' ? 'Rahmen speichern' : 'Speichern & zum Live-Scouting') : 'Spiel anlegen & starten'}</button>
-      {#if mode === 'foreign' && recLoaded}<button class="btn big" type="button" disabled={busy || !tabOwner} onclick={copyAndSave}>Als Kopie fortsetzen</button>{/if}
+      {#if mode === 'foreign' && recLoaded}<button class="btn big" type="button" disabled={busy || !tabOwner} onclick={copyAndSave}>Als Kopie fortsetzen</button>
+      {:else if resultIsOther}<button class="btn big" type="button" disabled={busy || !tabOwner} onclick={copyAndSave}>Ergebnis als Kopie fortsetzen</button>{/if}
       <a class="btn big" href={match ? `${base}/live/${match.id}` : '/spiele'}>Abbrechen</a>
     </div>
   </div>

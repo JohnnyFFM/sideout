@@ -304,15 +304,19 @@ async fn the_legacy_log_becomes_a_selected_recording() {
 }
 
 #[tokio::test]
-async fn a_match_with_recordings_is_archived_not_deleted_and_old_routes_answer_503() {
+async fn every_match_is_archived_not_deleted_and_old_routes_answer_503() {
     let app = app().await;
     let (c, mid, _) = fixture(&app).await;
-    // no recording yet: deleting is final
-    let (st, m2, _) = call(&app, Method::POST, "/matches", Some(&c), Some(json!({ "opponent": "Leer", "date": "2026-09-22" }))).await;
+    // no recording on the server yet: still archived, a phone may hold one offline
+    let (st, m2, _) = call(&app, Method::POST, "/matches", Some(&c), Some(json!({ "opponent": "Leer", "date": "2026-09-22", "lineup": null }))).await;
     assert_eq!(st, StatusCode::OK);
-    let (st, r, _) = call(&app, Method::DELETE, &format!("/matches/{}", m2["id"]), Some(&c), None).await;
+    let m2id = m2["id"].as_i64().unwrap();
+    let (st, r, _) = call(&app, Method::DELETE, &format!("/matches/{m2id}"), Some(&c), None).await;
     assert_eq!(st, StatusCode::OK);
-    assert_eq!(r["archived"], false);
+    assert_eq!(r["archived"], true);
+    let base2 = base_for(&app, &c, mid).await;
+    let (st, b) = upload(&app, &c, m2id, "r-late", Some(base2), vec![opp(1, 1, "=")]).await;
+    assert_eq!(st, StatusCode::OK, "{b}");
     let base = base_for(&app, &c, mid).await;
     let (st, _) = upload(&app, &c, mid, "r1", Some(base), vec![opp(1, 1, "=")]).await;
     assert_eq!(st, StatusCode::OK);

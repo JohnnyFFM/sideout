@@ -15,9 +15,8 @@
   // the match changed elsewhere (a recording arrived, the coach chose): the form's notice follows
   $effect(() => { const m = $mutations; if (m && m.entity === 'match' && m.id === id) untrack(load); });
   async function remove() {
-    const has = (match.recordings?.length || 0) > 0;
-    if (!confirm(has ? `Spiel gegen ${match.opponent} archivieren? Die Aufzeichnungen bleiben erhalten, das Spiel verschwindet aus den Listen.` : `Spiel gegen ${match.opponent} löschen?`)) return;
-    try { const r = await api(`/matches/${id}`, { method: 'DELETE' }); showToast(r.archived ? 'Archiviert' : 'Gelöscht'); goto(`${base}/spiele`); }
+    if (!confirm(`Spiel gegen ${match.opponent} archivieren? Es verschwindet aus den Listen; Aufzeichnungen bleiben erhalten und können weiterhin hochgeladen werden.`)) return;
+    try { await api(`/matches/${id}`, { method: 'DELETE' }); showToast('Archiviert'); goto(`${base}/spiele`); }
     catch (e) { showToast(e.message, true); }
   }
 </script>
@@ -26,7 +25,7 @@
 <main class="page">
   <div class="toolbar"><h1>Spiel bearbeiten</h1><span class="spacer"></span>
     {#if match}<a class="btn" href="{base}/auswertung/{id}">Auswertung</a>{/if}
-    {#if match && $me?.user?.role === 'coach'}<button class="btn danger" onclick={remove}>{match.recordings?.length ? 'Archivieren' : 'Löschen'}</button>{/if}
+    {#if match && $me?.user?.role === 'coach'}<button class="btn danger" onclick={remove}>Archivieren</button>{/if}
   </div>
   {#if error}<div class="panel empty">{error}</div>
   {:else if match}

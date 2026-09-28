@@ -5,7 +5,7 @@
   // export, import), guide, diagnostics. Account and teams have their own pages.
   import { version } from '$app/environment';
   import { untrack } from 'svelte';
-  import { showToast, sseConnected, sseRole, online, readDiag, DIAG_KEY } from '$lib/stores.js';
+  import { showToast, sseConnected, sseRole, online, readDiag, DIAG_KEY, me } from '$lib/stores.js';
   import { sync, kick } from '$lib/uploader.js';
   import { allRecordings, exportRecording, importRecording, pendingOf, onChange, deviceId } from '$lib/recstore.js';
   import { cachedMatch } from '$lib/offline.js';
@@ -63,7 +63,7 @@
       importMsg = 'Import fehlgeschlagen: ' + (err?.message || err);
     }
   }
-  const syncText = $derived(!$sync.supported ? $sync.unsupportedReason : $sync.total ? `${$sync.total} Änderungen noch nicht hochgeladen${$sync.transient ? ' · ' + $sync.transient : ''}` : 'Alles auf dem Server');
+  const syncText = $derived((!$sync.supported ? $sync.unsupportedReason : $sync.total ? `${$sync.total} Änderungen noch nicht hochgeladen${$sync.transient ? ' · ' + $sync.transient : ''}` : 'Alles auf dem Server') + ($sync.foreign ? ` · ${$sync.foreign} Aufzeichnung${$sync.foreign === 1 ? '' : 'en'} eines anderen Kontos wartet auf dessen Anmeldung` : ''));
 
   let diag = $state([]);
   $effect(() => { diag = readDiag(); });
@@ -101,7 +101,7 @@
     </div>
     <div class="app-row">
       <div><div class="k">Upload</div><div class="d">{syncText}</div></div>
-      <button class="btn" onclick={kick} disabled={!$sync.supported || !$sync.total || $sync.uploading}>{$sync.uploading ? 'lädt…' : 'Jetzt hochladen'}</button>
+      <button class="btn" onclick={() => kick({ force: true })} disabled={!$sync.supported || !$sync.total || $sync.uploading}>{$sync.uploading ? 'lädt…' : 'Jetzt hochladen'}</button>
     </div>
     <div class="app-row">
       <div><div class="k">Anleitung</div><div class="d">Scouten, Bewertungsskala, Auswertung</div></div>
@@ -117,7 +117,7 @@
           <ul class="reclist">
             {#each recs as r (r.id)}
               <li>
-                <div class="rt"><b>{r.title}</b> <span class="muted">{r.device_id === myDevice ? 'dieses Gerät' : r.device_label || 'Import'} · {r.edits} Änderungen</span></div>
+                <div class="rt"><b>{r.title}</b> <span class="muted">{r.imported ? r.device_label || 'Import' : r.device_id === myDevice ? 'dieses Gerät' : r.device_label}{!r.imported && r.user_id != null && r.user_id !== $me?.user?.id ? ' · anderes Konto' : ''} · {r.edits} Änderungen</span></div>
                 <div class="rs" class:bad={!!r.error} class:pend={!r.error && r.pending}>{r.error ? 'Fehler: ' + r.error : r.pending ? `${r.pending} nicht hochgeladen` : 'auf Server gespeichert'}</div>
                 <div class="ra"><a class="small" href="{base}/auswertung/{r.match_id}">Auswertung</a><button class="btn" onclick={() => exportRec(r)}>Exportieren</button></div>
               </li>
@@ -126,7 +126,7 @@
         {:else}<p class="small muted" style="margin:0 0 10px">Noch keine Aufzeichnung auf diesem Gerät.</p>{/if}
         <div class="row" style="flex-wrap:wrap; align-items:center; gap:8px">
           <label class="btn">Aufzeichnung importieren<input type="file" accept="application/json,.json" style="display:none" onchange={importFile} /></label>
-          {#if importMsg}<span class="small">{importMsg}</span>{/if}
+          {#if importMsg}<span class="small importmsg">{importMsg}</span>{/if}
         </div>
         {#if legacyKeys}<p class="small muted" style="margin:10px 0 0">{legacyKeys} Rohdaten-Eintrag{legacyKeys === 1 ? '' : 'e'} der alten App-Version liegen noch im Browser-Speicher (werden nicht gelöscht).</p>{/if}
       </div>

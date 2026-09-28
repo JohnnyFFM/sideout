@@ -29,7 +29,12 @@
   let scope = $state('set');
   let loadError = $state('');
   let tabOwner = $state(false);
-  let askStart = $state(null);   // a first tap waiting for "copy or fresh": { add } | { undo: true }
+  let askStart = $state(null);   // first taps waiting for "copy or fresh": { first: { add } | { undo: true }, more: [] }
+  // every capture step (create, add, undo) runs in one chain: a tap never
+  // sees the recording of the tap before it half-made, and sequence numbers
+  // are computed after the previous edit is saved
+  let chain = Promise.resolve();
+  const serial = (fn) => { const p = chain.then(fn, fn); chain = p.catch(() => {}); return p; };
   let myDevice = $state('');
   let recsOpen = $state(false);
   // a page that was left (or switched to another match) must not touch
@@ -117,7 +122,7 @@
   }
   async function loadLocal(mid) {
     try {
-      const r = await myRecording(mid);
+      const r = await myRecording(mid, $me?.user?.id ?? null);
       const es = r ? (await editsFrom(r.id, 1)).map((e) => e.body) : [];
       if (stale(mid)) return;
       rec = r; edits = es;
@@ -144,6 +149,8 @@
     const off = onChange(() => untrack(() => { if (!tabOwner) loadLocal(mid); else refreshRec(mid); }));
     return () => { lock.release(); off(); };
   });
+  // the identity may land after the first effect (layout order, offline start): look again
+  $effect(() => { const uid = $me?.user?.id; const mid = id; if (uid != null) untrack(() => loadLocal(mid)); });
 
   // another device wrote to this match, or the coach chose: refetch the server side only
   $effect(() => {
@@ -217,44 +224,73 @@
   function queue(a) {
     if (!canScout) return;
     if (!canWrite) { explainNoWrite(); return; }
-    if (st.finished) { showToast('Das Spiel ist beendet'); return; }
-    if (!rec) { startRecording({ add: a }); return; }
-    commit({ op: 'add', action: newAction(actionsAll, a) });
+    serial(async () => {
+      if (stale(id) || !st) return;
+      if (st.finished) { showToast('Das Spiel ist beendet'); return; }
+      if (!rec) { await startRecording({ add: a }); return; }
+      await commit({ op: 'add', action: newAction(actionsAll, a) });
+    });
   }
 
   // the first tap on this device: a fresh recording from the planning, or —
   // when the match already has a recording — the user's choice between a
-  // copy of the shown state and a fresh start
-  function startRecording(pending) {
-    if (recordings.length) { askStart = pending; return; }
-    createAndApply('fresh', pending);
+  // copy of the shown state and a fresh start. Taps that arrive while the
+  // question is open are kept and applied after the choice.
+  async function startRecording(pending) {
+    if (askStart) { askStart = { ...askStart, more: [...askStart.more, pending] }; return; }
+    if (recordings.length) { askStart = { first: pending, more: [] }; return; }
+    await createAndApply('fresh', { first: pending, more: [] });
   }
-  async function createAndApply(mode, pending) {
+  /** a pending tap → the edit it means on the given effective log */
+  function editFor(pending, acts) {
+    if (pending?.add) return { op: 'add', action: newAction(acts, pending.add) };
+    if (pending?.undo) { const top = acts[acts.length - 1]; return top ? { op: 'undo', seq: top.seq } : null; }
+    if (pending?.edit) return pending.edit;
+    return null;
+  }
+  function chooseStart(mode) {
+    const ask = askStart;
     askStart = null;
-    if (!match) return;
+    if (!ask) return;
+    serial(() => createAndApply(mode, ask));
+  }
+  async function createAndApply(mode, ask) {
+    askStart = null;
+    if (!match || stale(id)) return;
     const b = mode === 'copy' ? baseFromMatch(match) : baseFromMatch(match, { planning: true });
     if (!Object.keys(b.lineups).length) { showToast('Erst die Aufstellung eintragen', true); return; }
-    const acts = b.actions.slice();
-    let first = null;
-    if (pending?.add) first = { op: 'add', action: newAction(acts, pending.add) };
-    else if (pending?.undo) { const top = acts[acts.length - 1]; if (!top) return; first = { op: 'undo', seq: top.seq }; }
-    else if (pending?.edit) first = pending.edit;
+    const acts = b.actions.map((a) => ({ ...a }));
+    const first = editFor(ask?.first, acts);
+    if (ask?.first && !first) return;
     const mid = id;
+    let r;
     try {
-      const r = await createRecording({
+      r = await createRecording({
         match_id: mid, team_id: $me?.team?.id ?? null, user_id: $me?.user?.id ?? null, base: b,
         origin_id: mode === 'copy' ? match.selected || null : null,
         origin_n: mode === 'copy' ? selectedRec?.n ?? null : null,
         firstEdit: first
       });
-      if (stale(mid)) return;
-      rec = r; edits = first ? [first] : []; selected = null;
-      showToast(mode === 'copy' ? 'Eigene Aufzeichnung als Kopie begonnen' : 'Eigene Aufzeichnung begonnen');
-      kick();
     } catch (e) {
       logDiag('store', e?.message || e);
       showToast('Speichern auf dem Gerät fehlgeschlagen: ' + (e?.message || e), true);
+      return;
     }
+    if (stale(mid)) return;
+    rec = r; edits = first ? [first] : []; selected = null;
+    showToast(mode === 'copy' ? 'Eigene Aufzeichnung als Kopie begonnen' : 'Eigene Aufzeichnung begonnen');
+    kick();
+    // the taps that came in while the question was open
+    for (const p of ask?.more || []) {
+      const e = editFor(p, fold(rec.base, edits).actions);
+      if (e) await commit(e);
+    }
+  }
+  /** A → B → A: continue the current result on this device as a new copy;
+   *  the older own recording stays as it is */
+  function continueSelected() {
+    if (!canWrite || !match?.selected) return;
+    serial(() => createAndApply('copy', null));
   }
 
   let selecting = $state(false);
@@ -437,10 +473,14 @@
   function undo() {
     if (!actionsAll.length || !canScout) return;
     if (!canWrite) { explainNoWrite(); return; }
-    const a = last;
-    // undoing on a device without its own recording starts one (a copy or fresh)
-    if (!rec) { startRecording({ undo: true }); return; }
-    commit({ op: 'undo', seq: a.seq }, 'Rückgängig: ' + describe(a));
+    serial(async () => {
+      if (stale(id)) return;
+      const a = last;
+      if (!a) return;
+      // undoing on a device without its own recording starts one (a copy or fresh)
+      if (!rec) { await startRecording({ undo: true }); return; }
+      await commit({ op: 'undo', seq: a.seq }, 'Rückgängig: ' + describe(a));
+    });
   }
 
   function keys(e) {
@@ -496,8 +536,8 @@
         {#if askStart}
           <div class="panel hint scoutbar" role="dialog">
             <span class="hint-txt">Für dieses Spiel gibt es schon eine Aufzeichnung{selectedRec ? ` (${recordingLabel(selectedRec, myDevice)}, ${selectedRec.state?.sets_won ?? 0}:${selectedRec.state?.sets_lost ?? 0} Sätze)` : ''}. Eigene Aufzeichnung auf diesem Gerät:</span>
-            <button class="btn primary" onclick={() => createAndApply('copy', askStart)}>Diesen Stand fortsetzen (Kopie)</button>
-            <button class="btn" onclick={() => createAndApply('fresh', askStart)}>Neu beginnen</button>
+            <button class="btn primary" onclick={() => chooseStart('copy')}>Diesen Stand fortsetzen (Kopie)</button>
+            <button class="btn" onclick={() => chooseStart('fresh')}>Neu beginnen</button>
             <button class="btn ghost" onclick={() => (askStart = null)}>Abbrechen</button>
           </div>
         {:else if activeOther}
@@ -511,6 +551,7 @@
           <div class="panel hint scoutbar" role="status">
             <span class="hint-txt">Als Ergebnis zählt {selectedRec ? recordingLabel(selectedRec, myDevice) : 'eine andere Aufzeichnung'}, nicht die dieses Geräts.</span>
             {#if canSelect}<button class="btn" onclick={() => select(rec.id)} disabled={selecting || !$online}>Diese verwenden</button>{/if}
+            <button class="btn" onclick={continueSelected} disabled={!canWrite} title="Den Stand des Ergebnisses übernehmen und hier weiter tippen; die bisherige eigene Aufzeichnung bleibt erhalten">Ergebnis als Kopie fortsetzen</button>
           </div>
         {/if}
         {#if showRecs}

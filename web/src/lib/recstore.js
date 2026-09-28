@@ -98,11 +98,13 @@ export async function recordingsOf(matchId) {
   return wrap(db.transaction('recordings').objectStore('recordings').index('match').getAll(Number(matchId)));
 }
 
-/** this device's own (editable) recording of a match, the newest if several */
-export async function myRecording(matchId) {
+/** this device's own (editable) recording of a match for the signed-in
+ *  account, the newest if several. Another account's recording on the same
+ *  browser is never continued. */
+export async function myRecording(matchId, userId) {
   const dev = await deviceId();
   const all = await recordingsOf(matchId);
-  const mine = all.filter((r) => r.device_id === dev && !r.imported).sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+  const mine = all.filter((r) => r.device_id === dev && !r.imported && r.user_id != null && r.user_id === userId).sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
   return mine[0] || null;
 }
 
@@ -125,7 +127,7 @@ export async function createRecording({ match_id, team_id = null, user_id = null
   tx.objectStore('recordings').add(rec);
   if (firstEdit) tx.objectStore('edits').add({ recording_id: rec.id, n: 1, body: firstEdit, t: now });
   await done(tx);
-  notify();
+  notify('data');
   return rec;
 }
 
@@ -142,7 +144,7 @@ export async function appendEdit(recId, body) {
   recs.put(rec);
   tx.objectStore('edits').add({ recording_id: recId, n, body, t: rec.updated_at });
   await done(tx);
-  notify();
+  notify('data');
   return n;
 }
 
@@ -174,7 +176,7 @@ export async function markConfirmed(recId, n, { created = true } = {}) {
     recs.put(rec);
   }
   await done(tx);
-  notify();
+  notify('status');
 }
 
 export async function setError(recId, error) {
@@ -184,42 +186,81 @@ export async function setError(recId, error) {
   const rec = await wrap(recs.get(recId));
   if (rec) { rec.error = error; recs.put(rec); }
   await done(tx);
-  notify();
+  notify('status');
 }
 
 /** edits not yet confirmed by the server (the base travels with the first batch) */
 export const pendingOf = (r) => r.next_n - 1 - r.confirmed_n;
 export const needsUpload = (r) => pendingOf(r) > 0 || !r.created;
 
-/** recordings with something to upload, oldest first */
-export async function pendingRecordings() {
+/** what the signed-in account may send: its own recordings and imports (an explicit exception) */
+export const ownedBy = (r, userId) => r.imported || (userId != null && r.user_id === userId);
+
+/** recordings with something to upload under this account, oldest first */
+export async function pendingRecordings(userId) {
   const all = await allRecordings();
-  return all.filter(needsUpload).sort((a, b) => (a.created_at < b.created_at ? -1 : 1));
+  return all.filter((r) => needsUpload(r) && ownedBy(r, userId)).sort((a, b) => (a.created_at < b.created_at ? -1 : 1));
 }
 
-/** { total, byMatch: { id: count }, errors: [{ id, match_id, error }] } */
-export async function pendingSummary() {
+/** { total, byMatch: { id: count }, errors: [{ id, match_id, error }], foreign }
+ *  for this account; `foreign` counts pending recordings of other accounts on this device */
+export async function pendingSummary(userId) {
   const all = await allRecordings();
   const byMatch = {};
   let total = 0;
+  let foreign = 0;
   const errors = [];
   for (const r of all) {
     const p = pendingOf(r) || (r.created ? 0 : 1);
+    if (!ownedBy(r, userId)) { if (p > 0) foreign++; continue; }
     if (p > 0) { byMatch[r.match_id] = (byMatch[r.match_id] || 0) + p; total += p; }
     if (r.error) errors.push({ id: r.id, match_id: r.match_id, error: r.error });
   }
-  return { total, byMatch, errors };
+  return { total, byMatch, errors, foreign };
+}
+
+/** JSON with sorted object keys: content identity on the client (arrays keep their order) */
+export function stable(v) {
+  if (Array.isArray(v)) return '[' + v.map(stable).join(',') + ']';
+  if (v && typeof v === 'object') return '{' + Object.keys(v).sort().map((k) => JSON.stringify(k) + ':' + stable(v[k])).join(',') + '}';
+  return JSON.stringify(v === undefined ? null : v);
 }
 
 /** a recording brought in from a file or from the old queue: stored as is
- *  (foreign device id), uploaded like any other, never edited here */
+ *  (foreign device id), uploaded like any other, never edited here. An id
+ *  the device already holds is merged: the base and the common prefix of
+ *  edits must be identical, missing edits are appended, anything else is
+ *  refused. Returns { id, existed, added }. */
 export async function importRecording(rec, edits) {
   const db = await openDb();
   const tx = db.transaction(['recordings', 'edits'], 'readwrite');
   const recs = tx.objectStore('recordings');
   const existing = await wrap(recs.get(rec.id));
-  if (existing) { await done(tx); return { id: rec.id, existed: true }; }
   const now = new Date().toISOString();
+  if (existing) {
+    if (stable(existing.base) !== stable(rec.base)) { tx.abort(); throw new Error('Aufzeichnung mit gleicher ID, aber anderem Anfangsstand'); }
+    const have = await wrap(tx.objectStore('edits').index('rec').getAll(rec.id));
+    have.sort((a, b) => a.n - b.n);
+    const bodies = edits.map((e) => e.body ?? e);
+    for (let i = 0; i < Math.min(have.length, bodies.length); i++) {
+      if (stable(have[i].body) !== stable(bodies[i])) { tx.abort(); throw new Error(`Aufzeichnung mit gleicher ID, aber anderer Änderung Nr. ${i + 1}`); }
+    }
+    let added = 0;
+    const es = tx.objectStore('edits');
+    for (let i = have.length; i < bodies.length; i++) {
+      es.add({ recording_id: rec.id, n: i + 1, body: bodies[i], t: edits[i]?.t || now });
+      added++;
+    }
+    if (added) {
+      existing.next_n = Math.max(existing.next_n, bodies.length + 1);
+      existing.updated_at = now;
+      existing.error = null;
+      recs.put(existing);
+    }
+    await done(tx);
+    if (added) notify('data');
+    return { id: rec.id, existed: true, added };
+  }
   const n = edits.length;
   recs.add({
     id: rec.id, match_id: Number(rec.match_id), team_id: rec.team_id ?? null, user_id: rec.user_id ?? null,
@@ -231,8 +272,8 @@ export async function importRecording(rec, edits) {
   const es = tx.objectStore('edits');
   edits.forEach((e, i) => es.add({ recording_id: rec.id, n: i + 1, body: e.body ?? e, t: e.t || now }));
   await done(tx);
-  notify();
-  return { id: rec.id, existed: false };
+  notify('data');
+  return { id: rec.id, existed: false, added: n };
 }
 
 /** everything of one recording, for export */
@@ -252,13 +293,15 @@ export async function exportRecording(id) {
 }
 export const SCHEMA_FILE = 1;
 
-// change notifications for stores and pages (same tab: listeners; other tabs: BroadcastChannel)
+// change notifications for stores and pages (same tab: listeners; other
+// tabs: BroadcastChannel). kind 'data' = new recording or edit (the
+// uploader has work), 'status' = confirmed/error changed (only counts)
 const listeners = new Set();
 const bc = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('so-recstore') : null;
-bc?.addEventListener('message', () => { for (const l of [...listeners]) l(); });
-function notify() {
-  for (const l of [...listeners]) l();
-  bc?.postMessage('changed');
+bc?.addEventListener('message', (ev) => { for (const l of [...listeners]) l(ev.data?.kind || 'data'); });
+function notify(kind) {
+  for (const l of [...listeners]) l(kind);
+  bc?.postMessage({ kind });
 }
 export function onChange(fn) {
   listeners.add(fn);
