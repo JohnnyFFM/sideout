@@ -375,11 +375,31 @@ check('B (jonas): no inherited question, nothing recorded for him', !sB.dialog &
 await switchTo(B, 'petra.k');
 sB = await B.state();
 check('B (petra): back on match 4 the question is still open for her two taps', sB.dialog && (await B.local()).filter((r) => r.match === m4.id).length === 0, { sB });
+// the identity changes while the question is open (another tab signs in as jonas, this page refreshes who it is)
+const B2 = await secondTab(B);
+await B2.go('/login', 1500);
+await B2.login('jonas');
+await B.ev(`window.dispatchEvent(new Event('online')); 1`);
+await sleep(2500);
+sB = await B.state();
+check('B (jonas, same page): petra’s question left the screen, identity is jonas', !sB.dialog && (await B.ev(`JSON.parse(localStorage.getItem('so_me')||'null')?.user?.username`)) === 'jonas', { sB });
+await B.tap(); await sleep(500);
+sB = await B.state();
+check('B (jonas): his tap opens his own question, nothing appended to petra’s', sB.dialog && (await B.local()).filter((r) => r.match === m4.id).length === 0, { sB });
+check('B (jonas): fresh', (await B.clickText('.scoutbar[role=dialog] button', 'Neu beginnen')) === 'clicked');
+await sleep(1500);
+sB = await B.state();
+let sv4b = await waitServer(4, (s) => s.recs.length === 2);
+check('B (jonas): one tap in his own recording (1:0), uploaded', sB.us === 1 && sv4b.recs.filter((r) => r.user === 'Jonas Steitz').length === 2 && !sv4b.recs.some((r) => r.user === 'Petra Kuhn'), { sB, sv4b });
+await B2.send('Page.navigate', { url: 'about:blank' });
+await switchTo(B, 'petra.k');
+sB = await B.state();
+check('B (petra again): her question with her two taps is back', sB.dialog && sB.us === 1, { sB });
 check('B: fresh', (await B.clickText('.scoutbar[role=dialog] button', 'Neu beginnen')) === 'clicked');
 await sleep(1500);
 sB = await B.state();
-const sv4b = await waitServer(4, (s) => s.recs.length === 2);
-check('B: both kept taps landed (2:0) and uploaded', sB.us === 2 && sv4b.recs.length === 2 && sv4b.recs.find((r) => r.user === 'Petra Kuhn')?.n === 2, { sB, sv4b });
+sv4b = await waitServer(4, (s) => s.recs.length === 3);
+check('B: both kept taps landed in petra’s recording (2:0) and uploaded', sB.us === 2 && sv4b.recs.length === 3 && sv4b.recs.find((r) => r.user === 'Petra Kuhn')?.n === 2, { sB, sv4b });
 
 // 18. the account changes in another tab while an upload pass is running: nothing goes out under the new account
 await A.go('/live/2', 2500);

@@ -156,8 +156,18 @@
     const off = onChange(() => untrack(() => { if (!tabOwner) loadLocal(mid); else refreshRec(mid); }));
     return () => { lock.release(); off(); };
   });
-  // the identity may land after the first effect (layout order, offline start): look again
-  $effect(() => { const uid = $me?.user?.id; const mid = id; if (uid != null) untrack(() => loadLocal(mid)); });
+  // the identity may land after the first effect (layout order, offline start)
+  // or change while the page is open (another tab signed in): an open
+  // question of the previous account is parked under that account and leaves
+  // the screen, then the local recording and question of the new one are loaded
+  $effect(() => {
+    const uid = $me?.user?.id ?? null;
+    const mid = id;
+    untrack(() => {
+      if (askStart && askStart.ctx?.uid !== uid) { pendingStarts.set(startKey(askStart.ctx.uid, mid), askStart); askStart = null; }
+      if (uid != null) loadLocal(mid);
+    });
+  });
 
   // another device wrote to this match, or the coach chose: refetch the server side only
   $effect(() => {
@@ -270,7 +280,12 @@
   async function startRecording(ctx, pending) {
     if (ctx.uid == null) return;
     const live = id === ctx.mid && ($me?.user?.id ?? null) === ctx.uid;
-    if (live && askStart) { askStart = { ...askStart, more: [...askStart.more, pending] }; return; }
+    if (live && askStart) {
+      // a tap joins an open question only when the same account asked it; another account's question is parked first
+      if (askStart.ctx?.uid === ctx.uid) { askStart = { ...askStart, more: [...askStart.more, pending] }; return; }
+      pendingStarts.set(startKey(askStart.ctx.uid, ctx.mid), askStart);
+      askStart = null;
+    }
     if ((ctx.m?.recordings || []).length) {
       // the question, with the context it was asked in: the taps stay with that account and match
       if (live) { askStart = { first: pending, more: [], ctx }; return; }
