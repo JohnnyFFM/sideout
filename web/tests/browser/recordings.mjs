@@ -366,10 +366,15 @@ check('A: back on match 4 the recording is its own (1:0), no dialog', sA.us === 
 await B.go('/live/4', 2500);
 await B.ev(`(()=>{const b=document.querySelector('.btn.big.us'); b.click(); b.click(); const a=document.createElement('a'); a.href='/live/2'; document.body.append(a); a.click(); return 1})()`);
 await sleep(2000);
-await B.ev(`(()=>{const a=document.createElement('a'); a.href='/live/4'; document.body.append(a); a.click(); return 1})()`);
-await sleep(2500);
+// another account on the same browser (client-side navigation, the page keeps its memory) does not inherit the question
+const anchor = (path) => `(()=>{const a=document.createElement('a'); a.href='${path}'; document.body.append(a); a.click(); return 1})()`;
+const switchTo = async (b, user) => { await b.login(user); await b.ev(anchor('/login')); await sleep(800); await b.ev(anchor('/live/4')); await sleep(2500); };
+await switchTo(B, 'jonas');
 sB = await B.state();
-check('B: back on match 4 the question is still open for the two taps', sB.dialog && (await B.local()).filter((r) => r.match === m4.id).length === 0, { sB });
+check('B (jonas): no inherited question, nothing recorded for him', !sB.dialog && (await B.local()).filter((r) => r.match === m4.id).length === 0, { sB, who: await B.ev(`JSON.parse(localStorage.getItem('so_me')||'null')?.user?.username`) });
+await switchTo(B, 'petra.k');
+sB = await B.state();
+check('B (petra): back on match 4 the question is still open for her two taps', sB.dialog && (await B.local()).filter((r) => r.match === m4.id).length === 0, { sB });
 check('B: fresh', (await B.clickText('.scoutbar[role=dialog] button', 'Neu beginnen')) === 'clicked');
 await sleep(1500);
 sB = await B.state();

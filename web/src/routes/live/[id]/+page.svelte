@@ -41,7 +41,8 @@
   // anything any more: every await checks `stale()`
   let alive = true;
   const stale = (mid) => !alive || mid !== id;
-  $effect(() => () => { alive = false; if (askStart && shownMid != null) pendingStarts.set(shownMid, askStart); });
+  $effect(() => () => { alive = false; if (askStart && shownMid != null) pendingStarts.set(startKey(askStart.ctx.uid, shownMid), askStart); });
+  const startKey = (uid, mid) => `${uid}:${mid}`;
 
   const canScout = $derived(['coach', 'assistant'].includes($me?.user?.role));
   const canWrite = $derived(canScout && tabOwner && $sync.supported);
@@ -126,7 +127,8 @@
       const es = r ? (await editsFrom(r.id, 1)).map((e) => e.body) : [];
       if (stale(mid)) return;
       rec = r; edits = es;
-      if (!r && !askStart && pendingStarts.has(mid)) { askStart = pendingStarts.get(mid); pendingStarts.delete(mid); }
+      const k = startKey($me?.user?.id ?? null, mid);
+      if (!r && !askStart && pendingStarts.has(k)) { askStart = pendingStarts.get(k); pendingStarts.delete(k); }
     } catch (e) {
       if (!stale(mid)) showToast('Lokaler Speicher: ' + (e?.message || e), true);
     }
@@ -136,8 +138,8 @@
   $effect(() => {
     const mid = id;
     untrack(() => {
-      // an open copy-or-fresh question of the match we are leaving keeps its taps
-      if (askStart && shownMid != null && shownMid !== mid) pendingStarts.set(shownMid, askStart);
+      // an open copy-or-fresh question of the match we are leaving keeps its taps, under the account that made them
+      if (askStart && shownMid != null && shownMid !== mid) pendingStarts.set(startKey(askStart.ctx.uid, shownMid), askStart);
       shownMid = mid;
       match = null; rec = null; edits = []; askStart = null; loadError = '';
       deviceId().then((d) => { if (!stale(mid)) myDevice = d; }).catch(() => {});
@@ -266,13 +268,16 @@
   // moved on; only the copy-or-fresh question needs the page, and it is
   // kept per match (pendingStarts) until the page shows that match again.
   async function startRecording(ctx, pending) {
-    const live = id === ctx.mid;
+    if (ctx.uid == null) return;
+    const live = id === ctx.mid && ($me?.user?.id ?? null) === ctx.uid;
     if (live && askStart) { askStart = { ...askStart, more: [...askStart.more, pending] }; return; }
     if ((ctx.m?.recordings || []).length) {
-      if (live) { askStart = { first: pending, more: [] }; return; }
-      const p = pendingStarts.get(ctx.mid) || { first: pending, more: [] };
+      // the question, with the context it was asked in: the taps stay with that account and match
+      if (live) { askStart = { first: pending, more: [], ctx }; return; }
+      const k = startKey(ctx.uid, ctx.mid);
+      const p = pendingStarts.get(k) || { first: pending, more: [], ctx };
       if (p.first !== pending) p.more.push(pending);
-      pendingStarts.set(ctx.mid, p);
+      pendingStarts.set(k, p);
       return;
     }
     await createAndApply(ctx, 'fresh', { first: pending, more: [] });
@@ -288,8 +293,8 @@
     const ask = askStart;
     askStart = null;
     if (!ask) return;
-    const ctx = ctxNow();
-    serial(() => createAndApply(ctx, mode, ask));
+    // answered with the context the taps were made in, never the current identity
+    serial(() => createAndApply(ask.ctx, mode, ask));
   }
   async function createAndApply(ctx, mode, ask) {
     if (id === ctx.mid) askStart = null;
