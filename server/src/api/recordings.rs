@@ -51,11 +51,14 @@ fn str_field(v: &Value, k: &str, max: usize) -> String {
 }
 
 /// PUT /matches/{id}/recordings/{rid}
-/// `{ device_id, device_label, origin_id?, origin_n?, base?, edits: [{ n, body }] }`
+/// `{ uploader?, device_id, device_label, origin_id?, origin_n?, base?, edits: [{ n, body }] }`
 /// The base is required on the first upload and must be identical on any
 /// later one. Edits are stored while their numbers continue the stored
 /// ones; the answer names the highest stored number, the client resends from
-/// there. Everything in one write transaction.
+/// there. `uploader` is the account the client believes it is signed in as:
+/// a session cookie that meanwhile belongs to someone else (another tab
+/// switched accounts) is refused, so a recording never lands under the wrong
+/// account. Everything in one write transaction.
 pub async fn upload(
     State(state): State<AppState>,
     user: CurrentUser,
@@ -64,6 +67,11 @@ pub async fn upload(
 ) -> ApiResult<Json<Value>> {
     if !valid_id(&rid) {
         return Err(ApiError::BadRequest("Aufzeichnungs-ID ungültig".into()));
+    }
+    if let Some(expected) = body.get("uploader").and_then(|u| u.as_i64()) {
+        if expected != user.id {
+            return Err(ApiError::Refused("account_mismatch", json!({ "user_id": user.id, "username": user.username })));
+        }
     }
     let mut tx = state.dbw.begin().await?;
     let (row, team_id) = match_and_role(&mut tx, &user, id, Role::Assistant).await?;

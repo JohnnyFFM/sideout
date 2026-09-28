@@ -201,34 +201,55 @@
     else showToast('Scouten nicht möglich', true);
   }
 
-  /** save one edit of my recording; the state on screen follows immediately, the uploader is nudged */
-  async function commit(edit, note) {
-    const before = st;
+  // ----- capture context: a tap belongs to the match and recording it was
+  // made on. The chain may run it after the page moved to another match (or
+  // was left): the edit is still saved to that recording, only the screen is
+  // updated when it still shows it. -----
+  function ctxNow() {
+    return { mid: id, m: match, r: rec, uid: $me?.user?.id ?? null };
+  }
+  /** the recording and edits of the context: from memory while the page still shows it, else from the store */
+  async function resolve(ctx) {
+    const live = id === ctx.mid; // the page still shows the match the tap was made on
+    if (live && rec && (!ctx.r || rec.id === ctx.r.id)) return { r: rec, es: edits, live };
+    const r = ctx.r ? await getRecording(ctx.r.id) : await myRecording(ctx.mid, ctx.uid);
+    const es = r ? (await editsFrom(r.id, 1)).map((e) => e.body) : [];
+    return { r, es, live };
+  }
+  /** save one edit of a recording; the screen follows only while it shows that recording */
+  async function commit(ctx, r, es, edit, note) {
+    const cfg0 = fold(r.base, es).cfg;
+    const before = replay(cfg0, fold(r.base, es).actions);
+    let n;
     try {
-      await appendEdit(rec.id, edit);
+      n = await appendEdit(r.id, edit);
     } catch (e) {
       logDiag('store', e?.message || e);
       showToast('Speichern auf dem Gerät fehlgeschlagen: ' + (e?.message || e), true);
       return false;
     }
-    edits = [...edits, edit];
-    selected = null;
-    const after = replay(cfg, fold(rec.base, edits).actions);
-    if (note) showToast(note);
-    else if (after.set !== before.set) { const s = after.sets[after.sets.length - 1]; showToast(`Satz ${before.set} beendet ${s.us}:${s.them}` + (after.finished || cfg.lineups?.[after.set] ? '' : ' · Aufstellung übernommen, Wechsel per Drag & Drop')); }
-    else if (after.finished) showToast(`Spiel beendet ${after.sets_won}:${after.sets_lost}`);
     kick();
+    if (id !== ctx.mid || !rec || rec.id !== r.id) return true; // saved for that match; the page shows another one
+    if (edits.length === n - 1) edits = [...edits, edit];
+    else loadLocal(ctx.mid); // another writer got in between: the store is the truth
+    selected = null;
+    const after = replay(cfg0, fold(r.base, [...es, edit]).actions);
+    if (note) showToast(note);
+    else if (after.set !== before.set) { const s = after.sets[after.sets.length - 1]; showToast(`Satz ${before.set} beendet ${s.us}:${s.them}` + (after.finished || cfg0.lineups?.[after.set] ? '' : ' · Aufstellung übernommen, Wechsel per Drag & Drop')); }
+    else if (after.finished) showToast(`Spiel beendet ${after.sets_won}:${after.sets_lost}`);
     return true;
   }
 
   function queue(a) {
     if (!canScout) return;
     if (!canWrite) { explainNoWrite(); return; }
+    const ctx = ctxNow();
     serial(async () => {
-      if (stale(id) || !st) return;
-      if (st.finished) { showToast('Das Spiel ist beendet'); return; }
-      if (!rec) { await startRecording({ add: a }); return; }
-      await commit({ op: 'add', action: newAction(actionsAll, a) });
+      const { r, es, live } = await resolve(ctx);
+      if (!r) { if (live) await startRecording(ctx, { add: a }); return; } // a first tap only starts a recording on the page it was made on
+      const acts = fold(r.base, es).actions;
+      if (replay(fold(r.base, es).cfg, acts).finished) { if (live) showToast('Das Spiel ist beendet'); return; }
+      await commit(ctx, r, es, { op: 'add', action: newAction(acts, a) });
     });
   }
 
@@ -236,10 +257,11 @@
   // when the match already has a recording — the user's choice between a
   // copy of the shown state and a fresh start. Taps that arrive while the
   // question is open are kept and applied after the choice.
-  async function startRecording(pending) {
+  async function startRecording(ctx, pending) {
+    if (id !== ctx.mid) return;
     if (askStart) { askStart = { ...askStart, more: [...askStart.more, pending] }; return; }
-    if (recordings.length) { askStart = { first: pending, more: [] }; return; }
-    await createAndApply('fresh', { first: pending, more: [] });
+    if ((ctx.m?.recordings || []).length) { askStart = { first: pending, more: [] }; return; }
+    await createAndApply(ctx, 'fresh', { first: pending, more: [] });
   }
   /** a pending tap → the edit it means on the given effective log */
   function editFor(pending, acts) {
@@ -252,23 +274,25 @@
     const ask = askStart;
     askStart = null;
     if (!ask) return;
-    serial(() => createAndApply(mode, ask));
+    const ctx = ctxNow();
+    serial(() => createAndApply(ctx, mode, ask));
   }
-  async function createAndApply(mode, ask) {
+  async function createAndApply(ctx, mode, ask) {
     askStart = null;
-    if (!match || stale(id)) return;
-    const b = mode === 'copy' ? baseFromMatch(match) : baseFromMatch(match, { planning: true });
-    if (!Object.keys(b.lineups).length) { showToast('Erst die Aufstellung eintragen', true); return; }
+    const m = ctx.m;
+    if (!m || ctx.uid == null) return;
+    const b = mode === 'copy' ? baseFromMatch(m) : baseFromMatch(m, { planning: true });
+    if (!Object.keys(b.lineups).length) { if (id === ctx.mid) showToast('Erst die Aufstellung eintragen', true); return; }
     const acts = b.actions.map((a) => ({ ...a }));
     const first = editFor(ask?.first, acts);
     if (ask?.first && !first) return;
-    const mid = id;
+    const sel = (m.recordings || []).find((x) => x.selected) || null;
     let r;
     try {
       r = await createRecording({
-        match_id: mid, team_id: $me?.team?.id ?? null, user_id: $me?.user?.id ?? null, base: b,
-        origin_id: mode === 'copy' ? match.selected || null : null,
-        origin_n: mode === 'copy' ? selectedRec?.n ?? null : null,
+        match_id: ctx.mid, team_id: $me?.team?.id ?? null, user_id: ctx.uid, base: b,
+        origin_id: mode === 'copy' ? m.selected || null : null,
+        origin_n: mode === 'copy' ? sel?.n ?? null : null,
         firstEdit: first
       });
     } catch (e) {
@@ -276,21 +300,25 @@
       showToast('Speichern auf dem Gerät fehlgeschlagen: ' + (e?.message || e), true);
       return;
     }
-    if (stale(mid)) return;
-    rec = r; edits = first ? [first] : []; selected = null;
-    showToast(mode === 'copy' ? 'Eigene Aufzeichnung als Kopie begonnen' : 'Eigene Aufzeichnung begonnen');
     kick();
+    let es = first ? [first] : [];
+    if (id === ctx.mid) {
+      rec = r; edits = es; selected = null;
+      showToast(mode === 'copy' ? 'Eigene Aufzeichnung als Kopie begonnen' : 'Eigene Aufzeichnung begonnen');
+    }
     // the taps that came in while the question was open
+    const ctx2 = { ...ctx, r };
     for (const p of ask?.more || []) {
-      const e = editFor(p, fold(rec.base, edits).actions);
-      if (e) await commit(e);
+      const e = editFor(p, fold(r.base, es).actions);
+      if (e && (await commit(ctx2, r, es, e))) es = [...es, e];
     }
   }
   /** A → B → A: continue the current result on this device as a new copy;
    *  the older own recording stays as it is */
   function continueSelected() {
     if (!canWrite || !match?.selected) return;
-    serial(() => createAndApply('copy', null));
+    const ctx = ctxNow();
+    serial(() => createAndApply(ctx, 'copy', null));
   }
 
   let selecting = $state(false);
@@ -473,13 +501,15 @@
   function undo() {
     if (!actionsAll.length || !canScout) return;
     if (!canWrite) { explainNoWrite(); return; }
+    const ctx = ctxNow();
     serial(async () => {
-      if (stale(id)) return;
-      const a = last;
-      if (!a) return;
+      const { r, es, live } = await resolve(ctx);
       // undoing on a device without its own recording starts one (a copy or fresh)
-      if (!rec) { await startRecording({ undo: true }); return; }
-      await commit({ op: 'undo', seq: a.seq }, 'Rückgängig: ' + describe(a));
+      if (!r) { if (live) await startRecording(ctx, { undo: true }); return; }
+      const acts = fold(r.base, es).actions;
+      const a = acts[acts.length - 1];
+      if (!a) return;
+      await commit(ctx, r, es, { op: 'undo', seq: a.seq }, live ? 'Rückgängig: ' + describe(a) : null);
     });
   }
 

@@ -193,6 +193,25 @@ async fn second_recording_keeps_the_selection_until_the_coach_picks() {
 }
 
 #[tokio::test]
+async fn an_upload_names_its_account_and_a_foreign_cookie_is_refused() {
+    let app = app().await;
+    let (c, mid, _) = fixture(&app).await;
+    let (_, me, _) = call(&app, Method::GET, "/me", Some(&c), None).await;
+    let uid = me["user"]["id"].as_i64().unwrap();
+    let base = base_for(&app, &c, mid).await;
+    let body = |uploader: i64| json!({ "uploader": uploader, "device_id": "d", "device_label": "x", "base": base, "edits": [opp(1, 1, "=")] });
+    let (st, b, _) = call(&app, Method::PUT, &format!("/matches/{mid}/recordings/r1"), Some(&c), Some(body(uid + 7))).await;
+    assert_eq!(st, StatusCode::CONFLICT, "{b}");
+    assert_eq!(b["error"], "account_mismatch");
+    assert_eq!(b["current"]["user_id"], uid);
+    let (_, m, _) = call(&app, Method::GET, &format!("/matches/{mid}"), Some(&c), None).await;
+    assert!(m["recordings"].as_array().unwrap().is_empty(), "nothing stored under the wrong account");
+    let (st, b, _) = call(&app, Method::PUT, &format!("/matches/{mid}/recordings/r1"), Some(&c), Some(body(uid))).await;
+    assert_eq!(st, StatusCode::OK, "{b}");
+    assert_eq!(b["confirmed"], 1);
+}
+
+#[tokio::test]
 async fn upload_resolves_the_team_from_the_match_not_the_session() {
     let app = app().await;
     let (c, mid, _) = fixture(&app).await;

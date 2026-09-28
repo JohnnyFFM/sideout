@@ -12,7 +12,7 @@
 import { get, writable } from 'svelte/store';
 import { api } from './api.js';
 import { pendingRecordings, editsFrom, markConfirmed, setError, pendingSummary, onChange, hasStorage } from './recstore.js';
-import { logDiag, me } from './stores.js';
+import { logDiag, me, refreshMe } from './stores.js';
 
 /** { total, byMatch, errors, foreign, uploading, transient, supported, unsupportedReason } */
 export const sync = writable({ total: 0, byMatch: {}, errors: [], foreign: 0, uploading: false, transient: '', supported: true, unsupportedReason: '' });
@@ -57,9 +57,10 @@ function pause(id, ms) {
   paused.set(id, { until: Date.now() + ms, delay: ms });
 }
 
-async function uploadOne(rec) {
+async function uploadOne(rec, uid) {
   const edits = await editsFrom(rec.id, rec.confirmed_n + 1, BATCH);
   const body = {
+    uploader: uid,
     device_id: rec.device_id, device_label: rec.device_label,
     origin_id: rec.origin_id, origin_n: rec.origin_n,
     edits: edits.map((e) => ({ n: e.n, body: e.body }))
@@ -68,7 +69,9 @@ async function uploadOne(rec) {
   try {
     const res = await api(`/matches/${rec.match_id}/recordings/${rec.id}`, { method: 'PUT', body, timeout: 30000 });
     const sentTo = edits.length ? edits[edits.length - 1].n : rec.confirmed_n;
-    await markConfirmed(rec.id, res.confirmed);
+    // confirmed only what this upload actually put in front of the server:
+    // a later import may add edits beyond that, and they must be compared too
+    await markConfirmed(rec.id, Math.min(res.confirmed, sentTo));
     if (res.confirmed < sentTo && res.confirmed <= rec.confirmed_n && edits.length) {
       // the server stored none of what we sent although the numbers should continue: a hole on our side
       await setError(rec.id, `Server bestätigt nur bis ${res.confirmed}, lokal fehlt Nr. ${res.confirmed + 1}`);
@@ -80,6 +83,14 @@ async function uploadOne(rec) {
   } catch (e) {
     if (e.offline || e.status === 401) {
       sync.update((v) => ({ ...v, transient: e.offline ? 'keine Verbindung' : 'Anmeldung nötig' }));
+      return 'stop';
+    }
+    if (e.code === 'account_mismatch') {
+      // the session cookie belongs to someone else now (another tab switched
+      // accounts): nothing more goes out under this identity, the app
+      // re-reads who it is and the next pass works for that account
+      sync.update((v) => ({ ...v, transient: 'Konto gewechselt' }));
+      refreshMe().catch(() => {});
       return 'stop';
     }
     if (e.status >= 500) {
@@ -113,7 +124,9 @@ async function run() {
         if (!recs.length) break;
         let progressed = false;
         for (const rec of recs) {
-          const r = await uploadOne(rec);
+          // the identity this pass started with must still be the app's identity
+          if (userId() !== uid) { stopped = true; break; }
+          const r = await uploadOne(rec, uid);
           if (r === 'progress') progressed = true;
           if (r === 'stop') { stopped = true; break; }
         }

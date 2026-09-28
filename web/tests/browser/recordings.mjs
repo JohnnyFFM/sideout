@@ -26,7 +26,8 @@ async function attach(port, pick) {
       const { requestId, request } = d.params;
       seen.push(request.method + ' ' + request.url.replace(origin, ''));
       const r = intercept ? intercept(request.method, request.url) : null;
-      if (r) send('Fetch.fulfillRequest', { requestId, responseCode: r.status, responseHeaders: [{ name: 'Content-Type', value: 'application/json' }], body: Buffer.from(JSON.stringify(r.body || { error: 'intercepted' })).toString('base64') });
+      if (r?.delay) setTimeout(() => send('Fetch.continueRequest', { requestId }), r.delay);
+      else if (r) send('Fetch.fulfillRequest', { requestId, responseCode: r.status, responseHeaders: [{ name: 'Content-Type', value: 'application/json' }], body: Buffer.from(JSON.stringify(r.body || { error: 'intercepted' })).toString('base64') });
       else send('Fetch.continueRequest', { requestId });
     }
   };
@@ -39,6 +40,8 @@ async function attach(port, pick) {
 }
 
 async function browser(port, profile, user, width = 390, height = 844) {
+  // a leftover Edge from a crashed run would be attached to instead of a fresh one
+  try { await fetch(`http://127.0.0.1:${port}/json`); console.log(`port ${port} is already in use (stale headless Edge?), aborting`); process.exit(2); } catch { /* free */ }
   const edge = spawn('C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', ['--headless=new', '--disable-gpu', '--hide-scrollbars', `--remote-debugging-port=${port}`, `--user-data-dir=${outDir}/${profile}-${RUN}`, '--no-first-run', `--window-size=${width},${height}`, 'about:blank'], { stdio: 'ignore' });
   procs.push(edge);
   const t = await attach(port, (pages) => pages[0]);
@@ -331,6 +334,63 @@ await B.login('petra.k');
 await B.go('/spiele', 2500);
 sv = await waitServer(1, (s) => s.recs.find((r) => r.id === recB)?.n === 3);
 check('B (petra again): her pending edit uploads', sv.recs.find((r) => r.id === recB).n === 3, { sv });
+
+// 17. a tap belongs to the match it was made on, even when the page moves on before it is saved
+await A.go('/live/3', 2500);
+sv = await server(3); const n3 = sv.recs.find((r) => r.id === recA3).n; const n2 = (await server(2)).recs[0].n;
+// tap, then client-side navigation to match 2 in the same tick (an in-page link)
+await A.ev(`(()=>{const b=document.querySelector('.btn.big.us'); b.click(); const a=document.createElement('a'); a.href='/live/2'; document.body.append(a); a.click(); return 1})()`);
+await sleep(2500);
+sA = await A.state();
+sv = await waitServer(3, (s) => s.recs.find((r) => r.id === recA3)?.n === n3 + 1);
+const sv2b = await server(2);
+check('A: the tap landed in match 3 (n+1), match 2 untouched, page shows match 2', sv.recs.find((r) => r.id === recA3).n === n3 + 1 && sv2b.recs[0].n === n2 && sA.us === 1 && sA.them === 1, { sA, n3, sv, sv2b });
+// tap, then leave the live page altogether (tab bar): the tap is still saved
+await A.ev(`(()=>{const b=document.querySelector('.btn.big.us'); b.click(); document.querySelector('.tabbar a[href="/spiele"]').click(); return 1})()`);
+await sleep(2500);
+sv = await waitServer(2, (s) => s.recs[0].n === n2 + 1);
+check('A: a tap right before leaving the page is saved and uploaded', sv.recs[0].n === n2 + 1 && sv.us === 2, { sv });
+
+// 18. the account changes in another tab while an upload pass is running: nothing goes out under the new account
+await A.go('/live/2', 2500);
+await A.offline(true); await sleep(300);
+await A.tap(); await sleep(500);
+await A.go('/live/3', 2500);
+await A.tap(); await sleep(500);
+loc = await A.local();
+check('A (jonas) offline: match 2 and match 3 have a pending edit', loc.find((r) => r.match === 2).next - 1 - loc.find((r) => r.match === 2).confirmed === 1 && loc.find((r) => r.id === recA3).next - 1 - loc.find((r) => r.id === recA3).confirmed === 1, { loc });
+const n3b = (await server(3)).recs.find((r) => r.id === recA3).n;
+// the first PUT of the pass (match 2, the older recording) is held for three seconds; meanwhile another tab signs in as petra
+const A3 = await secondTab(A);
+await A3.go('/login', 1500); // an app page (same origin), no identity, no uploader of its own
+A.setIntercept((method, url) => (method === 'PUT' && url.includes('/api/matches/2/recordings/') ? { delay: 3000 } : null));
+await A.offline(false);
+await sleep(700);
+await A3.login('petra.k');
+await sleep(5000);
+A.setIntercept(null);
+sv = await server(3);
+loc = await A.local();
+check('A: match 3 was not uploaded under petra (server unchanged, still pending locally)', sv.recs.find((r) => r.id === recA3).n === n3b && loc.find((r) => r.id === recA3).next - 1 - loc.find((r) => r.id === recA3).confirmed === 1, { sv, loc, seen: A.seen.filter((x) => x.startsWith('PUT')).slice(-4) });
+check('A: the page noticed the account change', /Petra Kuhn|petra/i.test(await A.ev(`document.body.textContent`)) || (await A.ev(`JSON.parse(localStorage.getItem('so_me')||'null')?.user?.username`)) === 'petra.k');
+await A3.send('Page.navigate', { url: 'about:blank' });
+await A.login('jonas');
+await A.go('/spiele', 2500);
+sv = await waitServer(3, (s) => s.recs.find((r) => r.id === recA3)?.n === n3b + 1);
+check('A (jonas again): the pending edit uploads under jonas', sv.recs.find((r) => r.id === recA3).n === n3b + 1, { sv });
+
+// 19. an import never confirms more than it sent: a shorter backup, then a longer one, is compared with the server
+const eA = JSON.parse(await A.ev(`(async()=>{const db=await new Promise((res,rej)=>{const r=indexedDB.open('sideout');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}); const rec=await new Promise((res)=>{const r=db.transaction('recordings').objectStore('recordings').get('${recA3}');r.onsuccess=()=>res(r.result)}); const edits=await new Promise((res)=>{const r=db.transaction('edits').objectStore('edits').index('rec').getAll('${recA3}');r.onsuccess=()=>res(r.result)}); db.close(); edits.sort((a,b)=>a.n-b.n); return JSON.stringify({format:'sideout-recording',schema:1,recording:{id:rec.id,match_id:rec.match_id,device_id:rec.device_id,device_label:rec.device_label,base:rec.base,origin_id:rec.origin_id,origin_n:rec.origin_n},edits:edits.map(e=>({n:e.n,body:e.body}))})})()`));
+const total3 = eA.edits.length;
+await B.go('/einstellungen', 2500);
+await importOn(B, { ...eA, edits: eA.edits.slice(0, 3) }); await sleep(2500);
+bl = (await B.local()).find((r) => r.id === recA3);
+check('B: short backup imported and confirmed only up to what was sent (3), although the server holds more', bl && bl.next === 4 && bl.confirmed === 3, { bl, total3 });
+const wrong = { ...eA, edits: eA.edits.map((e, i) => (i === 4 ? { n: e.n, body: { op: 'add', action: { seq: e.body.action?.seq ?? 99, skill: 'opp', grade: e.body.action?.grade === '=' ? '#' : '=' } } } : e)) };
+await importOn(B, wrong); await sleep(3000);
+bl = (await B.local()).find((r) => r.id === recA3);
+sv = await server(3);
+check('B: a longer backup with a different edit 5 is appended locally, sent, refused by the server and shown as error; the server keeps its own', bl && bl.next === total3 + 1 && bl.confirmed <= 4 && /edit_mismatch/.test(bl.error || '') && sv.recs.find((r) => r.id === recA3).n === n3b + 1, { bl, sv });
 
 for (const [n, b] of [['A', A], ['B', B], ['V', V]]) check(`${n}: no page errors`, b.errors.length === 0, b.errors);
 console.log(fails ? `\n${fails} FAILED` : '\nall ok');
