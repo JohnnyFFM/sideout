@@ -106,10 +106,13 @@ docker exec sideout-live /app/server user-list
   that player as long as she is in the back row and not serving (a `lib` action in the log; without one she automatically covers
   the back-row middle); dropping the replaced player back on her own card
   sends the libero out.
-- **Offline**: the live page keeps the match and an op queue in
-  localStorage. Taps render from the local replay and are sent when the
-  connection is back; retries are idempotent (`seq`), a conflict with
-  another device reloads the match.
+- **Recordings**: every scout on every device has their own recording of
+  a match, an immutable initial state plus numbered edits, stored in
+  IndexedDB before anything is sent. One uploader per browser carries all
+  pending edits to the server whenever it can, independent of the open
+  page. The server never refuses an upload for ownership reasons and never
+  deletes a recording; the coach picks which recording is the result
+  ("als Ergebnis verwenden"). There is no lease and no automatic merge.
 - **Evaluation**: box score per player and set, score flow, side-out by
   rotation, points by source, quality stacks per skill, CSV export.
   Season view with per-player totals and trends.
@@ -125,10 +128,11 @@ POST /auth/register-team · /auth/join · /auth/login · /auth/logout   GET /con
 PATCH /team · POST /team/rotate-code · PATCH|DELETE /team/members/{id}
 POST /teams {name} · POST /teams/join {code} · POST /teams/switch {team_id}
 GET|POST /players · PATCH|DELETE /players/{id}
-GET|POST /matches · GET|PATCH|DELETE /matches/{id}
-PUT /matches/{id}/lineups/{set}          {pos:[6 player ids], libero}
-POST /matches/{id}/actions               {seq, skill, grade?, player_id?, sub_out?, sub_in?} → {action, state}
-DELETE /matches/{id}/actions/last?cid=   → {removed|null, state}  (idempotent by client id)
+GET|POST /matches · GET|PATCH|DELETE /matches/{id}     (DELETE archives a match that has recordings)
+PUT /matches/{id}/lineups/{set}          {pos:[6 player ids], libero}   planning, before scouting starts
+PUT /matches/{id}/recordings/{rid}       {device_id, device_label, base?, edits:[{n, body}]} → {confirmed, selected, status, state}
+GET /matches/{id}/recordings/{rid}       meta, base, edits, folded snapshot (copy, export)
+POST /matches/{id}/select                {recording_id, rev}   the coach picks the result
 GET /matches/{id}/state · /matches/{id}/stats?set= · /matches/{id}/export.csv
 GET /season/stats
 GET /events                              SSE, one notification per committed mutation
@@ -137,20 +141,28 @@ GET /events                              SSE, one notification per committed mut
 ## Status and roadmap
 
 Working: teams, roles, several teams per account, roster, matches with
-per-set lineups, live scouting with offline queue, undo, substitutions and
-libero handling by drag and drop, catch-up after a blackout, live
-evaluation, box score, charts, CSV export, season totals, PWA install, SSE
-live updates between devices, deployment under a path prefix, Docker + CI.
+per-set lineups, live scouting as per-device recordings with background
+upload, undo, substitutions and libero handling by drag and drop, catch-up
+after a blackout, a second scouter on a second phone with the coach's
+choice of result, export/import of a recording as a file, live evaluation,
+box score, charts, CSV export, season totals, PWA install, SSE live
+updates between devices, deployment under a path prefix, Docker + CI.
 
 Next: player pages across the season, `.dvw` export for Data Volley and
 the openvolley toolchain, attack directions on the court, a read-only
-live link for parents, a second scouter on a second phone.
+live link for parents, an optional pad without the set (Zuspiel) step.
 
 Offline: opening Spiele once online stores every running and planned
 match on the device ("offline bereit"); the live screen, undo and the
-evaluation then work without a connection, the session survives an offline
-restart, and the queue reconciles against the server log by client id when
-answers got lost. Not yet: creating a match offline.
+evaluation then work without a connection and the session survives an
+offline restart. Every tap is an edit of this device's recording, saved in
+IndexedDB first; the uploader sends pending edits from any page as soon as
+the server answers, and retries with backoff. What the server has is never
+lost; what is still on the device is shown as "n nicht hochgeladen" in the
+match list, the live screen and Einstellungen (with export as a file). On
+iOS install the app to the home screen: Safari evicts a site's storage
+after seven days of Safari use without a visit, the installed app is
+exempt. Not yet: creating a match offline.
 
 ## License
 

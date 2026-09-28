@@ -2,32 +2,62 @@
   import { base } from '$app/paths';
   // Box score, score flow, side-out by rotation, point sources, quality
   // stacks. Computed client-side with the engine from the action log, so
-  // it also works from the offline cache.
+  // it also works from the offline cache. Shows the match result (the
+  // selected recording); a device with its own recording can switch to it.
   import { page } from '$app/stores';
   import { untrack } from 'svelte';
   import { api } from '$lib/api.js';
-  import { me, mutations } from '$lib/stores.js';
+  import { me, mutations, online, showToast } from '$lib/stores.js';
   import { replay, stats, lineupFor, rotKey, GRADES, GRADE_CLASS, GRADE_NAME, PAD, ROMAN, firstName, eff, fix, pct, fmtDate } from '$lib/engine.js';
-  import { cachedMatch, cacheMatch, applyOps, loadOps } from '$lib/offline.js';
+  import { cachedMatch, cacheMatch } from '$lib/offline.js';
+  import { fold, playersOf, recordingLabel } from '$lib/recording.js';
+  import { myRecording, editsFrom, deviceId, onChange } from '$lib/recstore.js';
+  import { sync } from '$lib/uploader.js';
 
   const id = $derived(Number($page.params.id));
   let match = $state(null);
   let error = $state('');
   let set = $state(0);
+  let rec = $state(null);
+  let edits = $state([]);
+  let source = $state('result'); // 'result' | 'mine'
+  let myDevice = $state('');
+  let selecting = $state(false);
 
   async function load() {
     try { const m = await api(`/matches/${id}`); match = m; cacheMatch(id, m); }
     catch (e) { const c = cachedMatch(id); if (c) match = c; else error = e.offline ? 'Keine Verbindung.' : e.message; }
   }
-  $effect(() => { void id; untrack(load); });
+  async function loadLocal() {
+    try { const r = await myRecording(id); rec = r; edits = r ? (await editsFrom(r.id, 1)).map((e) => e.body) : []; }
+    catch { rec = null; edits = []; }
+  }
+  $effect(() => { void id; untrack(() => { load(); loadLocal(); deviceId().then((d) => (myDevice = d)).catch(() => {}); }); });
   $effect(() => { if ($mutations && (($mutations.entity === 'action' || $mutations.entity === 'match') && $mutations.id === id || $mutations.entity === 'resync')) untrack(load); });
+  $effect(() => onChange(() => untrack(loadLocal)));
 
-  const cfg = $derived(match ? { first_serve_us: match.first_serve === 'us', lineups: match.lineups } : null);
-  const actions = $derived(match ? applyOps(match.actions, loadOps(id)) : []);
+  const mine = $derived(rec ? fold(rec.base, edits) : null);
+  const useMine = $derived(source === 'mine' && !!mine);
+  const cfg = $derived(useMine ? mine.cfg : match ? { first_serve_us: match.first_serve === 'us', lineups: match.lineups } : null);
+  const actions = $derived(useMine ? mine.actions : match ? match.actions : []);
+  const players = $derived(match ? playersOf(match.players, useMine ? mine : { roster: match.roster, actions: match.actions }) : []);
   const full = $derived(cfg ? replay(cfg, actions) : null);
-  const s = $derived(cfg ? stats(cfg, match.players, actions, set) : null);
-  const byId = $derived(Object.fromEntries((match?.players || []).map((p) => [p.id, p])));
+  const s = $derived(cfg ? stats(cfg, players, actions, set) : null);
+  const byId = $derived(Object.fromEntries(players.map((p) => [p.id, p])));
   const nSets = $derived(full ? full.sets.length + (full.finished ? 0 : 1) : 0);
+  const recordings = $derived(match?.recordings || []);
+  const mineIsResult = $derived(!!rec && match?.selected === rec.id);
+  const canSelect = $derived($me?.user?.role === 'coach');
+  const pendingHere = $derived($sync.byMatch[id] || 0);
+  const hhmm = (iso) => { const d = iso ? new Date(iso.includes('T') ? iso : iso.replace(' ', 'T') + 'Z') : null; return d && !isNaN(d) ? d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '–'; };
+
+  async function select(rid) {
+    if (!canSelect || !match || selecting) return;
+    selecting = true;
+    try { match = await api(`/matches/${id}/select`, { method: 'POST', body: { recording_id: rid, rev: match.selection_rev ?? 0 } }); cacheMatch(id, match); showToast('Als Ergebnis übernommen'); }
+    catch (e) { if (e.code === 'selection_moved') { showToast('Die Auswahl wurde inzwischen geändert, Stand aktualisiert', true); load(); } else showToast(e.message, true); }
+    finally { selecting = false; }
+  }
 
   const tot = $derived.by(() => {
     if (!s) return null;
@@ -106,6 +136,29 @@
       <span class="sets">{full.sets.map((x) => x.us + ':' + x.them).join('  ')}{#if !full.finished && actions.length} <em>(Satz {full.set} läuft: {full.us}:{full.them})</em>{/if}</span>
       <span class="muted small">{fmtDate(match.date)}{match.hall ? ' · ' + match.hall : ''} · {match.home ? 'Heim' : 'Auswärts'}</span>
     </div>
+    {#if rec && !mineIsResult}
+      <div class="panel srcbar" role="status">
+        <span class="txt">{recordings.length ? 'Als Ergebnis zählt ' + (recordings.find((r) => r.selected) ? recordingLabel(recordings.find((r) => r.selected), myDevice) : 'eine andere Aufzeichnung') : 'Die Aufzeichnung dieses Geräts ist noch nicht auf dem Server'}{pendingHere ? ` · ${pendingHere} Änderungen nicht hochgeladen` : ''}.</span>
+        <span class="tabs"><button class:active={source === 'result'} onclick={() => (source = 'result')}>Ergebnis</button><button class:active={source === 'mine'} onclick={() => (source = 'mine')}>Dieses Gerät</button></span>
+        {#if canSelect && recordings.some((r) => r.id === rec.id)}<button class="btn" onclick={() => select(rec.id)} disabled={selecting || !$online}>Diese als Ergebnis verwenden</button>{/if}
+      </div>
+    {:else if rec && pendingHere}
+      <div class="panel srcbar" role="status"><span class="txt">{pendingHere} Änderungen dieses Geräts sind noch nicht hochgeladen; die Auswertung hier zeigt sie bereits.</span><span class="tabs"><button class:active={source === 'result'} onclick={() => (source = 'result')}>Server</button><button class:active={source === 'mine'} onclick={() => (source = 'mine')}>Dieses Gerät</button></span></div>
+    {/if}
+    {#if recordings.length > 1}
+      <details class="panel recs">
+        <summary>Aufzeichnungen ({recordings.length})</summary>
+        <ul>
+          {#each recordings as r (r.id)}
+            <li class:sel={r.selected}>
+              <b>{recordingLabel(r, myDevice)}</b>
+              <span class="muted">{r.state ? `${r.state.sets_won}:${r.state.sets_lost} Sätze · Satz ${r.state.set} ${r.state.us}:${r.state.them}` : ''} · {r.n} Änderungen · {hhmm(r.last_write)}{r.origin_id ? ' · Kopie' : ''}</span>
+              {#if r.selected}<span class="chip ok">Ergebnis</span>{:else if canSelect}<button class="btn sm" onclick={() => select(r.id)} disabled={selecting || !$online}>Als Ergebnis verwenden</button>{/if}
+            </li>
+          {/each}
+        </ul>
+      </details>
+    {/if}
     <div class="toolbar">
       <div class="tabs">
         <button class:active={set === 0} onclick={() => (set = 0)}>Gesamt</button>
@@ -217,6 +270,16 @@
   .head h1 { font-size: 24px; }
   .head .res { font-family: var(--disp); font-size: 30px; font-weight: 700; }
   .head .sets { color: var(--ink-2); }
+  .srcbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 8px 12px; margin-bottom: 12px; border-color: var(--accent); font-size: 13px; }
+  .srcbar .txt { flex: 1 1 220px; }
+  .recs { margin-bottom: 12px; padding: 8px 12px; font-size: 13px; }
+  .recs summary { cursor: pointer; font-weight: 600; }
+  .recs ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+  .recs li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 6px 8px; border-radius: var(--r-m); background: var(--raised); }
+  .recs li.sel { outline: 1px solid var(--accent); }
+  .recs li .muted { flex: 1 1 160px; font-size: 12px; }
+  .chip.ok { border-color: var(--ok); color: var(--ok); }
+  .btn.sm { height: 28px; padding: 0 10px; font-size: 12px; }
   :global(:root) { --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; }
   :global(:root[data-theme='light']) { --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; }
   :global(.s1) { background: var(--s1); } :global(.s2) { background: var(--s2); } :global(.s3) { background: var(--s3); } :global(.s4) { background: var(--s4); }

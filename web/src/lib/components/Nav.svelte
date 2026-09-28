@@ -4,6 +4,7 @@
   import { goto } from '$app/navigation';
   import { api } from '$lib/api.js';
   import { me, meCache, sseConnected, online, switchTeam, showToast } from '$lib/stores.js';
+  import { sync } from '$lib/uploader.js';
   import { ROLE_SHORT, initialsOf } from '$lib/people.js';
   const teams = $derived($me?.teams || []);
   async function onSwitch(e) {
@@ -68,6 +69,7 @@
   <span class="spacer"></span>
   <span class="sync-chip" title={$sseConnected ? 'Live verbunden' : 'Verbindung getrennt'}>
     <span class="dot" style:background={$online && $sseConnected ? 'var(--ok)' : 'var(--g-neg)'}></span>
+    {#if $sync.total}<a class="upl" href="{base}/einstellungen" title="Änderungen dieses Geräts, die noch nicht auf dem Server sind">↑{$sync.total}</a>{/if}
     {#if teams.length > 1}
       <select class="teamsel" value={$me?.team?.id} onchange={onSwitch} title="Team wechseln">
         {#each teams as t (t.id)}<option value={t.id}>{t.name}</option>{/each}
@@ -100,6 +102,7 @@
 </nav>
 
 <style>
+  .upl { font-size: 12px; font-weight: 700; color: var(--g-neg); text-decoration: none; margin-right: 4px; }
   .teamsel { height: 30px; max-width: 160px; padding: 0 6px; font-size: 13px; font-weight: 600; background: var(--raised); border: 1px solid var(--line-soft); border-radius: var(--r-m); color: var(--ink); }
   @media (max-width: 760px) {
     .desk { display: none; }

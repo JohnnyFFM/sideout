@@ -1,8 +1,9 @@
-//! Matches, lineups, the scout log (actions), replayed state, stats, export,
-//! season aggregates.
+//! Matches: the frame (opponent, date, …), the planning (first serve and
+//! lineups before scouting starts), and every result view — state, stats,
+//! export, season — all read from the match's selected recording.
 
 use axum::extract::{Path, Query, State};
-use axum::http::{header, HeaderMap};
+use axum::http::header;
 use axum::response::IntoResponse;
 use axum::Json;
 use serde::Deserialize;
@@ -13,13 +14,13 @@ use crate::auth::{CurrentUser, Role};
 use crate::engine;
 use crate::error::{ApiError, ApiResult};
 use crate::events::EventMsg;
+use crate::recording::stat_players;
 use crate::state::AppState;
 use crate::store::{
-    action_json, audit, audit_conn, fetch_match_row, fetch_match_row_conn, lineups_json, load_actions, load_actions_conn,
-    load_config, load_config_conn, load_players, load_players_conn, match_json,
+    action_json, audit, audit_conn, fetch_match_row, fetch_match_row_conn, lineups_json, load_planning_conn, load_players,
+    match_json, planning_snapshot_conn, rec_meta_json, recordings_of_conn, selected_snapshot, selected_snapshot_conn,
+    snapshot_of_conn, state_summary,
 };
-
-use super::scout::{self, lease_of, require_lease, scout_json};
 
 pub(super) fn publish(state: &AppState, user: &CurrentUser, entity: &str, id: i64, version: i64, action: &str) {
     state.events.publish(EventMsg {
@@ -32,29 +33,26 @@ pub(super) fn publish(state: &AppState, user: &CurrentUser, entity: &str, id: i6
     });
 }
 
-async fn state_json(state: &AppState, row: &sqlx::sqlite::SqliteRow) -> ApiResult<Value> {
-    let id: i64 = row.get("id");
-    let cfg = load_config(state, id, &row.get::<String, _>("first_serve")).await?;
-    let actions = load_actions(state, id).await?;
-    Ok(serde_json::to_value(engine::replay(&cfg, &actions)).unwrap_or(Value::Null))
-}
-
 pub async fn list(State(state): State<AppState>, user: CurrentUser) -> ApiResult<Json<Value>> {
-    let rows = sqlx::query("SELECT * FROM matches WHERE team_id = ? ORDER BY date DESC, id DESC")
+    let rows = sqlx::query("SELECT * FROM matches WHERE team_id = ? AND archived = 0 ORDER BY date DESC, id DESC")
         .bind(user.team_id)
         .fetch_all(&state.db)
         .await?;
     let mut out = Vec::with_capacity(rows.len());
+    let mut conn = state.db.acquire().await?;
     for r in &rows {
         let mut m = match_json(r);
-        // state first (it borrows pool connections of its own); the connection
-        // for the scout block is taken afterwards and dropped per row, so
-        // concurrent list requests cannot pin the whole read pool
-        m["state"] = state_json(&state, r).await?;
-        m["scout"] = {
-            let mut conn = state.db.acquire().await?;
-            scout_json(&mut conn, r.get("id"), &user).await?
-        };
+        let (_, snap) = selected_snapshot_conn(&mut conn, r).await?;
+        m["state"] = serde_json::to_value(engine::replay(&snap.cfg, &snap.actions)).unwrap_or(Value::Null);
+        let recs = recordings_of_conn(&mut conn, r.get("id")).await?;
+        m["recordings"] = json!(recs.len());
+        // who is scouting right now (a recording with a write in the last minutes)
+        m["scouting"] = recs
+            .iter()
+            .filter(|x| x.active)
+            .max_by(|a, b| a.last_write.cmp(&b.last_write))
+            .map(|x| json!({ "actor": x.user_name, "device": x.device_label, "since": x.created_at }))
+            .unwrap_or(Value::Null);
         out.push(m);
     }
     Ok(Json(json!({ "matches": out })))
@@ -123,11 +121,6 @@ async fn validate_lineup(state: &AppState, team_id: i64, l: &LineupBody) -> ApiR
     Ok(())
 }
 
-async fn write_lineup(state: &AppState, match_id: i64, set: i64, l: &LineupBody) -> ApiResult<()> {
-    let mut conn = state.dbw.acquire().await?;
-    write_lineup_conn(&mut conn, match_id, set, l).await
-}
-
 async fn write_lineup_conn(conn: &mut sqlx::SqliteConnection, match_id: i64, set: i64, l: &LineupBody) -> ApiResult<()> {
     sqlx::query(
         "INSERT INTO lineups (match_id, set_no, pos1, pos2, pos3, pos4, pos5, pos6, libero_id)
@@ -153,6 +146,7 @@ pub async fn create(
     if let Some(l) = &body.lineup {
         validate_lineup(&state, user.team_id, l).await?;
     }
+    let mut tx = state.dbw.begin().await?;
     let res = sqlx::query(
         "INSERT INTO matches (team_id, opponent, date, time, hall, home, first_serve, notes, created_by)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -166,13 +160,14 @@ pub async fn create(
     .bind(&body.first_serve)
     .bind(body.notes.trim())
     .bind(user.id)
-    .execute(&state.dbw)
+    .execute(&mut *tx)
     .await?;
     let id = res.last_insert_rowid();
     if let Some(l) = &body.lineup {
-        write_lineup(&state, id, 1, l).await?;
+        write_lineup_conn(&mut tx, id, 1, l).await?;
     }
-    audit(&state, user.team_id, "match", id, "created", body.opponent.trim(), Some(user.id)).await?;
+    audit_conn(&mut tx, user.team_id, "match", id, "created", body.opponent.trim(), Some(user.id)).await?;
+    tx.commit().await?;
     publish(&state, &user, "match", id, 1, "created");
     get_one(State(state), user, Path(id)).await
 }
@@ -181,26 +176,43 @@ pub async fn get_one(State(state): State<AppState>, user: CurrentUser, Path(id):
     Ok(Json(match_payload(&state, &user, id).await?))
 }
 
-/// the full match: frame, lineups, log, roster, replayed state and the
-/// caller-relative scout state
+/// the full match of the caller's active team (see `match_payload_row`)
 pub async fn match_payload(state: &AppState, user: &CurrentUser, id: i64) -> ApiResult<Value> {
     let row = fetch_match_row(state, user.team_id, id).await?;
-    let cfg = load_config(state, id, &row.get::<String, _>("first_serve")).await?;
-    let actions = sqlx::query("SELECT * FROM actions WHERE match_id = ? ORDER BY seq")
-        .bind(id)
-        .fetch_all(&state.db)
-        .await?;
-    let players = sqlx::query("SELECT * FROM players WHERE team_id = ? ORDER BY number")
-        .bind(user.team_id)
-        .fetch_all(&state.db)
-        .await?;
-    let mut m = match_json(&row);
-    m["lineups"] = lineups_json(&cfg);
-    m["actions"] = json!(actions.iter().map(action_json).collect::<Vec<_>>());
-    m["players"] = json!(players.iter().map(crate::store::player_json).collect::<Vec<_>>());
-    m["state"] = state_json(state, &row).await?;
+    match_payload_row(state, &row).await
+}
+
+/// The full match: frame, planning, roster, every recording's summary, and
+/// the result — first serve, lineups, roster and actions of the selected
+/// recording (the planning while nothing is recorded) with its replayed state.
+pub async fn match_payload_row(state: &AppState, row: &sqlx::sqlite::SqliteRow) -> ApiResult<Value> {
+    let id: i64 = row.get("id");
+    let team_id: i64 = row.get("team_id");
     let mut conn = state.db.acquire().await?;
-    m["scout"] = scout_json(&mut conn, id, user).await?;
+    let planning = load_planning_conn(&mut conn, id, &row.get::<String, _>("first_serve")).await?;
+    let players = sqlx::query("SELECT * FROM players WHERE team_id = ? ORDER BY number")
+        .bind(team_id)
+        .fetch_all(&mut *conn)
+        .await?;
+    let (sel, snap) = selected_snapshot_conn(&mut conn, row).await?;
+    let mut recs = vec![];
+    for r in recordings_of_conn(&mut conn, id).await? {
+        let mut j = rec_meta_json(&r);
+        if let Some(s) = snapshot_of_conn(&mut conn, &r.id).await? {
+            j["state"] = state_summary(&engine::replay(&s.cfg, &s.actions));
+        }
+        j["selected"] = json!(sel.as_deref() == Some(r.id.as_str()));
+        recs.push(j);
+    }
+    let mut m = match_json(row);
+    m["planning"] = json!({ "first_serve": row.get::<String, _>("first_serve"), "lineups": lineups_json(&planning) });
+    m["players"] = json!(players.iter().map(crate::store::player_json).collect::<Vec<_>>());
+    m["recordings"] = json!(recs);
+    m["first_serve"] = json!(if snap.cfg.first_serve_us { "us" } else { "them" });
+    m["lineups"] = lineups_json(&snap.cfg);
+    m["roster"] = json!(snap.roster);
+    m["actions"] = json!(snap.actions.iter().map(action_json).collect::<Vec<_>>());
+    m["state"] = serde_json::to_value(engine::replay(&snap.cfg, &snap.actions)).unwrap_or(Value::Null);
     Ok(m)
 }
 
@@ -212,8 +224,8 @@ pub struct PatchMatch {
     pub time: Option<String>,
     pub hall: Option<String>,
     pub home: Option<bool>,
+    /// planning only: a started recording keeps its own first serve
     pub first_serve: Option<String>,
-    pub status: Option<String>,
     pub notes: Option<String>,
 }
 
@@ -221,28 +233,17 @@ pub async fn update(
     State(state): State<AppState>,
     user: CurrentUser,
     Path(id): Path<i64>,
-    headers: HeaderMap,
     Json(body): Json<PatchMatch>,
 ) -> ApiResult<Json<Value>> {
     user.require(Role::Assistant)?;
     let mut tx = state.dbw.begin().await?;
     let cur = fetch_match_row_conn(&mut tx, user.team_id, id).await?;
-    // the replay configuration and the scouting lifecycle belong to the holder
-    let protected = body.first_serve.as_deref().map_or(false, |f| f != cur.get::<String, _>("first_serve"))
-        || body.status.as_deref().map_or(false, |st| st != cur.get::<String, _>("status"));
-    if protected {
-        require_lease(&mut tx, &cur, &user, lease_of(&headers).as_deref()).await?;
-    }
     let opponent = body.opponent.clone().unwrap_or(cur.get("opponent"));
     let date = body.date.clone().unwrap_or(cur.get("date"));
     let first_serve = body.first_serve.clone().unwrap_or(cur.get("first_serve"));
     validate_match(&opponent, &date, &first_serve)?;
-    let status = body.status.clone().unwrap_or(cur.get("status"));
-    if !matches!(status.as_str(), "planned" | "live" | "done") {
-        return Err(ApiError::BadRequest("Status unbekannt".into()));
-    }
     let res = sqlx::query(
-        "UPDATE matches SET opponent = ?, date = ?, time = ?, hall = ?, home = ?, first_serve = ?, status = ?, notes = ?,
+        "UPDATE matches SET opponent = ?, date = ?, time = ?, hall = ?, home = ?, first_serve = ?, notes = ?,
          version = version + 1, updated_at = datetime('now') WHERE id = ? AND version = ?",
     )
     .bind(opponent.trim())
@@ -251,7 +252,6 @@ pub async fn update(
     .bind(body.hall.clone().unwrap_or(cur.get("hall")).trim())
     .bind(body.home.map(|b| b as i64).unwrap_or(cur.get("home")))
     .bind(&first_serve)
-    .bind(&status)
     .bind(body.notes.clone().unwrap_or(cur.get("notes")).trim())
     .bind(id)
     .bind(body.version)
@@ -261,29 +261,37 @@ pub async fn update(
         let current = fetch_match_row_conn(&mut tx, user.team_id, id).await?;
         return Err(ApiError::Conflict(match_json(&current)));
     }
-    audit_conn(&mut tx, user.team_id, "match", id, "updated", &status, Some(user.id)).await?;
-    if protected {
-        scout::renew(&mut tx, id).await?;
-    }
+    audit_conn(&mut tx, user.team_id, "match", id, "updated", "", Some(user.id)).await?;
     tx.commit().await?;
     publish(&state, &user, "match", id, body.version + 1, "updated");
     get_one(State(state), user, Path(id)).await
 }
 
+/// A match with recordings is archived (hidden from the lists, still a
+/// target for late uploads); one without is deleted for good.
 pub async fn remove(State(state): State<AppState>, user: CurrentUser, Path(id): Path<i64>) -> ApiResult<Json<Value>> {
     user.require(Role::Coach)?;
-    fetch_match_row(&state, user.team_id, id).await?;
-    sqlx::query("DELETE FROM matches WHERE id = ?").bind(id).execute(&state.dbw).await?;
-    audit(&state, user.team_id, "match", id, "deleted", "", Some(user.id)).await?;
+    let mut tx = state.dbw.begin().await?;
+    fetch_match_row_conn(&mut tx, user.team_id, id).await?;
+    let has_rec = !recordings_of_conn(&mut tx, id).await?.is_empty();
+    if has_rec {
+        sqlx::query("UPDATE matches SET archived = 1, version = version + 1, updated_at = datetime('now') WHERE id = ?").bind(id).execute(&mut *tx).await?;
+        audit_conn(&mut tx, user.team_id, "match", id, "archived", "", Some(user.id)).await?;
+    } else {
+        sqlx::query("DELETE FROM matches WHERE id = ?").bind(id).execute(&mut *tx).await?;
+        audit_conn(&mut tx, user.team_id, "match", id, "deleted", "", Some(user.id)).await?;
+    }
+    tx.commit().await?;
     publish(&state, &user, "match", id, 0, "deleted");
-    Ok(Json(json!({ "ok": true })))
+    Ok(Json(json!({ "ok": true, "archived": has_rec })))
 }
 
+/// PUT /matches/{id}/lineups/{set} — the planning lineup. A recording that
+/// has started keeps its own lineups (they are edits of the recording).
 pub async fn put_lineup(
     State(state): State<AppState>,
     user: CurrentUser,
     Path((id, set)): Path<(i64, i64)>,
-    headers: HeaderMap,
     Json(body): Json<LineupBody>,
 ) -> ApiResult<Json<Value>> {
     user.require(Role::Assistant)?;
@@ -293,251 +301,23 @@ pub async fn put_lineup(
     validate_lineup(&state, user.team_id, &body).await?;
     let mut tx = state.dbw.begin().await?;
     let row = fetch_match_row_conn(&mut tx, user.team_id, id).await?;
-    require_lease(&mut tx, &row, &user, lease_of(&headers).as_deref()).await?;
     write_lineup_conn(&mut tx, id, set, &body).await?;
+    sqlx::query("UPDATE matches SET version = version + 1, updated_at = datetime('now') WHERE id = ?").bind(id).execute(&mut *tx).await?;
     audit_conn(&mut tx, user.team_id, "match", id, "lineup", &format!("Satz {set}"), Some(user.id)).await?;
-    scout::renew(&mut tx, id).await?;
     tx.commit().await?;
-    publish(&state, &user, "match", id, row.get("version"), "lineup");
+    publish(&state, &user, "match", id, row.get::<i64, _>("version") + 1, "lineup");
     get_one(State(state), user, Path(id)).await
 }
 
-#[derive(Deserialize)]
-pub struct NewAction {
-    pub seq: i64,
-    pub skill: String,
-    pub grade: Option<String>,
-    pub player_id: Option<i64>,
-    pub sub_out: Option<i64>,
-    pub sub_in: Option<i64>,
-    /// client id (uuid) of the op on the device; retries are answered from the stored row
-    pub cid: Option<String>,
-}
-
-/// Append one action. `seq` must be last_seq + 1; a retry with the same seq
-/// and payload is answered with the stored row (idempotent), a different
-/// payload on a taken seq is a 409 with the current state. The whole
-/// check-and-write runs in one write transaction after the lease check, so a
-/// takeover can only land before or after it, never in between.
-pub async fn add_action(
-    State(state): State<AppState>,
-    user: CurrentUser,
-    Path(id): Path<i64>,
-    headers: HeaderMap,
-    Json(body): Json<NewAction>,
-) -> ApiResult<Json<Value>> {
-    user.require(Role::Assistant)?;
-    match body.skill.as_str() {
-        "S" | "R" | "E" | "A" | "B" | "D" => {
-            let g = body.grade.as_deref().unwrap_or("");
-            if !engine::GRADES.contains(&g) {
-                return Err(ApiError::BadRequest("Bewertung fehlt".into()));
-            }
-            if body.player_id.is_none() {
-                return Err(ApiError::BadRequest("Spielerin fehlt".into()));
-            }
-        }
-        "opp" => {
-            if !matches!(body.grade.as_deref(), Some("#") | Some("=")) {
-                return Err(ApiError::BadRequest("Gegner-Aktion braucht # oder =".into()));
-            }
-        }
-        "sub" => {
-            if body.sub_out.is_none() || body.sub_in.is_none() {
-                return Err(ApiError::BadRequest("Wechsel braucht raus und rein".into()));
-            }
-        }
-        "lib" => {} // sub_in = libero (+ sub_out = whom she replaces), or nothing = libero out
-        "adj" | "srv" => {
-            if !matches!(body.grade.as_deref(), Some("#") | Some("=")) {
-                return Err(ApiError::BadRequest("Nachtrag braucht # (wir) oder = (Gegner)".into()));
-            }
-        }
-        "rot" => {}
-        _ => return Err(ApiError::BadRequest("Aktion unbekannt".into())),
-    }
-    let mut tx = state.dbw.begin().await?;
-    let row = fetch_match_row_conn(&mut tx, user.team_id, id).await?;
-    // ownership first: a displaced writer's retry is refused even when the
-    // action it retries was committed before the takeover (the client
-    // settles that by cid against the log it fetches next)
-    require_lease(&mut tx, &row, &user, lease_of(&headers).as_deref()).await?;
-    let cfg = load_config_conn(&mut tx, id, &row.get::<String, _>("first_serve")).await?;
-    if cfg.lineups.is_empty() {
-        return Err(ApiError::BadRequest("Erst die Aufstellung eintragen".into()));
-    }
-    let actions = load_actions_conn(&mut tx, id).await?;
-    let st = engine::replay(&cfg, &actions);
-
-    // idempotent retry by client id: a lost response leaves the op queued on the phone
-    if let Some(cid) = body.cid.as_deref() {
-        if let Some(r) = sqlx::query("SELECT * FROM actions WHERE match_id = ? AND cid = ?").bind(id).bind(cid).fetch_optional(&mut *tx).await? {
-            let sc = scout_json(&mut tx, id, &user).await?;
-            tx.commit().await?;
-            return Ok(Json(json!({ "action": action_json(&r), "state": serde_json::to_value(&st).unwrap_or(Value::Null), "duplicate": true, "scout": sc })));
-        }
-    }
-    // idempotent retry by seq: only for clients without a cid. With a cid that
-    // the log does not hold, an identical action at that seq is another
-    // device's and must not be merged into ours.
-    if let Some(existing) = actions.iter().find(|a| a.seq == body.seq) {
-        let same = body.cid.is_none()
-            && existing.skill == body.skill
-            && existing.grade == body.grade
-            && existing.player_id == body.player_id
-            && existing.sub_out == body.sub_out
-            && existing.sub_in == body.sub_in;
-        if same {
-            let r = sqlx::query("SELECT * FROM actions WHERE id = ?").bind(existing.id).fetch_one(&mut *tx).await?;
-            let sc = scout_json(&mut tx, id, &user).await?;
-            tx.commit().await?;
-            return Ok(Json(json!({ "action": action_json(&r), "state": serde_json::to_value(&st).unwrap_or(Value::Null), "duplicate": true, "scout": sc })));
-        }
-        return Err(ApiError::Conflict(json!({ "last_seq": st.last_seq, "state": serde_json::to_value(&st).unwrap_or(Value::Null) })));
-    }
-    if body.seq != st.last_seq + 1 {
-        return Err(ApiError::Conflict(json!({ "last_seq": st.last_seq, "state": serde_json::to_value(&st).unwrap_or(Value::Null) })));
-    }
-    if st.finished {
-        return Err(ApiError::BadRequest("Das Spiel ist beendet".into()));
-    }
-    // players must belong to this team, and a substitution must be possible on
-    // the court as replayed (foreign keys only prove an id exists somewhere)
-    let team_players = load_players_conn(&mut tx, user.team_id).await?;
-    let in_team = |pid: Option<i64>| pid.map_or(true, |p| team_players.iter().any(|x| x.id == p));
-    if !in_team(body.player_id) || !in_team(body.sub_out) || !in_team(body.sub_in) {
-        return Err(ApiError::BadRequest("Spielerin gehört nicht zum Team".into()));
-    }
-    if body.skill == "sub" {
-        let (out, inn) = (body.sub_out.unwrap_or(0), body.sub_in.unwrap_or(0));
-        if !st.lineup.contains(&out) {
-            return Err(ApiError::BadRequest("Die auszuwechselnde Spielerin steht nicht auf dem Feld".into()));
-        }
-        if st.lineup.contains(&inn) || Some(inn) == st.libero {
-            return Err(ApiError::BadRequest("Die einzuwechselnde Spielerin steht schon auf dem Feld".into()));
-        }
-    }
-    if body.skill == "lib" {
-        if let Some(inn) = body.sub_in {
-            if Some(inn) != st.libero {
-                return Err(ApiError::BadRequest("Nur die Libera der Aufstellung kann eingesetzt werden".into()));
-            }
-            if let Some(out) = body.sub_out {
-                if !st.lineup.contains(&out) {
-                    return Err(ApiError::BadRequest("Die Spielerin, für die die Libera steht, ist nicht auf dem Feld".into()));
-                }
-            }
-        }
-    }
-    let res = sqlx::query(
-        "INSERT INTO actions (match_id, seq, set_no, skill, grade, player_id, sub_out, sub_in, created_by, cid)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-    )
-    .bind(id).bind(body.seq).bind(st.set)
-    .bind(&body.skill)
-    .bind(if body.skill == "sub" || body.skill == "lib" || body.skill == "rot" { None } else { body.grade.clone() })
-    .bind(if matches!(body.skill.as_str(), "S" | "R" | "E" | "A" | "B" | "D") { body.player_id } else { None })
-    .bind(body.sub_out).bind(body.sub_in)
-    .bind(user.id)
-    .bind(&body.cid)
-    .execute(&mut *tx)
-    .await?;
-    let action_id = res.last_insert_rowid();
-    // first action flips a planned match to live; a finishing action to done
-    let mut actions2 = actions;
-    actions2.push(engine::Action {
-        id: action_id, seq: body.seq, skill: body.skill.clone(),
-        grade: if body.skill == "sub" || body.skill == "lib" || body.skill == "rot" { None } else { body.grade.clone() },
-        player_id: body.player_id, sub_out: body.sub_out, sub_in: body.sub_in,
-    });
-    let st2 = engine::replay(&cfg, &actions2);
-    let status: String = row.get("status");
-    let new_status = if st2.finished { "done" } else if status == "planned" { "live" } else { status.as_str() };
-    let status_changed = new_status != status;
-    if status_changed {
-        sqlx::query("UPDATE matches SET status = ?, version = version + 1, updated_at = datetime('now') WHERE id = ?")
-            .bind(new_status).bind(id).execute(&mut *tx).await?;
-    }
-    scout::renew(&mut tx, id).await?;
-    let r = sqlx::query("SELECT * FROM actions WHERE id = ?").bind(action_id).fetch_one(&mut *tx).await?;
-    let sc = scout_json(&mut tx, id, &user).await?;
-    tx.commit().await?;
-    if status_changed {
-        publish(&state, &user, "match", id, 0, "status");
-    }
-    publish(&state, &user, "action", id, body.seq, "added");
-    Ok(Json(json!({ "action": action_json(&r), "state": serde_json::to_value(&st2).unwrap_or(Value::Null), "scout": sc })))
-}
-
-#[derive(Deserialize)]
-pub struct UndoQuery {
-    /// client id of the action the device wants removed (preferred), or the
-    /// seq it expects on top. A retry whose target is already gone is
-    /// answered as done (idempotent); anything else on top is a 409, so a
-    /// lost response or a stale device never deletes a second action.
-    pub cid: Option<String>,
-    pub seq: Option<i64>,
-}
-
-pub async fn undo_action(State(state): State<AppState>, user: CurrentUser, Path(id): Path<i64>, headers: HeaderMap, Query(q): Query<UndoQuery>) -> ApiResult<Json<Value>> {
-    user.require(Role::Assistant)?;
-    let mut tx = state.dbw.begin().await?;
-    let row = fetch_match_row_conn(&mut tx, user.team_id, id).await?;
-    require_lease(&mut tx, &row, &user, lease_of(&headers).as_deref()).await?;
-    let last = sqlx::query("SELECT * FROM actions WHERE match_id = ? ORDER BY seq DESC LIMIT 1")
-        .bind(id)
-        .fetch_optional(&mut *tx)
-        .await?;
-    let last_seq_now = last.as_ref().map(|r| r.get::<i64, _>("seq")).unwrap_or(0);
-    let last_cid: Option<String> = last.as_ref().and_then(|r| r.get::<Option<String>, _>("cid"));
-    // is the target still on top? (None = untargeted legacy undo, always allowed)
-    let verdict: Option<bool> = if let Some(cid) = q.cid.as_deref() {
-        if last_cid.as_deref() == Some(cid) { None } else {
-            let exists = sqlx::query("SELECT 1 FROM actions WHERE match_id = ? AND cid = ?").bind(id).bind(cid).fetch_optional(&mut *tx).await?.is_some();
-            Some(!exists) // gone → done already; still there but not on top → conflict
-        }
-    } else if let Some(expected) = q.seq {
-        if expected == last_seq_now { None } else { Some(expected == last_seq_now + 1) }
-    } else { None };
-    if let Some(gone) = verdict {
-        let cfg = load_config_conn(&mut tx, id, &row.get::<String, _>("first_serve")).await?;
-        let actions = load_actions_conn(&mut tx, id).await?;
-        let st = engine::replay(&cfg, &actions);
-        if gone {
-            let sc = scout_json(&mut tx, id, &user).await?;
-            tx.commit().await?;
-            return Ok(Json(json!({ "removed": Value::Null, "duplicate": true, "state": serde_json::to_value(&st).unwrap_or(Value::Null), "scout": sc })));
-        }
-        return Err(ApiError::Conflict(json!({ "last_seq": st.last_seq, "state": serde_json::to_value(&st).unwrap_or(Value::Null) })));
-    }
-    let Some(last) = last else {
-        return Err(ApiError::BadRequest("Nichts zum Rückgängigmachen".into()));
-    };
-    let last_id: i64 = last.get("id");
-    let seq: i64 = last.get("seq");
-    sqlx::query("DELETE FROM actions WHERE id = ?").bind(last_id).execute(&mut *tx).await?;
-    audit_conn(&mut tx, user.team_id, "match", id, "undo", &format!("seq {seq}"), Some(user.id)).await?;
-    // a done match that is reopened by undo goes back to live
-    let reopened = row.get::<String, _>("status") == "done";
-    if reopened {
-        sqlx::query("UPDATE matches SET status = 'live', version = version + 1, updated_at = datetime('now') WHERE id = ?")
-            .bind(id).execute(&mut *tx).await?;
-    }
-    scout::renew(&mut tx, id).await?;
-    let cfg = load_config_conn(&mut tx, id, &row.get::<String, _>("first_serve")).await?;
-    let actions = load_actions_conn(&mut tx, id).await?;
-    let sc = scout_json(&mut tx, id, &user).await?;
-    tx.commit().await?;
-    if reopened {
-        publish(&state, &user, "match", id, 0, "status");
-    }
-    publish(&state, &user, "action", id, seq - 1, "undone");
-    Ok(Json(json!({ "removed": action_json(&last), "state": serde_json::to_value(engine::replay(&cfg, &actions)).unwrap_or(Value::Null), "scout": sc })))
+/// the old protocol's write routes: see `ApiError::Gone`
+pub async fn gone() -> ApiResult<Json<Value>> {
+    Err(ApiError::Gone)
 }
 
 pub async fn state(State(state): State<AppState>, user: CurrentUser, Path(id): Path<i64>) -> ApiResult<Json<Value>> {
     let row = fetch_match_row(&state, user.team_id, id).await?;
-    Ok(Json(state_json(&state, &row).await?))
+    let (_, snap) = selected_snapshot(&state, &row).await?;
+    Ok(Json(serde_json::to_value(engine::replay(&snap.cfg, &snap.actions)).unwrap_or(Value::Null)))
 }
 
 #[derive(Deserialize)]
@@ -552,18 +332,16 @@ pub async fn stats(
     Query(q): Query<StatsQuery>,
 ) -> ApiResult<Json<Value>> {
     let row = fetch_match_row(&state, user.team_id, id).await?;
-    let cfg = load_config(&state, id, &row.get::<String, _>("first_serve")).await?;
-    let actions = load_actions(&state, id).await?;
-    let players = load_players(&state, user.team_id).await?;
-    Ok(Json(engine::stats(&cfg, &players, &actions, q.set.filter(|s| *s > 0))))
+    let (_, snap) = selected_snapshot(&state, &row).await?;
+    let players = stat_players(&load_players(&state, user.team_id).await?, &snap);
+    Ok(Json(engine::stats(&snap.cfg, &players, &snap.actions, q.set.filter(|s| *s > 0))))
 }
 
 pub async fn export_csv(State(state): State<AppState>, user: CurrentUser, Path(id): Path<i64>) -> ApiResult<impl IntoResponse> {
     let row = fetch_match_row(&state, user.team_id, id).await?;
-    let cfg = load_config(&state, id, &row.get::<String, _>("first_serve")).await?;
-    let actions = load_actions(&state, id).await?;
-    let players = load_players(&state, user.team_id).await?;
-    let csv = engine::export_csv(&cfg, &players, &actions);
+    let (_, snap) = selected_snapshot(&state, &row).await?;
+    let players = stat_players(&load_players(&state, user.team_id).await?, &snap);
+    let csv = engine::export_csv(&snap.cfg, &players, &snap.actions);
     let name = format!("sideout-{}-{}.csv", row.get::<String, _>("date"), row.get::<String, _>("opponent").replace(' ', "_"));
     Ok((
         [
@@ -575,22 +353,22 @@ pub async fn export_csv(State(state): State<AppState>, user: CurrentUser, Path(i
 }
 
 /// Season view: one line per scouted match plus per-player totals across
-/// all of them. Everything derives from the logs, nothing is stored twice.
+/// all of them. Everything derives from the selected recordings.
 pub async fn season(State(state): State<AppState>, user: CurrentUser) -> ApiResult<Json<Value>> {
-    let rows = sqlx::query("SELECT * FROM matches WHERE team_id = ? AND status IN ('live','done') ORDER BY date, id")
+    let rows = sqlx::query("SELECT * FROM matches WHERE team_id = ? AND archived = 0 AND status IN ('live','done') ORDER BY date, id")
         .bind(user.team_id)
         .fetch_all(&state.db)
         .await?;
-    let players = load_players(&state, user.team_id).await?;
+    let team_players = load_players(&state, user.team_id).await?;
     let mut matches = vec![];
     let mut totals: std::collections::BTreeMap<i64, Value> = Default::default();
     let mut team = json!({"so_won": 0, "so_n": 0, "brk_won": 0, "brk_n": 0, "a_k": 0, "a_e": 0, "a_n": 0, "r_sum": 0, "r_n": 0, "won": 0, "lost": 0, "sets_won": 0, "sets_lost": 0});
     let add = |v: &mut Value, k: &str, d: i64| { v[k] = json!(v[k].as_i64().unwrap_or(0) + d); };
+    let mut conn = state.db.acquire().await?;
     for r in &rows {
-        let id: i64 = r.get("id");
-        let cfg = load_config(&state, id, &r.get::<String, _>("first_serve")).await?;
-        let actions = load_actions(&state, id).await?;
-        let s = engine::stats(&cfg, &players, &actions, None);
+        let (_, snap) = selected_snapshot_conn(&mut conn, r).await?;
+        let players = stat_players(&team_players, &snap);
+        let s = engine::stats(&snap.cfg, &players, &snap.actions, None);
         let st = &s["state"];
         let t = &s["team"];
         let mut a = (0i64, 0i64, 0i64);
@@ -639,4 +417,18 @@ pub async fn season(State(state): State<AppState>, user: CurrentUser) -> ApiResu
         "players": totals.values().cloned().collect::<Vec<_>>(),
         "team": team,
     })))
+}
+
+/// the roster a new recording of this match would start with (for tests and
+/// the planning view); kept here so the planning snapshot has one caller path
+#[allow(dead_code)]
+pub async fn planning_roster(state: &AppState, row: &sqlx::sqlite::SqliteRow) -> ApiResult<Value> {
+    let mut conn = state.db.acquire().await?;
+    let snap = planning_snapshot_conn(&mut conn, row).await?;
+    Ok(json!(snap.roster))
+}
+
+#[allow(dead_code)]
+pub async fn audit_note(state: &AppState, user: &CurrentUser, id: i64, note: &str) -> ApiResult<()> {
+    audit(state, user.team_id, "match", id, "note", note, Some(user.id)).await
 }

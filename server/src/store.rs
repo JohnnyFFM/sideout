@@ -1,12 +1,18 @@
-//! Shared persistence helpers: audit lines, row → JSON shapes, and the
-//! loaders that feed the engine.
+//! Shared persistence helpers: audit lines, row → JSON shapes, the
+//! recording loaders that feed the engine, and the one-time migration of
+//! the old shared action log into recordings.
 
 use serde_json::{json, Value};
-use sqlx::{Row, SqliteConnection};
+use sqlx::{Row, SqliteConnection, SqlitePool};
 
-use crate::engine::{Action, Lineup, MatchConfig, Player};
+use crate::auth::Role;
+use crate::engine::{self, Lineup, MatchConfig, Player};
 use crate::error::{ApiError, ApiResult};
+use crate::recording::{self, Base, Edit, Snapshot};
 use crate::state::AppState;
+
+/// minutes after the newest edit during which a recording counts as "being scouted right now"
+pub const ACTIVE_MINUTES: i64 = 10;
 
 pub async fn audit(
     state: &AppState,
@@ -59,6 +65,9 @@ pub fn match_json(r: &sqlx::sqlite::SqliteRow) -> Value {
         "status": r.get::<String, _>("status"),
         "notes": r.get::<String, _>("notes"),
         "version": r.get::<i64, _>("version"),
+        "archived": r.get::<i64, _>("archived") != 0,
+        "selected": r.get::<Option<String>, _>("selected_recording"),
+        "selection_rev": r.get::<i64, _>("selection_rev"),
         "created_at": r.get::<String, _>("created_at"),
         "updated_at": r.get::<String, _>("updated_at"),
     })
@@ -74,21 +83,46 @@ pub fn player_json(r: &sqlx::sqlite::SqliteRow) -> Value {
     })
 }
 
-pub fn action_json(r: &sqlx::sqlite::SqliteRow) -> Value {
+pub fn action_json(a: &engine::Action) -> Value {
     json!({
-        "id": r.get::<i64, _>("id"),
-        "seq": r.get::<i64, _>("seq"),
-        "set_no": r.get::<i64, _>("set_no"),
-        "skill": r.get::<String, _>("skill"),
-        "grade": r.get::<Option<String>, _>("grade"),
-        "player_id": r.get::<Option<i64>, _>("player_id"),
-        "sub_out": r.get::<Option<i64>, _>("sub_out"),
-        "sub_in": r.get::<Option<i64>, _>("sub_in"),
-        "cid": r.get::<Option<String>, _>("cid"),
-        "created_at": r.get::<String, _>("created_at"),
+        "id": a.id,
+        "seq": a.seq,
+        "skill": a.skill,
+        "grade": a.grade,
+        "player_id": a.player_id,
+        "sub_out": a.sub_out,
+        "sub_in": a.sub_in,
     })
 }
 
+pub fn lineups_json(cfg: &MatchConfig) -> Value {
+    let mut m = serde_json::Map::new();
+    for (set, l) in &cfg.lineups {
+        m.insert(set.to_string(), json!({ "pos": l.pos, "libero": l.libero }));
+    }
+    Value::Object(m)
+}
+
+pub fn snapshot_json(s: &Snapshot) -> Value {
+    json!({
+        "first_serve_us": s.cfg.first_serve_us,
+        "lineups": lineups_json(&s.cfg),
+        "roster": s.roster,
+        "actions": s.actions.iter().map(action_json).collect::<Vec<_>>(),
+    })
+}
+
+/// the compact state a list or a recording summary shows
+pub fn state_summary(st: &engine::State) -> Value {
+    json!({
+        "set": st.set, "us": st.us, "them": st.them, "sets": st.sets,
+        "sets_won": st.sets_won, "sets_lost": st.sets_lost, "finished": st.finished, "last_seq": st.last_seq,
+    })
+}
+
+// ---------------------------------------------------------------- matches
+
+/// a match of the caller's active team
 pub async fn fetch_match_row(state: &AppState, team_id: i64, id: i64) -> ApiResult<sqlx::sqlite::SqliteRow> {
     let mut conn = state.db.acquire().await?;
     fetch_match_row_conn(&mut conn, team_id, id).await
@@ -101,6 +135,22 @@ pub async fn fetch_match_row_conn(conn: &mut SqliteConnection, team_id: i64, id:
         .fetch_optional(conn)
         .await?
         .ok_or(ApiError::NotFound)
+}
+
+/// a match by id alone, whatever team the session has selected: uploads
+/// resolve the team from the match and check membership there
+pub async fn fetch_match_any_conn(conn: &mut SqliteConnection, id: i64) -> ApiResult<sqlx::sqlite::SqliteRow> {
+    sqlx::query("SELECT * FROM matches WHERE id = ?").bind(id).fetch_optional(conn).await?.ok_or(ApiError::NotFound)
+}
+
+/// the caller's role in a given team (None = not a member)
+pub async fn team_role_conn(conn: &mut SqliteConnection, user_id: i64, team_id: i64) -> ApiResult<Option<Role>> {
+    let r = sqlx::query("SELECT role FROM memberships WHERE user_id = ? AND team_id = ?")
+        .bind(user_id)
+        .bind(team_id)
+        .fetch_optional(conn)
+        .await?;
+    Ok(r.map(|r| Role::parse(&r.get::<String, _>("role"))))
 }
 
 pub async fn load_players(state: &AppState, team_id: i64) -> ApiResult<Vec<Player>> {
@@ -124,34 +174,21 @@ pub async fn load_players_conn(conn: &mut SqliteConnection, team_id: i64) -> Api
         .collect())
 }
 
-pub async fn load_config(state: &AppState, match_id: i64, first_serve: &str) -> ApiResult<MatchConfig> {
-    let mut conn = state.db.acquire().await?;
-    load_config_conn(&mut conn, match_id, first_serve).await
-}
-
-pub async fn load_config_conn(conn: &mut SqliteConnection, match_id: i64, first_serve: &str) -> ApiResult<MatchConfig> {
+/// the planning of a match: first serve and the lineups entered before
+/// scouting started (a new recording takes them as its initial state)
+pub async fn load_planning_conn(conn: &mut SqliteConnection, match_id: i64, first_serve: &str) -> ApiResult<MatchConfig> {
     let rows = sqlx::query(
         "SELECT set_no, pos1, pos2, pos3, pos4, pos5, pos6, libero_id FROM lineups WHERE match_id = ? ORDER BY set_no",
     )
     .bind(match_id)
     .fetch_all(conn)
     .await?;
-    let mut cfg = MatchConfig {
-        first_serve_us: first_serve == "us",
-        lineups: Default::default(),
-    };
+    let mut cfg = MatchConfig { first_serve_us: first_serve == "us", lineups: Default::default() };
     for r in rows {
         cfg.lineups.insert(
             r.get::<i64, _>("set_no"),
             Lineup {
-                pos: [
-                    r.get("pos1"),
-                    r.get("pos2"),
-                    r.get("pos3"),
-                    r.get("pos4"),
-                    r.get("pos5"),
-                    r.get("pos6"),
-                ],
+                pos: [r.get("pos1"), r.get("pos2"), r.get("pos3"), r.get("pos4"), r.get("pos5"), r.get("pos6")],
                 libero: r.get("libero_id"),
             },
         );
@@ -159,36 +196,217 @@ pub async fn load_config_conn(conn: &mut SqliteConnection, match_id: i64, first_
     Ok(cfg)
 }
 
-pub async fn load_actions(state: &AppState, match_id: i64) -> ApiResult<Vec<Action>> {
-    let mut conn = state.db.acquire().await?;
-    load_actions_conn(&mut conn, match_id).await
+// ------------------------------------------------------------- recordings
+
+#[derive(Debug, Clone)]
+pub struct RecMeta {
+    pub id: String,
+    pub match_id: i64,
+    pub team_id: i64,
+    pub user_id: Option<i64>,
+    pub user_name: Option<String>,
+    pub device_id: String,
+    pub device_label: String,
+    pub origin_id: Option<String>,
+    pub origin_n: Option<i64>,
+    pub created_at: String,
+    pub last_write: String,
+    /// number of edits stored (dense, so also the highest edit number)
+    pub n: i64,
+    /// newest edit younger than ACTIVE_MINUTES
+    pub active: bool,
 }
 
-pub async fn load_actions_conn(conn: &mut SqliteConnection, match_id: i64) -> ApiResult<Vec<Action>> {
-    let rows = sqlx::query(
-        "SELECT id, seq, set_no, skill, grade, player_id, sub_out, sub_in FROM actions WHERE match_id = ? ORDER BY seq",
-    )
-    .bind(match_id)
-    .fetch_all(conn)
-    .await?;
-    Ok(rows
-        .iter()
-        .map(|r| Action {
-            id: r.get("id"),
-            seq: r.get("seq"),
-            skill: r.get("skill"),
-            grade: r.get("grade"),
-            player_id: r.get("player_id"),
-            sub_out: r.get("sub_out"),
-            sub_in: r.get("sub_in"),
-        })
-        .collect())
-}
-
-pub fn lineups_json(cfg: &MatchConfig) -> Value {
-    let mut m = serde_json::Map::new();
-    for (set, l) in &cfg.lineups {
-        m.insert(set.to_string(), json!({ "pos": l.pos, "libero": l.libero }));
+fn rec_meta(r: &sqlx::sqlite::SqliteRow) -> RecMeta {
+    RecMeta {
+        id: r.get("id"),
+        match_id: r.get("match_id"),
+        team_id: r.get("team_id"),
+        user_id: r.get("user_id"),
+        user_name: r.get("user_name"),
+        device_id: r.get("device_id"),
+        device_label: r.get("device_label"),
+        origin_id: r.get("origin_id"),
+        origin_n: r.get("origin_n"),
+        created_at: r.get("created_at"),
+        last_write: r.get("last_write"),
+        n: r.get("n"),
+        active: r.get::<i64, _>("active") != 0,
     }
-    Value::Object(m)
+}
+
+const REC_SELECT: &str = "SELECT r.*, u.display_name AS user_name,
+        (SELECT count(*) FROM edits e WHERE e.recording_id = r.id) AS n,
+        (r.last_write > datetime('now', '-10 minutes')) AS active
+     FROM recordings r LEFT JOIN users u ON u.id = r.user_id";
+const _: () = assert!(ACTIVE_MINUTES == 10);
+
+pub fn rec_meta_json(m: &RecMeta) -> Value {
+    json!({
+        "id": m.id, "match_id": m.match_id, "team_id": m.team_id, "user_id": m.user_id, "user": m.user_name,
+        "device_id": m.device_id, "device": m.device_label,
+        "origin_id": m.origin_id, "origin_n": m.origin_n,
+        "created_at": m.created_at, "last_write": m.last_write, "n": m.n, "active": m.active,
+    })
+}
+
+pub async fn recording_meta_conn(conn: &mut SqliteConnection, rid: &str) -> ApiResult<Option<RecMeta>> {
+    let r = sqlx::query(&format!("{REC_SELECT} WHERE r.id = ?")).bind(rid).fetch_optional(conn).await?;
+    Ok(r.as_ref().map(rec_meta))
+}
+
+pub async fn recordings_of_conn(conn: &mut SqliteConnection, match_id: i64) -> ApiResult<Vec<RecMeta>> {
+    let rows = sqlx::query(&format!("{REC_SELECT} WHERE r.match_id = ? ORDER BY r.created_at, r.id")).bind(match_id).fetch_all(conn).await?;
+    Ok(rows.iter().map(rec_meta).collect())
+}
+
+/// base + edits of a recording, parsed from their canonical strings
+pub async fn load_recording_conn(conn: &mut SqliteConnection, rid: &str) -> ApiResult<Option<(Base, Vec<Edit>)>> {
+    let Some(r) = sqlx::query("SELECT base FROM recordings WHERE id = ?").bind(rid).fetch_optional(&mut *conn).await? else {
+        return Ok(None);
+    };
+    let base: Base = serde_json::from_str(&r.get::<String, _>("base")).map_err(|e| ApiError::Internal(format!("base {rid}: {e}")))?;
+    let rows = sqlx::query("SELECT body FROM edits WHERE recording_id = ? ORDER BY n").bind(rid).fetch_all(&mut *conn).await?;
+    let mut edits = Vec::with_capacity(rows.len());
+    for e in rows {
+        edits.push(serde_json::from_str::<Edit>(&e.get::<String, _>("body")).map_err(|e| ApiError::Internal(format!("edit {rid}: {e}")))?);
+    }
+    Ok(Some((base, edits)))
+}
+
+pub async fn snapshot_of_conn(conn: &mut SqliteConnection, rid: &str) -> ApiResult<Option<Snapshot>> {
+    Ok(load_recording_conn(conn, rid).await?.map(|(b, e)| recording::fold(&b, &e)))
+}
+
+/// what a fresh recording of this match starts from: the planning and the
+/// active roster (plus inactive players the planning references)
+pub async fn planning_snapshot_conn(conn: &mut SqliteConnection, row: &sqlx::sqlite::SqliteRow) -> ApiResult<Snapshot> {
+    let id: i64 = row.get("id");
+    let team_id: i64 = row.get("team_id");
+    let cfg = load_planning_conn(conn, id, &row.get::<String, _>("first_serve")).await?;
+    let rows = sqlx::query("SELECT id, number, name, position, active FROM players WHERE team_id = ? ORDER BY number")
+        .bind(team_id)
+        .fetch_all(conn)
+        .await?;
+    let referenced: Vec<i64> = cfg.lineups.values().flat_map(|l| l.pos.iter().copied().chain(l.libero)).collect();
+    let roster = rows
+        .iter()
+        .filter(|r| r.get::<i64, _>("active") != 0 || referenced.contains(&r.get::<i64, _>("id")))
+        .map(|r| Player { id: r.get("id"), number: r.get("number"), name: r.get("name"), position: r.get("position") })
+        .collect();
+    Ok(Snapshot { cfg, roster, actions: vec![] })
+}
+
+/// the match result: the selected recording's state, or the planning when
+/// nothing has been recorded yet
+pub async fn selected_snapshot_conn(conn: &mut SqliteConnection, row: &sqlx::sqlite::SqliteRow) -> ApiResult<(Option<String>, Snapshot)> {
+    if let Some(sel) = row.get::<Option<String>, _>("selected_recording") {
+        if let Some(s) = snapshot_of_conn(conn, &sel).await? {
+            return Ok((Some(sel), s));
+        }
+    }
+    Ok((None, planning_snapshot_conn(conn, row).await?))
+}
+
+pub async fn selected_snapshot(state: &AppState, row: &sqlx::sqlite::SqliteRow) -> ApiResult<(Option<String>, Snapshot)> {
+    let mut conn = state.db.acquire().await?;
+    selected_snapshot_conn(&mut conn, row).await
+}
+
+/// `matches.status` follows the selected recording: done when its replay is
+/// finished, live while it exists, planned without one. Returns whether the
+/// row changed (the caller publishes).
+pub async fn refresh_status_conn(conn: &mut SqliteConnection, match_id: i64) -> ApiResult<bool> {
+    let row = fetch_match_any_conn(conn, match_id).await?;
+    let (sel, snap) = selected_snapshot_conn(conn, &row).await?;
+    let new_status = match sel {
+        None => "planned",
+        Some(_) => {
+            if engine::replay(&snap.cfg, &snap.actions).finished { "done" } else { "live" }
+        }
+    };
+    if new_status == row.get::<String, _>("status") {
+        return Ok(false);
+    }
+    sqlx::query("UPDATE matches SET status = ?, version = version + 1, updated_at = datetime('now') WHERE id = ?")
+        .bind(new_status)
+        .bind(match_id)
+        .execute(conn)
+        .await?;
+    Ok(true)
+}
+
+// --------------------------------------------------------- legacy import
+
+/// One-time move of the old shared action log (`legacy_actions`, the table
+/// before migration 0008) into one recording per match, selected as the
+/// match result. Idempotent: every migrated match's rows are deleted, so a
+/// restart finds nothing left to do.
+pub async fn migrate_legacy(dbw: &SqlitePool) -> ApiResult<usize> {
+    let mids: Vec<i64> = sqlx::query("SELECT DISTINCT match_id FROM legacy_actions ORDER BY match_id")
+        .fetch_all(dbw)
+        .await?
+        .iter()
+        .map(|r| r.get("match_id"))
+        .collect();
+    let mut done = 0;
+    for mid in mids {
+        let mut tx = dbw.begin().await?;
+        let rid = format!("legacy-{mid}");
+        let row = sqlx::query("SELECT * FROM matches WHERE id = ?").bind(mid).fetch_optional(&mut *tx).await?;
+        let Some(row) = row else {
+            sqlx::query("DELETE FROM legacy_actions WHERE match_id = ?").bind(mid).execute(&mut *tx).await?;
+            tx.commit().await?;
+            continue;
+        };
+        let exists = sqlx::query("SELECT 1 FROM recordings WHERE id = ?").bind(&rid).fetch_optional(&mut *tx).await?.is_some();
+        if !exists {
+            let team_id: i64 = row.get("team_id");
+            let mut snap = planning_snapshot_conn(&mut tx, &row).await?;
+            // the recording's roster: everyone the log or the lineups mention, as the team knows them today
+            let team = load_players_conn(&mut tx, team_id).await?;
+            let rows = sqlx::query("SELECT id, seq, skill, grade, player_id, sub_out, sub_in FROM legacy_actions WHERE match_id = ? ORDER BY seq")
+                .bind(mid)
+                .fetch_all(&mut *tx)
+                .await?;
+            snap.actions = rows
+                .iter()
+                .map(|r| engine::Action {
+                    id: r.get("id"),
+                    seq: r.get("seq"),
+                    skill: r.get("skill"),
+                    grade: r.get("grade"),
+                    player_id: r.get("player_id"),
+                    sub_out: r.get("sub_out"),
+                    sub_in: r.get("sub_in"),
+                })
+                .collect();
+            snap.roster = recording::stat_players(&team, &snap);
+            let base = recording::base_from_snapshot(&snap);
+            let canon = serde_json::to_string(&base).map_err(|e| ApiError::Internal(e.to_string()))?;
+            sqlx::query(
+                "INSERT INTO recordings (id, match_id, team_id, user_id, device_id, device_label, base, created_at, last_write)
+                 VALUES (?, ?, ?, ?, 'legacy', 'Import', ?, ?, ?)",
+            )
+            .bind(&rid)
+            .bind(mid)
+            .bind(team_id)
+            .bind(row.get::<Option<i64>, _>("created_by"))
+            .bind(&canon)
+            .bind(row.get::<String, _>("created_at"))
+            .bind(row.get::<String, _>("updated_at"))
+            .execute(&mut *tx)
+            .await?;
+            sqlx::query("UPDATE matches SET selected_recording = ?, selection_rev = selection_rev + 1 WHERE id = ? AND selected_recording IS NULL")
+                .bind(&rid)
+                .bind(mid)
+                .execute(&mut *tx)
+                .await?;
+            audit_conn(&mut tx, team_id, "match", mid, "recording_import", &rid, None).await?;
+        }
+        sqlx::query("DELETE FROM legacy_actions WHERE match_id = ?").bind(mid).execute(&mut *tx).await?;
+        tx.commit().await?;
+        done += 1;
+    }
+    Ok(done)
 }

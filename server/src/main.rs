@@ -3,6 +3,7 @@ mod auth;
 mod engine;
 mod error;
 mod events;
+mod recording;
 mod state;
 mod store;
 
@@ -97,6 +98,12 @@ async fn main() {
     let db = SqlitePoolOptions::new().max_connections(4).connect_with(opts).await.expect("open db (read)");
 
     sqlx::migrate!("./migrations").run(&dbw).await.expect("run migrations");
+    // the old shared action log becomes one recording per match (idempotent, see store.rs)
+    match store::migrate_legacy(&dbw).await {
+        Ok(0) => {}
+        Ok(n) => tracing::info!("legacy action logs migrated into recordings: {n} matches"),
+        Err(e) => panic!("legacy migration failed: {e}"),
+    }
 
     let args: Vec<String> = std::env::args().collect();
     if args.len() > 1 {

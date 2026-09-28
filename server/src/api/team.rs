@@ -340,8 +340,9 @@ pub async fn patch_player(
     Ok(Json(player_json(&row)))
 }
 
-/// A player with scouted actions is never deleted (the log references her);
-/// she is deactivated instead and keeps her history.
+/// A player is never hard-deleted: recordings on the server and on phones
+/// reference her by id (a scan for references could not see the phones).
+/// Removing her from the roster deactivates her; her history stays.
 pub async fn delete_player(State(state): State<AppState>, user: CurrentUser, Path(id): Path<i64>) -> ApiResult<Json<Value>> {
     user.require(Role::Assistant)?;
     let owned = sqlx::query("SELECT id FROM players WHERE id = ? AND team_id = ?")
@@ -352,21 +353,8 @@ pub async fn delete_player(State(state): State<AppState>, user: CurrentUser, Pat
     if owned.is_none() {
         return Err(ApiError::NotFound);
     }
-    let used: i64 = sqlx::query(
-        "SELECT (SELECT count(*) FROM actions WHERE player_id = ? OR sub_in = ? OR sub_out = ?)
-              + (SELECT count(*) FROM lineups WHERE ? IN (pos1,pos2,pos3,pos4,pos5,pos6,libero_id)) AS n",
-    )
-    .bind(id).bind(id).bind(id).bind(id)
-    .fetch_one(&state.db)
-    .await?
-    .get("n");
-    if used > 0 {
-        sqlx::query("UPDATE players SET active = 0 WHERE id = ?").bind(id).execute(&state.dbw).await?;
-        audit(&state, user.team_id, "player", id, "deactivated", "", Some(user.id)).await?;
-    } else {
-        sqlx::query("DELETE FROM players WHERE id = ?").bind(id).execute(&state.dbw).await?;
-        audit(&state, user.team_id, "player", id, "deleted", "", Some(user.id)).await?;
-    }
+    sqlx::query("UPDATE players SET active = 0 WHERE id = ?").bind(id).execute(&state.dbw).await?;
+    audit(&state, user.team_id, "player", id, "deactivated", "", Some(user.id)).await?;
     state.events.publish(EventMsg { team_id: user.team_id, entity: "player".into(), id, version: 0, action: "deleted".into(), actor: user.display_name.clone() });
-    Ok(Json(json!({ "ok": true, "deactivated": used > 0 })))
+    Ok(Json(json!({ "ok": true, "deactivated": true })))
 }

@@ -137,7 +137,7 @@
         <tr><td><b>L</b> Libero</td><td>Libera. Kann nicht in der Startsechs stehen, wird separat gewählt.</td></tr>
       </table></div>
       <p>Die Position steuert zwei Dinge: die automatische Libera-Anzeige im Live-Feld und die Plausibilitätsprüfung der Aufstellung. Auf die Statistik hat sie keinen Einfluss. Eine Zuspielerin, die angreift, bekommt ganz normal Angriffspunkte.</p>
-      <p>Neben jeder Spielerin gibt es drei Knöpfe: bearbeiten, deaktivieren (Pause-Symbol) und entfernen. Eine Spielerin, die schon in gescouteten Spielen vorkommt, wird beim Entfernen nur deaktiviert. Sie behält ihre Statistik und taucht mit <span class="ui">Ehemalige zeigen</span> wieder auf. Ihre Nummer ist danach wieder frei.</p>
+      <p>Neben jeder Spielerin gibt es drei Knöpfe: bearbeiten, deaktivieren (Pause-Symbol) und entfernen. Entfernen deaktiviert eine Spielerin nur; gelöscht wird niemand, denn Aufzeichnungen auf dem Server und auf den Handys verweisen auf sie. Sie behält ihre Statistik und taucht mit <span class="ui">Ehemalige zeigen</span> wieder auf. Ihre Nummer ist danach wieder frei.</p>
 
       <h2 id="spiel">Spiel anlegen</h2>
       <p>Unter <span class="ui">Spiele</span> tippst du <span class="ui">+ Spiel anlegen</span>. Links stehen die Rahmendaten, rechts die Startaufstellung.</p>
@@ -236,13 +236,13 @@
       <p>Jeder Nachtrag steht als eigener Eintrag im Verlauf und lässt sich wie alles andere mit <span class="ui">↶ Rückgängig</span> zurücknehmen.</p>
 
       <h3 id="offline">Ohne Empfang</h3>
-      <p>Hallen haben schlechten Empfang. Sideout speichert jede Aktion sofort auf dem Gerät und rechnet den Spielstand lokal. Ist keine Verbindung da, erscheint oben ein gelber Balken, und neben der letzten Aktion steht <span class="ui">n ausstehend</span>. Sobald die Verbindung zurück ist, werden die Aktionen in der richtigen Reihenfolge gesendet, auch nach dem Schließen der App. Rückgängig geht auch ohne Verbindung, für die eigenen ausstehenden Aktionen genauso wie für schon gesendete.</p>
+      <p>Hallen haben schlechten Empfang. Sideout speichert jede Aktion sofort auf dem Gerät, in der eigenen <b>Aufzeichnung</b> dieses Geräts, und rechnet den Spielstand lokal. Ist keine Verbindung da, erscheint oben ein gelber Balken, und neben der letzten Aktion steht <span class="ui">n nicht hochgeladen</span>. Sobald der Server erreichbar ist, lädt Sideout alles Ausstehende hoch, von jeder Seite der App aus, nicht nur vom Live-Bildschirm; auch nach dem Schließen und erneuten Öffnen der App wird weiter hochgeladen. Rückgängig geht auch ohne Verbindung, für alles, was du selbst getippt hast.</p>
       <p><b>Vorbereitung:</b> Öffne <span class="ui">Spiele</span> einmal mit Verbindung, am besten zu Hause. Sideout legt dabei jedes laufende und geplante Spiel samt Kader auf dem Gerät ab und zeigt daneben <span class="ui">offline bereit</span>. Ein so markiertes Spiel lässt sich in der Halle ohne Empfang öffnen und scouten, auch nach einem Neustart der App; die Anmeldung bleibt dabei erhalten. Die Auswertung rechnet ebenfalls aus dem lokalen Stand, die Liste der Spiele zeigt dann <span class="ui">Offline: Liste vom letzten Laden</span>. Nur ein neues Spiel anlegen braucht Verbindung.</p>
-      <p>Jede Aktion trägt eine eigene Kennung. Geht eine Antwort des Servers verloren, erkennt Sideout beim nächsten Kontakt, was schon angekommen ist, und schickt nichts doppelt; ein Rückgängig wird nie zweimal ausgeführt. Scoutet ein zweites Gerät dasselbe Spiel, gewinnt die Aktion, die zuerst beim Server ankommt. Das andere Gerät meldet <span class="ui">Ein anderes Gerät hat gescoutet</span> und verwirft seine ausstehenden Aktionen. Für ein Spiel also ein Gerät zum Scouten; mitlesen dürfen beliebig viele.</p>
+      <p><b>Was der Server bekommt, geht nicht mehr verloren.</b> Jede Änderung trägt eine laufende Nummer; nach einer verlorenen Antwort schickt Sideout dieselben Änderungen noch einmal, der Server erkennt sie und speichert nichts doppelt. Was noch auf dem Gerät liegt, siehst du in der Spieleliste, im Live-Bildschirm und unter <span class="ui">Einstellungen · Aufzeichnungen auf diesem Gerät</span>. Dort kannst du eine Aufzeichnung auch als Datei exportieren und auf einem anderen Gerät importieren, falls das Handy den Server gar nicht erreicht. Wichtig auf dem iPhone: Sideout als App auf dem Home-Bildschirm installieren. Safari löscht den Speicher einer Website nach sieben Tagen Safari-Nutzung ohne Besuch, die installierte App ist davon ausgenommen.</p>
 
       <h3 id="zwei">Zwei Geräte</h3>
-      <p>Ein Spiel wird von einem Gerät gescoutet. Öffnen andere Teammitglieder dasselbe Spiel, sehen sie den Stand live und oben den Hinweis <span class="ui">… scoutet auf einem anderen Gerät · seit HH:MM</span>. Trainer:innen und Co-Trainer:innen übernehmen mit <span class="ui">Scouting übernehmen</span>; das bisherige Gerät wird dann sofort zum Zuschauer. Nichts passiert von allein: Ein Gerät nimmt dem anderen das Scouting nie ohne diesen Knopf ab. Auch die Aufstellung und der erste Aufschlag gehören zum Scouting, sie lassen sich nur vom scoutenden Gerät ändern.</p>
-      <p>Tippt ein Gerät ohne Empfang weiter und wird das Scouting in der Zwischenzeit übernommen, werden seine noch nicht gesendeten Aktionen beim nächsten Kontakt nicht mehr eingemischt: Sideout legt sie beiseite und meldet, wie viele es waren. Was der Server vorher schon bekommen hatte, zählt natürlich. Meldet sich das scoutende Gerät zehn Minuten lang gar nicht (kein Tipp, kein Empfang), gilt das Scouting als verwaist und ein anderes Gerät kann es ohne Übernahme-Knopf aufnehmen. Beim Verlassen der Live-Seite gibt ein Gerät das Scouting frei; ob diese Meldung ankommt, hängt vom Empfang ab, spätestens nach den zehn Minuten ist das Spiel wieder frei. Im selben Browser scoutet nur ein Tab, die anderen sehen zu.</p>
+      <p>Jedes Gerät führt seine eigene Aufzeichnung eines Spiels; Ansehen allein legt keine an. Öffnen andere Teammitglieder ein Spiel, sehen sie das Ergebnis live und oben den Hinweis <span class="ui">… scoutet gerade auf einem anderen Gerät</span>. Tippt ein zweites Gerät trotzdem, fragt Sideout beim ersten Tipp: <span class="ui">Diesen Stand fortsetzen (Kopie)</span> übernimmt den angezeigten Stand und tippt weiter, <span class="ui">Neu beginnen</span> startet bei null mit der geplanten Aufstellung. Beide Aufzeichnungen bleiben erhalten, keine mischt sich in die andere. Auch die Aufstellung und der erste Aufschlag gehören zur Aufzeichnung; wer sie auf einem anderen Gerät ändern will, setzt den Stand als Kopie fort.</p>
+      <p>Welche Aufzeichnung als <b>Ergebnis</b> zählt (Spielstand in der Liste, Auswertung, CSV, Saison), entscheidet die Trainerin oder der Trainer: Bei einer einzigen Aufzeichnung ist es diese; gibt es mehrere, bleibt die bisherige Auswahl, bis unter <span class="ui">Aufzeichnungen</span> im Live-Bildschirm oder in der Auswertung <span class="ui">Als Ergebnis verwenden</span> getippt wird. Das eigene Gerät zeigt beim Scouten immer die eigene Aufzeichnung und sagt, wenn eine andere als Ergebnis zählt. Im selben Browser scoutet nur ein Tab, die anderen sehen zu.</p>
 
       <h2 id="skala">Bewertungsskala</h2>
       <p>Sideout benutzt die Skala von Data Volley, dem Standard im Profi- und Verbandsvolleyball. Sechs Codes, für jede Aktion mit einem eigenen Wort:</p>
@@ -307,6 +307,8 @@
         <li><b>Darstellung:</b> Dunkel für die Halle, Hell fürs Büro; dasselbe wie der Sonne-/Mond-Knopf in der Leiste, pro Gerät gespeichert.</li>
         <li><b>Als App installieren:</b> der Hinweis für dein Gerät und ob Sideout schon installiert ist.</li>
         <li><b>Verbindung:</b> online oder offline und ob die Live-Verbindung steht.</li>
+        <li><b>Upload:</b> wie viele Änderungen dieses Geräts noch nicht auf dem Server sind, mit <span class="ui">Jetzt hochladen</span>.</li>
+        <li><b>Aufzeichnungen auf diesem Gerät:</b> jede Aufzeichnung mit ihrem Stand (auf Server gespeichert, n nicht hochgeladen, Fehler). <span class="ui">Exportieren</span> speichert sie als Datei, <span class="ui">Aufzeichnung importieren</span> nimmt so eine Datei auf einem anderen Gerät auf und lädt sie hoch.</li>
         <li><b>Anleitung:</b> der Link zu dieser Seite.</li>
         <li><b>Diagnose:</b> zum Aufklappen; sammelt Fehler der App auf diesem Gerät. Bei Problemen <span class="ui">Diagnose kopieren</span> und schicken.</li>
       </ul>
@@ -328,7 +330,11 @@
         <dt>Die falsche Spielerin steht auf dem Feld.</dt>
         <dd>Während des Satzes: den Chip aus der Bank auf die Karte ziehen. Für den nächsten Satz: Aufstellung unter Spiele bearbeiten. Ist der Satz noch nicht gescoutet, kannst du seine Aufstellung frei ändern.</dd>
         <dt>Kein Empfang in der Halle.</dt>
-        <dd>Weiter tippen. Alles wird lokal gespeichert und später gesendet. Vorher einmal <span class="ui">Spiele</span> mit Verbindung öffnen, bis am Spiel <span class="ui">offline bereit</span> steht (siehe <a href="#offline">Ohne Empfang</a>).</dd>
+        <dd>Weiter tippen. Alles wird auf dem Gerät gespeichert und hochgeladen, sobald der Server erreichbar ist, egal auf welcher Seite du dann bist. Vorher einmal <span class="ui">Spiele</span> mit Verbindung öffnen, bis am Spiel <span class="ui">offline bereit</span> steht (siehe <a href="#offline">Ohne Empfang</a>).</dd>
+        <dt>Zwei Handys haben dasselbe Spiel gescoutet.</dt>
+        <dd>Beide Aufzeichnungen sind da. Unter <span class="ui">Aufzeichnungen</span> im Live-Bildschirm oder in der Auswertung wählt die Trainerin oder der Trainer mit <span class="ui">Als Ergebnis verwenden</span>, welche zählt (siehe <a href="#zwei">Zwei Geräte</a>).</dd>
+        <dt>Ein Spiel löschen?</dt>
+        <dd>Ein Spiel mit Aufzeichnungen wird archiviert statt gelöscht: Es verschwindet aus den Listen, die Aufzeichnungen bleiben, und ein Handy, das noch etwas hochzuladen hat, findet sein Spiel weiterhin.</dd>
         <dt>Wer schlägt im fünften Satz auf?</dt>
         <dd>Im Tiebreak wird neu gelost. Zu Beginn von Satz 5 fragt Sideout <span class="ui">Wer schlägt auf?</span>; tippe <span class="ui">Wir</span> oder <span class="ui">Gegner</span>. Bis dahin sind Punkte gesperrt, Wechsel gehen. Die Antwort steht als Nachtrag im Verlauf und lässt sich zurücknehmen.</dd>
         <dt>Wem gehören die Daten?</dt>
@@ -336,7 +342,7 @@
         <dt>Wo liegen die Daten?</dt>
         <dd>In einer SQLite-Datei auf dem Server, auf dem Sideout läuft. Ein Backup ist eine Kopie dieser Datei.</dd>
         <dt>Unten erscheint „Neue Version verfügbar“.</dt>
-        <dd>Sideout wurde aktualisiert. Tippen lädt die App neu, ausstehende Aktionen bleiben erhalten. Ohne Tippen passiert es beim nächsten Seitenwechsel von selbst.</dd>
+        <dd>Sideout wurde aktualisiert. Tippen lädt die App neu, nicht hochgeladene Änderungen bleiben auf dem Gerät erhalten. Ohne Tippen passiert es beim nächsten Seitenwechsel von selbst.</dd>
         <dt>Sprache: „Mikrofon nur über https oder localhost“.</dt>
         <dd>Du hast Sideout über eine http-Adresse geöffnet, etwa die IP eines Rechners im WLAN. Browser geben das Mikrofon dort nicht frei. Öffne die App über ihre normale verschlüsselte Adresse; am Laptop geht auch localhost.</dd>
         <dt>Sprache versteht mich nicht.</dt>

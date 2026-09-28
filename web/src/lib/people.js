@@ -10,3 +10,15 @@ export function initialsOf(name) {
   const s = words.length >= 2 ? words[0][0] + words[1][0] : words[0].slice(0, 2);
   return s.toUpperCase();
 }
+
+/** hand the viewer a JSON file (exports) */
+export function downloadJson(name, obj) {
+  const url = URL.createObjectURL(new Blob([JSON.stringify(obj, null, 1)], { type: 'application/json' }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = name;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}

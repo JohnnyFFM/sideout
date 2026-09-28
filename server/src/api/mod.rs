@@ -2,12 +2,12 @@ pub mod account;
 pub mod auth_routes;
 pub mod events;
 pub mod matches;
-pub mod scout;
+pub mod recordings;
 pub mod team;
 #[cfg(test)]
 mod tests;
 #[cfg(test)]
-mod scout_tests;
+mod recording_tests;
 
 use axum::routing::{delete, get, patch, post, put};
 use axum::Router;
@@ -38,14 +38,18 @@ pub fn router(state: AppState) -> Router {
         .route("/teams/{id}/members/{uid}", patch(team::patch_member_by_id).delete(team::delete_member_by_id))
         .route("/players", get(team::list_players).post(team::create_player))
         .route("/players/{id}", patch(team::patch_player).delete(team::delete_player))
-        // matches
+        // matches: frame + planning
         .route("/matches", get(matches::list).post(matches::create))
         .route("/matches/{id}", get(matches::get_one).patch(matches::update).delete(matches::remove))
         .route("/matches/{id}/lineups/{set}", put(matches::put_lineup))
-        .route("/matches/{id}/actions", post(matches::add_action))
-        .route("/matches/{id}/actions/last", delete(matches::undo_action))
-        // scouting handover: one active writer per match
-        .route("/matches/{id}/scout", post(scout::acquire).delete(scout::release))
+        // recordings: one per scout and device, uploaded in batches; the coach selects the result
+        .route("/matches/{id}/recordings/{rid}", put(recordings::upload).get(recordings::get_recording))
+        .route("/matches/{id}/select", post(recordings::select))
+        // the old protocol's write routes answer 503 for a while (see ApiError::Gone)
+        .route("/matches/{id}/actions", post(matches::gone))
+        .route("/matches/{id}/actions/last", delete(matches::gone))
+        .route("/matches/{id}/scout", post(matches::gone).delete(matches::gone))
+        // result views
         .route("/matches/{id}/state", get(matches::state))
         .route("/matches/{id}/stats", get(matches::stats))
         .route("/matches/{id}/export.csv", get(matches::export_csv))

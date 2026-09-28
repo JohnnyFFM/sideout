@@ -1,21 +1,19 @@
-// One writer tab per match in this browser. Tabs share the session cookie
-// and the localStorage queue but not component memory, so without this two
-// tabs on the same live page would both flush the same queue and either
-// could release the other's lease. The SSE leader lock is a different lock
-// with a different job.
-//
-// Web Locks when available (the lock is held for the page's lifetime and
-// handed to the next waiting tab when it goes away); otherwise a
-// localStorage heartbeat: the writer refreshes `so_tab_<id>` every 2 s and
-// a tab that sees no beat younger than 6 s takes over.
+// One writer tab per match in this browser (Web Locks). Tabs share the
+// session cookie and the IndexedDB recordings but not component memory, so
+// without this two tabs on the same live page could hand out the same edit
+// number twice. The lock is held for the page's lifetime and passes to the
+// next waiting tab when this one goes away; the browser releases it when a
+// tab dies. No fallback: without Web Locks the app does not scout and says
+// so (Safari 15.4+, Chrome 69+, Firefox 96+).
 //
 // The holder is shared per match within the tab and released one tick after
 // its last user let go: the lineup editor navigating to the live page (or
 // the other way round) keeps the writer role instead of handing it to a tab
 // that was waiting for the lock.
 
-const tabId = Math.random().toString(36).slice(2, 10);
 const holders = new Map(); // matchId → { held, handoff, listeners, users, release, pending }
+
+export const locksSupported = () => typeof navigator !== 'undefined' && !!navigator.locks?.request;
 
 function createHolder(matchId) {
   const name = `so_scout_${matchId}`;
@@ -27,51 +25,23 @@ function createHolder(matchId) {
     h.held = v; h.handoff = v && sawOther;
     for (const l of [...h.listeners]) l(v, { handoff: h.handoff });
   };
-
-  if (typeof navigator !== 'undefined' && navigator.locks?.request) {
-    const ac = new AbortController();
-    let done = null;
-    navigator.locks.query?.().then((q) => { if (!h.held && q.held?.some((l) => l.name === name)) sawOther = true; }).catch(() => {});
-    navigator.locks
-      .request(name, { mode: 'exclusive', signal: ac.signal }, () => new Promise((resolve) => { done = resolve; if (!released) set(true); else resolve(); }))
-      .catch(() => { /* aborted before acquisition */ });
-    h.release = () => { released = true; set(false); if (done) done(); else ac.abort(); };
+  if (!locksSupported()) {
+    h.release = () => {};
+    queueMicrotask(() => { for (const l of [...h.listeners]) l(false, { unsupported: true }); });
     return h;
   }
-
-  // fallback: heartbeat in localStorage
-  const key = `so_tab_${matchId}`;
-  const read = () => { try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch { return null; } };
-  const beat = () => {
-    if (released) return;
-    const cur = read();
-    const fresh = cur && Date.now() - cur.t < 6000;
-    if (!fresh || cur.tab === tabId) {
-      try { localStorage.setItem(key, JSON.stringify({ tab: tabId, t: Date.now() })); } catch { /* ignore */ }
-      set(true);
-    } else {
-      sawOther = true;
-      set(false);
-    }
-  };
-  beat();
-  const timer = setInterval(beat, 2000);
-  const onStorage = (e) => { if (e.key === key) beat(); };
-  window.addEventListener('storage', onStorage);
-  h.release = () => {
-    released = true;
-    clearInterval(timer);
-    window.removeEventListener('storage', onStorage);
-    const cur = read();
-    if (cur?.tab === tabId) { try { localStorage.removeItem(key); } catch { /* ignore */ } }
-    set(false);
-  };
+  const ac = new AbortController();
+  let done = null;
+  navigator.locks.query?.().then((q) => { if (!h.held && q.held?.some((l) => l.name === name)) sawOther = true; }).catch(() => {});
+  navigator.locks
+    .request(name, { mode: 'exclusive', signal: ac.signal }, () => new Promise((resolve) => { done = resolve; if (!released) set(true); else resolve(); }))
+    .catch(() => { /* aborted before acquisition */ });
+  h.release = () => { released = true; set(false); if (done) done(); else ac.abort(); };
   return h;
 }
 
-// onChange(held, { handoff }): `handoff` is true when this tab became the
-// writer after another tab of this browser held the role (that tab may have
-// released its lease on leaving, so the new writer acquires afresh).
+// onChange(held, { handoff, unsupported }): `handoff` is true when this tab
+// became the writer after another tab of this browser held the role.
 export function tabWriter(matchId, onChange) {
   let h = holders.get(matchId);
   if (h?.pending) { clearTimeout(h.pending); h.pending = null; }

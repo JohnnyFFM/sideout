@@ -1,8 +1,8 @@
 // Thin fetch wrapper: JSON in/out, CSRF header on every call, typed errors.
 // A 409 carries `err.current` and `err.code` (the server's `error` string:
-// "conflict" for a sequence/version clash, "scouted_elsewhere" or
-// "scout_lease_expired" for an ownership refusal). A network failure
-// surfaces as `err.offline`. `lease` sends the scouting lease header.
+// "conflict" for a version clash, "recording_mismatch" / "edit_mismatch" /
+// "selection_moved" for the recording contract). A network failure or a
+// timeout surfaces as `err.offline`.
 
 import { base } from '$app/paths';
 
@@ -17,21 +17,25 @@ export class ApiError extends Error {
 }
 
 export async function api(path, opts = {}) {
-  const { method = 'GET', body, lease, keepalive } = opts;
+  const { method = 'GET', body, keepalive, timeout = 30000 } = opts;
+  const ac = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const t = ac && timeout ? setTimeout(() => ac.abort(), timeout) : null;
   let res;
   try {
     res = await fetch(`${base}/api${path}`, {
       method,
       headers: {
         'X-Requested-By': 'sideout',
-        ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
-        ...(lease ? { 'X-Scout-Lease': lease } : {})
+        ...(body !== undefined ? { 'Content-Type': 'application/json' } : {})
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,
-      keepalive: !!keepalive
+      keepalive: !!keepalive,
+      signal: ac?.signal
     });
   } catch {
     throw new ApiError(0, 'offline');
+  } finally {
+    if (t) clearTimeout(t);
   }
   let data = null;
   try {

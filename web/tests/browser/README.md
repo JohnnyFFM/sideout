@@ -7,9 +7,7 @@ its own empty database, never against a running app:
 ```
 SO_ADDR=127.0.0.1:8081 SO_DB=/tmp/so-test/test.db SO_DATA=/tmp/so-test SO_STATIC=../web/build ../server/target/debug/sideout-server
 node seedho.mjs                 # coach, scout, viewer, roster, one match with lineup
-node handover.mjs   <outdir>    # two devices: claim, banner, takeover, loss, offline queue, release, undo after completion
-node handover2.mjs  <outdir>    # same-session tabs (Web Locks + fallback), takeover during an in-flight append, scout event with queued work
-node handover3.mjs  <outdir>    # lineup editor under ownership, live → editor → live, unsent work blocks a lineup change, list/home hints
+node recordings.mjs <outdir>    # per-device recordings: first tap, offline taps on two matches uploaded from the list page, second device forks (copy/fresh), coach selects, viewer, undo as edit, two tabs, legacy import, export/import
 node guide.mjs      <outdir>    # the guide inside the app shell (/anleitung): top bar, tabs, theme, anchors, standalone /hilfe/ kept
 node voice.mjs      <outdir> <wav>  # voice scouting: Edge's fake microphone plays a 48 kHz WAV of German commands (8 s lead, then "drei Angriff Punkt" …), actions land on /live/1
 ```

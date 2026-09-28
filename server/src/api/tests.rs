@@ -43,17 +43,9 @@ pub(super) async fn app() -> App {
 
 /// (status, json body, Set-Cookie value if any)
 pub(super) async fn call(app: &App, method: Method, path: &str, cookie: Option<&str>, body: Option<Value>) -> (StatusCode, Value, Option<String>) {
-    call_h(app, method, path, cookie, body, None).await
-}
-
-/// the same with an X-Scout-Lease header
-pub(super) async fn call_h(app: &App, method: Method, path: &str, cookie: Option<&str>, body: Option<Value>, lease: Option<&str>) -> (StatusCode, Value, Option<String>) {
     let mut req = Request::builder().method(method).uri(path).header("x-requested-by", "test");
     if let Some(c) = cookie {
         req = req.header(header::COOKIE, c);
-    }
-    if let Some(l) = lease {
-        req = req.header("x-scout-lease", l);
     }
     let req = match body {
         Some(b) => req.header(header::CONTENT_TYPE, "application/json").body(Body::from(b.to_string())).unwrap(),

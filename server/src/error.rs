@@ -16,12 +16,15 @@ pub enum ApiError {
     /// Optimistic-locking failure — body carries the current row.
     #[error("conflict")]
     Conflict(Value),
-    /// Scouting ownership refusal: `scouted_elsewhere` (another session
-    /// holds the match) or `scout_lease_expired` (our lease is obsolete and
-    /// nobody else holds it). Same 409 status, distinct `error` code, so
-    /// clients can tell it from a sequence conflict.
+    /// A 409 with a distinct `error` code: `recording_mismatch` /
+    /// `edit_mismatch` (different content under an identity the server
+    /// already holds) or `selection_moved` (the coach's choice changed).
     #[error("{0}")]
-    ScoutConflict(&'static str, Value),
+    Refused(&'static str, Value),
+    /// The old protocol's write routes after the cutover: a 503 keeps an old
+    /// client's queue intact (it retries 5xx and drops on 4xx).
+    #[error("gone")]
+    Gone,
     #[error(transparent)]
     Db(#[from] sqlx::Error),
     #[error("{0}")]
@@ -39,9 +42,13 @@ impl IntoResponse for ApiError {
                 StatusCode::CONFLICT,
                 json!({"error": "conflict", "current": current}),
             ),
-            ApiError::ScoutConflict(code, current) => (
+            ApiError::Refused(code, current) => (
                 StatusCode::CONFLICT,
                 json!({"error": code, "current": current}),
+            ),
+            ApiError::Gone => (
+                StatusCode::SERVICE_UNAVAILABLE,
+                json!({"error": "Diese Version der App ist veraltet. Bitte neu laden."}),
             ),
             ApiError::Db(e) => {
                 tracing::error!("db error: {e}");

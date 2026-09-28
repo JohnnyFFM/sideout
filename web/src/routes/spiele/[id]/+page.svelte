@@ -12,11 +12,12 @@
   const set = $derived(Number($page.url.searchParams.get('set') || match?.state?.set || 1));
   const load = () => api(`/matches/${id}`).then((m) => (match = m)).catch((e) => (error = e.message));
   $effect(() => { void id; untrack(load); });
-  // ownership moved (a scout event) or the match changed: the form's notice follows
+  // the match changed elsewhere (a recording arrived, the coach chose): the form's notice follows
   $effect(() => { const m = $mutations; if (m && m.entity === 'match' && m.id === id) untrack(load); });
   async function remove() {
-    if (!confirm(`Spiel gegen ${match.opponent} mit allen Aktionen löschen?`)) return;
-    try { await api(`/matches/${id}`, { method: 'DELETE' }); showToast('Gelöscht'); goto(`${base}/spiele`); }
+    const has = (match.recordings?.length || 0) > 0;
+    if (!confirm(has ? `Spiel gegen ${match.opponent} archivieren? Die Aufzeichnungen bleiben erhalten, das Spiel verschwindet aus den Listen.` : `Spiel gegen ${match.opponent} löschen?`)) return;
+    try { const r = await api(`/matches/${id}`, { method: 'DELETE' }); showToast(r.archived ? 'Archiviert' : 'Gelöscht'); goto(`${base}/spiele`); }
     catch (e) { showToast(e.message, true); }
   }
 </script>
@@ -25,7 +26,7 @@
 <main class="page">
   <div class="toolbar"><h1>Spiel bearbeiten</h1><span class="spacer"></span>
     {#if match}<a class="btn" href="{base}/auswertung/{id}">Auswertung</a>{/if}
-    {#if match && $me?.user?.role === 'coach'}<button class="btn danger" onclick={remove}>Löschen</button>{/if}
+    {#if match && $me?.user?.role === 'coach'}<button class="btn danger" onclick={remove}>{match.recordings?.length ? 'Archivieren' : 'Löschen'}</button>{/if}
   </div>
   {#if error}<div class="panel empty">{error}</div>
   {:else if match}
@@ -34,6 +35,6 @@
         {#each Array.from({ length: Math.max(match.state.set, 1) }, (_, i) => i + 1) as s}<a href="{base}/spiele/{id}?set={s}" style="margin-left:6px; font-weight:{s === set ? 700 : 400}">{s}</a>{/each}
         — bereits gescoutete Sätze werden nicht rückwirkend geändert.</p>
     {/if}
-    {#key set}<MatchForm {match} players={match.players} {set} onscout={(m) => (match = { ...match, scout: m.scout })} />{/key}
+    {#key set}<MatchForm {match} players={match.players} {set} />{/key}
   {:else}<div class="panel empty">Lade Spiel…</div>{/if}
 </main>

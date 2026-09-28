@@ -5,7 +5,9 @@
   import { page } from '$app/stores';
   import Nav from '$lib/components/Nav.svelte';
   import { updated } from '$app/state';
-  import { me, toast, online, connectSSE, disconnectSSE } from '$lib/stores.js';
+  import { me, toast, online, connectSSE, disconnectSSE, showToast } from '$lib/stores.js';
+  import { startUploader, kick, sync } from '$lib/uploader.js';
+  import { importLegacy } from '$lib/legacy.js';
 
   let { data, children } = $props();
 
@@ -14,11 +16,18 @@
   });
 
   // one live stream per tab for the whole session; no cleanup on
-  // navigation, so the stream is not torn down and reopened on every page
+  // navigation, so the stream is not torn down and reopened on every page.
+  // The uploader starts with the identity (also offline: pending counts
+  // show) and is nudged on every identity refresh (a login).
   $effect(() => {
-    if (data.me && !data.me.offline) {
-      connectSSE();
-    } else if (!data.me) {
+    if (data.me) {
+      startUploader();
+      kick();
+      if (!data.me.offline) {
+        connectSSE();
+        importLegacy().then((n) => { if (n) showToast(`${n} alte Aufzeichnung${n === 1 ? '' : 'en'} von diesem Gerät übernommen`); }).catch(() => {});
+      }
+    } else {
       disconnectSSE();
       if ($page.url.pathname !== `${base}/login`) goto(`${base}/login`);
     }
@@ -28,7 +37,9 @@
 {#if data.me}
   <Nav />
   {#if !$online}
-    <div class="offline-bar">Offline — Aktionen werden gespeichert und später gesendet</div>
+    <div class="offline-bar">Offline — Aktionen werden auf dem Gerät gespeichert und später hochgeladen{#if $sync.total} · {$sync.total} ausstehend{/if}</div>
+  {:else if $sync.transient && $sync.total}
+    <div class="offline-bar">{$sync.total} Änderungen noch nicht hochgeladen ({$sync.transient}), neuer Versuch folgt</div>
   {/if}
 {/if}
 {@render children()}

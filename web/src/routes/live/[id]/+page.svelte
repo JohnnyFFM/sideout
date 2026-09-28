@@ -1,71 +1,60 @@
 <script>
   import { base } from '$app/paths';
-  // The capture screen. Renders from confirmed actions + a local op queue,
-  // so every tap shows instantly and survives a dead connection.
+  // The capture screen. Renders this device's own recording (base + local
+  // edits from IndexedDB) when it has one, otherwise the match result the
+  // server shows. Every tap is an edit saved on the device before anything
+  // is sent; the uploader (uploader.js) carries it to the server whenever
+  // it can. There is no lease: viewing never writes, a second device simply
+  // records on its own, and the coach picks the result.
   import { page } from '$app/stores';
   import { untrack, tick } from 'svelte';
   import { api } from '$lib/api.js';
-  import { me, mutations, online, showToast } from '$lib/stores.js';
+  import { me, mutations, online, showToast, logDiag } from '$lib/stores.js';
   import { replay, courtView, expectedSkills, stats, SKILL, PAD, GRADE_CLASS, ROMAN, firstName, eff, fix } from '$lib/engine.js';
-  import { loadOps, saveOps, applyOps, cacheMatch, cachedMatch, newCid, reconcileOps, keepDropped, settleAfterLoss, saveLease, loadLease } from '$lib/offline.js';
+  import { cacheMatch, cachedMatch } from '$lib/offline.js';
+  import { fold, baseFromMatch, newAction, playersOf, recordingLabel } from '$lib/recording.js';
+  import { myRecording, getRecording, editsFrom, appendEdit, createRecording, deviceId, onChange, exportRecording } from '$lib/recstore.js';
+  import { sync, kick } from '$lib/uploader.js';
   import { tabWriter } from '$lib/scoutlock.js';
+  import { downloadJson } from '$lib/people.js';
   import Court from '$lib/components/Court.svelte';
   import Pad from '$lib/components/Pad.svelte';
   import Voice from '$lib/components/Voice.svelte';
 
   const id = $derived(Number($page.params.id));
-  let match = $state(null);
-  let ops = $state([]);
+  let match = $state(null);      // the server payload (or the cached one)
+  let rec = $state(null);        // this device's recording of the match, or null
+  let edits = $state([]);        // its edits, in order
   let selected = $state(null);
   let scope = $state('set');
-  let flushing = false;
-  let inflight = null;      // the op whose request is on the wire
-  let inflightFor = null;   // ... and the match it belongs to
-  let gen = 0;              // bumps on every local change; a refresh started before it is stale
-  // a page that was left (or switched to another match) must not touch the
-  // queue any more: its timers are cancelled and every await checks `stale()`
+  let loadError = $state('');
+  let tabOwner = $state(false);
+  let askStart = $state(null);   // a first tap waiting for "copy or fresh": { add } | { undo: true }
+  let myDevice = $state('');
+  let recsOpen = $state(false);
+  // a page that was left (or switched to another match) must not touch
+  // anything any more: every await checks `stale()`
   let alive = true;
   const stale = (mid) => !alive || mid !== id;
-  $effect(() => () => { alive = false; clearTimeout(retryTimer); });
-  let retryTimer = null;
-  let retryDelay = 5000;
-  let loadError = $state('');
+  $effect(() => () => { alive = false; });
 
-  // ----- scouting ownership (one active writer per match) -----
-  // `scout` is the caller-relative block of the last server answer; `lease`
-  // is our lease as the server confirmed it for this session (or, right
-  // after an offline start, the one this device held last). Writes need the
-  // lease AND this tab being the writer tab in this browser. `needVerify`
-  // marks a doubt (page start, a scout event, a reconnect): the next flush
-  // asks the server first and only continues if the same lease still holds.
-  let scout = $state(null);
-  let lease = $state(null);
-  let leaseRev = 0;
-  let needVerify = true;
-  let doubtRev = 0;              // the ownership revision the doubt came from; older answers do not settle it
-  let acquiring = $state(false);
-  let tabOwner = $state(false);
-  const holderElse = $derived(!!scout?.held && !scout.stale && !scout.mine);
   const canScout = $derived(['coach', 'assistant'].includes($me?.user?.role));
-  const canWrite = $derived(canScout && !!lease && tabOwner);
-  // may this device acquire the match right now (free, stale, or already ours)?
-  const claimable = $derived(canScout && tabOwner && !!scout && (!scout.held || scout.stale || scout.mine));
-  const hhmm = (iso) => { const d = iso ? new Date(iso) : null; return d && !isNaN(d) ? d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '–'; };
-  // persisted state (queue, lease, set-aside ops) belongs to the writer tab:
-  // a watching tab renders from storage but must never write it back, or a
-  // refresh that was pending in the watcher could overwrite the writer's
-  // newer queue with its older copy
-  const persistOps = (mid, o) => { if (tabOwner) saveOps(mid, o); };
-  const persistLease = (mid, l) => { if (tabOwner) saveLease(mid, l); };
-  const persistDropped = (mid, o) => { if (tabOwner) keepDropped(mid, o); };
-  const REQ_KEY = (mid) => `so_scout_req_${mid}`;
-  const loadReq = (mid) => { try { return JSON.parse(localStorage.getItem(REQ_KEY(mid)) || 'null'); } catch { return null; } };
-  const saveReq = (mid, v) => { try { if (v) localStorage.setItem(REQ_KEY(mid), JSON.stringify(v)); else localStorage.removeItem(REQ_KEY(mid)); } catch { /* ignore */ } };
-  const byId = $derived(Object.fromEntries((match?.players || []).map((p) => [p.id, p])));
-  const cfg = $derived(match ? { first_serve_us: match.first_serve === 'us', lineups: match.lineups } : null);
-  const actionsAll = $derived(match ? applyOps(match.actions, ops) : []);
+  const canWrite = $derived(canScout && tabOwner && $sync.supported);
+  const canSelect = $derived($me?.user?.role === 'coach');
+  const hhmm = (iso) => { const d = iso ? new Date(iso.endsWith('Z') || iso.includes('T') ? iso : iso.replace(' ', 'T') + 'Z') : null; return d && !isNaN(d) ? d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '–'; };
+
+  // what is shown: my recording, else the match result (the selected recording, or the planning)
+  const snap = $derived.by(() => {
+    if (rec) return fold(rec.base, edits);
+    if (!match) return null;
+    return { cfg: { first_serve_us: match.first_serve === 'us', lineups: match.lineups || {} }, roster: match.roster || [], actions: match.actions || [] };
+  });
+  const players = $derived(match && snap ? playersOf(match.players, snap) : []);
+  const byId = $derived(Object.fromEntries(players.map((p) => [p.id, p])));
+  const cfg = $derived(snap?.cfg || null);
+  const actionsAll = $derived(snap?.actions || []);
   const st = $derived(cfg ? replay(cfg, actionsAll) : null);
-  const hasLineup = $derived(!!match && Object.keys(match.lineups || {}).length > 0);
+  const hasLineup = $derived(!!cfg && Object.keys(cfg.lineups || {}).length > 0);
   const court = $derived(st ? courtView(st.lineup, st.libero, byId, st.libero_for, st.libero_off, st.serving) : []);
   const expected = $derived(st ? expectedSkills(st) : []);
   // who the next action most likely belongs to: the server on I, the setter for a set
@@ -81,15 +70,15 @@
   // (substitutions and libero changes are fine). A rally already recorded
   // in set five ends the question, the choice would be moot.
   const tossPending = $derived(!!st && canScout && st.set === 5 && !st.finished && !st.rows.some((r) => r.set === 5 && (r.skill === 'srv' || r.outcome)));
-  const stat = $derived(st ? stats(cfg, match.players, actionsAll, scope === 'set' ? st.set : 0) : null);
+  const stat = $derived(st ? stats(cfg, players, actionsAll, scope === 'set' ? st.set : 0) : null);
   // timeline: every action left to right, a score pill after each rally, a divider per set
   const timeline = $derived.by(() => {
     if (!st) return [];
     const out = []; let set = 0;
     for (const r of st.rows) {
       if (r.set !== set) { set = r.set; out.push({ t: 'set', n: set, key: 'set' + set }); }
-      out.push({ t: 'act', r, key: 'a' + r.seq });
-      if (r.outcome) out.push({ t: 'score', us: r.us + (r.outcome === 'us' ? 1 : 0), them: r.them + (r.outcome === 'them' ? 1 : 0), won: r.outcome === 'us', key: 's' + r.seq });
+      out.push({ t: 'act', r, key: 'a' + r.id });
+      if (r.outcome) out.push({ t: 'score', us: r.us + (r.outcome === 'us' ? 1 : 0), them: r.them + (r.outcome === 'them' ? 1 : 0), won: r.outcome === 'us', key: 's' + r.id });
     }
     return out;
   });
@@ -97,213 +86,76 @@
   // newest entry stays in view
   $effect(() => { void timeline.length; const el = tlEl; if (el) tick().then(() => { el.scrollLeft = el.scrollWidth; }); });
 
-  // `entry`: the page was just opened (or this tab just became the writer
-  // tab). Only then does a free match get claimed on its own; a watching
-  // device never grabs a match that was merely released, that takes a tap
-  async function load(entry = false) {
-    if (inflight && inflightFor === id) { needVerify = true; return; } // the answer on the wire settles the queue; the next send verifies
-    const saved = loadOps(id);
-    if (JSON.stringify(saved) !== JSON.stringify(ops)) ops = saved;
-    const g = gen; const mid = id;
+  // ----- sync and the other recordings -----
+  const pendingHere = $derived($sync.byMatch[id] || 0);
+  const recError = $derived(rec?.error || null);
+  const recordings = $derived(match?.recordings || []);
+  const others = $derived(recordings.filter((r) => r.device_id !== myDevice));
+  const activeOther = $derived(others.find((r) => r.active) || null);
+  const selectedRec = $derived(recordings.find((r) => r.selected) || null);
+  // my recording exists but the coach chose another one as the result
+  const resultIsOther = $derived(!!rec && !!match?.selected && match.selected !== rec.id);
+  const showRecs = $derived(recordings.length > 1 || (!!rec && !recordings.some((r) => r.id === rec.id) && recordings.length > 0));
+
+  async function loadServer(mid) {
     try {
       const m = await api(`/matches/${mid}`);
       if (stale(mid)) return;
-      // something changed locally while this answer was on its way (a tap,
-      // a save): it is older than what we show, so drop it and ask again
-      if (g !== gen) { load(); return; }
-      adopt(m);
+      match = m;
+      cacheMatch(mid, m);
       loadError = '';
     } catch (e) {
-      const c = cachedMatch(id);
-      if (c) { match = c; scout = c.scout || scout; showToast('Offline: Stand vom letzten Laden'); }
-      else loadError = e.offline ? 'Keine Verbindung und kein lokaler Stand.' : e.message;
-    }
-    if (entry && !lease) await maybeClaim();
-    flush();
-  }
-  // a fresh server log: first the ownership question (is our lease still the
-  // match's lease?), then the queue is settled against the log (see
-  // offline.js): ops the server already holds are dropped, the rest
-  // renumbered; foreign actions with unsent ops of ours are a conflict and
-  // those ops are kept for the record.
-  function adopt(m) {
-    const sc = m.scout;
-    if (sc && sc.revision >= leaseRev) {
-      const lostFlag = loadLease(id)?.lost;
-      if ((lease && !(sc.mine && sc.lease === lease)) || lostFlag) { ownershipLost(m); return; }
-    }
-    const knownTop = (match || cachedMatch(id))?.actions?.slice(-1)[0]?.seq || 0;
-    const r = reconcileOps(m.actions, ops, knownTop);
-    if (r.conflict) {
-      persistDropped(id, r.dropped);
-      showToast(`Ein anderes Gerät hat gescoutet: ${r.dropped.length} eigene Aktionen verworfen`, true);
-    }
-    ops = r.ops;
-    gen++;
-    persistOps(id, ops);
-    match = m;
-    cacheMatch(id, m);
-    if (sc && sc.revision >= (scout?.revision ?? -1)) setScout(sc);
-  }
-  function setScout(sc) {
-    if (scout && sc.revision < scout.revision) return; // older than what we know
-    scout = sc;
-    if (sc.mine && sc.lease) {
-      lease = sc.lease; leaseRev = sc.revision;
-      if (sc.revision >= doubtRev) needVerify = false; // an answer from before the doubt does not settle it
-      persistLease(id, { lease, rev: leaseRev });
-    } else if (lease && sc.revision >= leaseRev) {
-      lease = null; persistLease(id, null);
+      if (stale(mid)) return;
+      const c = cachedMatch(mid);
+      if (c) { if (!match) match = c; if (!e.offline) showToast(e.message, true); }
+      else if (!match) loadError = e.offline ? 'Keine Verbindung und kein lokaler Stand.' : e.message;
     }
   }
-  // the lease is gone (takeover, expiry, refusal): whatever the server
-  // already holds is not lost; the rest may not be replayed under a new
-  // lease and is kept aside for the record
-  function ownershipLost(m) {
-    const rest = settleAfterLoss(m.actions, ops);
-    persistDropped(id, rest);
-    const who = m.scout?.actor ? `${m.scout.actor} scoutet jetzt` : 'Das Scouting ist beendet';
-    showToast(rest.length ? `${who}: ${rest.length} nicht gesendete Aktionen beiseitegelegt` : who, true);
-    ops = []; gen++; persistOps(id, ops);
-    lease = null; persistLease(id, null); needVerify = true;
-    match = m; cacheMatch(id, m); scout = m.scout;
+  async function refreshRec(mid) {
+    if (!rec) return;
+    try { const r = await getRecording(rec.id); if (!stale(mid) && r && rec && r.id === rec.id) rec = r; } catch { /* next change */ }
   }
-  // conditional acquisition on entry when the match is free or stale (never
-  // a takeover). A lost answer is resolved first: the request id is kept
-  // until the server confirmed or refused it, so a retry returns the same
-  // lease instead of a second ownership period.
-  async function maybeClaim() {
-    if (!claimable || acquiring || !$online || lease) return false;
-    const confirmed = match && cfg ? replay(cfg, match.actions) : null;
-    if (confirmed?.finished && !ops.length) return false; // viewing a finished match does not claim it
-    return acquireLease('claim');
-  }
-  async function acquireLease(mode, retried = false) {
-    if (acquiring || !alive || !tabOwner) return false;
-    const mid = id;
-    const pending = loadReq(mid);
-    const req = pending?.req || newCid();
-    saveReq(mid, { req, mode });
-    acquiring = true;
+  async function loadLocal(mid) {
     try {
-      const m = await api(`/matches/${mid}/scout`, { method: 'POST', body: { mode, revision: scout?.revision ?? 0, request_id: req } });
-      if (stale(mid)) return false;
-      saveReq(mid, null);
-      adopt(m);
-      return !!lease;
+      const r = await myRecording(mid);
+      const es = r ? (await editsFrom(r.id, 1)).map((e) => e.body) : [];
+      if (stale(mid)) return;
+      rec = r; edits = es;
     } catch (e) {
-      if (stale(mid) || e.offline) return false; // resolved on the next load with the same request id
-      saveReq(mid, null);
-      if (e.code === 'scouted_elsewhere' || e.code === 'scout_lease_expired') {
-        const cur = e.current?.scout;
-        if (cur) scout = cur;
-        // a claim refused only because the revision moved (a release landed
-        // in between) is repeated once from the fresh revision; it is still
-        // conditional, so a current holder is never displaced by it
-        if (mode === 'claim' && !retried && cur && (!cur.held || cur.stale)) { acquiring = false; return acquireLease('claim', true); }
-        if (mode === 'takeover') showToast('Inzwischen scoutet jemand anderes, Stand aktualisiert', true);
-        load();
-        return false;
-      }
-      showToast(e.message, true);
-      return false;
-    } finally {
-      acquiring = false;
-    }
-  }
-  async function takeover() {
-    if (!canScout || !tabOwner || acquiring) return;
-    if (await acquireLease('takeover')) showToast('Du scoutest jetzt');
-  }
-  // release only our own lease, only when nothing is pending; a late or
-  // repeated release is a server-side no-op
-  function releaseLease(keepalive = false) {
-    const l = lease; const mid = id;
-    // only the writer tab lets go; a watching tab of the same session must
-    // not release the lease the writer tab is using. Without a connection
-    // nothing can be released: the device stays the holder of record, so a
-    // reload in the hall keeps capturing (the server holds the lease anyway)
-    if (!l || !tabOwner || ops.length || inflight || !navigator.onLine) return;
-    lease = null; persistLease(mid, null);
-    api(`/matches/${mid}/scout?lease=${encodeURIComponent(l)}`, { method: 'DELETE', keepalive }).catch(() => {});
-  }
-  // ask the server whether our lease still holds before anything is sent
-  async function verifyLease(mid) {
-    try {
-      const m = await api(`/matches/${mid}`);
-      if (stale(mid)) return false;
-      adopt(m);
-      return !!lease;
-    } catch (e) {
-      if (!stale(mid) && !e.offline) showToast(e.message, true);
-      return false;
+      if (!stale(mid)) showToast('Lokaler Speicher: ' + (e?.message || e), true);
     }
   }
 
-  // effects only track their trigger; everything they call runs untracked,
-  // otherwise a reload that rewrites `ops` would re-trigger itself forever
   $effect(() => {
     const mid = id;
     untrack(() => {
-      match = null; ops = []; scout = null; clearTimeout(retryTimer);
-      const saved = loadLease(mid);
-      // the holder of record may capture offline; sending waits for
-      // verification, and the first server answer is authoritative (revision
-      // 0), whatever revision the stored lease was confirmed at
-      lease = saved?.lease && !saved.lost ? saved.lease : null;
-      leaseRev = 0;
-      needVerify = true;
-      load(true);
+      match = null; rec = null; edits = []; askStart = null; loadError = '';
+      deviceId().then((d) => { if (!stale(mid)) myDevice = d; }).catch(() => {});
+      loadLocal(mid).then(() => loadServer(mid));
     });
     // the writer tab for this match in this browser; the other tabs watch
-    const lock = tabWriter(mid, (held, info) => {
+    const lock = tabWriter(mid, (held) => {
       tabOwner = held;
-      if (!held) return;
-      needVerify = true;
-      untrack(() => {
-        // the persisted queue is the truth, not this tab's copy of it
-        if (info?.handoff) { const saved = loadOps(mid); if (JSON.stringify(saved) !== JSON.stringify(ops)) { ops = saved; gen++; } }
-        // a hand-off from another tab of this browser: that tab may have
-        // released the lease we restored from storage, so acquire afresh
-        // (the server starts a new period for the same session)
-        if (info?.handoff && $online) { lease = null; persistLease(mid, null); }
-        if (!lease) maybeClaim();
-        flush();
-      });
+      // another tab of this browser may have added edits meanwhile
+      if (held) untrack(() => loadLocal(mid));
     });
-    // a hard departure (tab closed, address bar): the same best-effort release
-    const onHide = () => untrack(() => releaseLease(true));
-    window.addEventListener('pagehide', onHide);
-    return () => {
-      // leaving this match: release our lease if nothing is pending
-      // (best-effort, keepalive), and stop being the writer tab
-      window.removeEventListener('pagehide', onHide);
-      untrack(() => releaseLease(true));
-      lock.release();
-    };
+    // edits written by another tab show up here too; the writer tab only
+    // refreshes its recording row (upload state), never its edit list
+    const off = onChange(() => untrack(() => { if (!tabOwner) loadLocal(mid); else refreshRec(mid); }));
+    return () => { lock.release(); off(); };
   });
 
-  // another device wrote to this match → refetch when we have nothing pending
+  // another device wrote to this match, or the coach chose: refetch the server side only
   $effect(() => {
     const m = $mutations;
     if (!m) return;
     untrack(() => {
       if (!match) return;
       const mine = (m.entity === 'action' || m.entity === 'match') && m.id === id;
-      if (mine && m.action === 'scout') {
-        // ownership may have moved (even our own claim produces this): the
-        // event is a notification, the server answer is the truth. With work
-        // pending or a request on the wire, the flush loop verifies before
-        // the next send (or right after the answer); otherwise ask right away.
-        needVerify = true; doubtRev = Math.max(doubtRev, m.version || 0);
-        if (!flushing && !inflight) load();
-        return;
-      }
-      if ((mine || m.entity === 'resync') && ops.length === 0) load();
-      else if (m.entity === 'resync' && ops.length) { needVerify = true; flush(); } // the stream is back: connectivity too
+      if (mine || m.entity === 'resync') loadServer(id);
     });
   });
-  $effect(() => { if ($online) untrack(() => { needVerify = true; flush(); }); });
+  $effect(() => { if ($online) untrack(() => { kick(); if (match) loadServer(id); }); });
 
   // phone: the live screen has no top bar. Scoped via a body class, because a
   // :global rule in this component would stay loaded after leaving the page.
@@ -334,137 +186,96 @@
     return `${p?.number} ${firstName(p)} ${SKILL[a.skill].name} ${a.grade} ${PAD[a.skill][a.grade] || ''}`;
   }
 
-  // the write gate, enforced here and in flush, not only on buttons
+  // the write gate, enforced here and in the pad, not only on buttons
   function explainNoWrite() {
     if (!canScout) return;
-    if (!tabOwner) showToast('Dieses Spiel wird in einem anderen Tab gescoutet', true);
-    else if (holderElse) showToast(`${scout.actor || 'Jemand'} scoutet gerade, erst übernehmen`, true);
-    else if (!$online) showToast('Ohne Verbindung kann nur der bisherige Scouter weitertippen', true);
-    else showToast('Scouting noch nicht übernommen', true);
-  }
-  function queue(a) {
-    if (!canScout) return;
-    if (!canWrite) {
-      // no lease yet but the match is free: acquire, then record (never a takeover)
-      if (claimable && $online && !acquiring) { acquireLease('claim').then((ok) => { if (ok) queue(a); else explainNoWrite(); }); return; }
-      explainNoWrite();
-      return;
-    }
-    if (st.finished) { showToast('Das Spiel ist beendet'); return; }
-    const before = st;
-    const seq = (actionsAll[actionsAll.length - 1]?.seq || 0) + 1;
-    ops = [...ops, { type: 'add', action: { id: -seq, seq, cid: newCid(), grade: null, player_id: null, sub_out: null, sub_in: null, ...a } }];
-    gen++;
-    persistOps(id, ops);
-    selected = null;
-    const after = replay(cfg, applyOps(match.actions, ops));
-    if (after.set !== before.set) { const s = after.sets[after.sets.length - 1]; showToast(`Satz ${before.set} beendet ${s.us}:${s.them}` + (after.finished || match.lineups?.[after.set] ? '' : ' · Aufstellung übernommen, Wechsel per Drag & Drop')); }
-    else if (after.finished) showToast(`Spiel beendet ${after.sets_won}:${after.sets_lost}`);
-    flush();
+    if (!$sync.supported) showToast($sync.unsupportedReason, true);
+    else if (!tabOwner) showToast('Dieses Spiel wird in einem anderen Tab gescoutet', true);
+    else showToast('Scouten nicht möglich', true);
   }
 
-  // send the queue in order. One op is on the wire at a time (`inflight`);
-  // undo never removes that one from the queue, it queues a compensating
-  // undo instead, so a request that completes after the tap still gets
-  // undone. Errors: offline → wait; 5xx → retry with backoff; 409 → reload
-  // and reconcile; 4xx → this op is refused for good, the rest is renumbered.
-  async function flush() {
-    if (flushing || !match || !alive || !tabOwner || !lease) return;
-    flushing = true;
-    clearTimeout(retryTimer);
+  /** save one edit of my recording; the state on screen follows immediately, the uploader is nudged */
+  async function commit(edit, note) {
+    const before = st;
+    try {
+      await appendEdit(rec.id, edit);
+    } catch (e) {
+      logDiag('store', e?.message || e);
+      showToast('Speichern auf dem Gerät fehlgeschlagen: ' + (e?.message || e), true);
+      return false;
+    }
+    edits = [...edits, edit];
+    selected = null;
+    const after = replay(cfg, fold(rec.base, edits).actions);
+    if (note) showToast(note);
+    else if (after.set !== before.set) { const s = after.sets[after.sets.length - 1]; showToast(`Satz ${before.set} beendet ${s.us}:${s.them}` + (after.finished || cfg.lineups?.[after.set] ? '' : ' · Aufstellung übernommen, Wechsel per Drag & Drop')); }
+    else if (after.finished) showToast(`Spiel beendet ${after.sets_won}:${after.sets_lost}`);
+    kick();
+    return true;
+  }
+
+  function queue(a) {
+    if (!canScout) return;
+    if (!canWrite) { explainNoWrite(); return; }
+    if (st.finished) { showToast('Das Spiel ist beendet'); return; }
+    if (!rec) { startRecording({ add: a }); return; }
+    commit({ op: 'add', action: newAction(actionsAll, a) });
+  }
+
+  // the first tap on this device: a fresh recording from the planning, or —
+  // when the match already has a recording — the user's choice between a
+  // copy of the shown state and a fresh start
+  function startRecording(pending) {
+    if (recordings.length) { askStart = pending; return; }
+    createAndApply('fresh', pending);
+  }
+  async function createAndApply(mode, pending) {
+    askStart = null;
+    if (!match) return;
+    const b = mode === 'copy' ? baseFromMatch(match) : baseFromMatch(match, { planning: true });
+    if (!Object.keys(b.lineups).length) { showToast('Erst die Aufstellung eintragen', true); return; }
+    const acts = b.actions.slice();
+    let first = null;
+    if (pending?.add) first = { op: 'add', action: newAction(acts, pending.add) };
+    else if (pending?.undo) { const top = acts[acts.length - 1]; if (!top) return; first = { op: 'undo', seq: top.seq }; }
+    else if (pending?.edit) first = pending.edit;
     const mid = id;
     try {
-      let conflicts = 0;
-      while (ops.length && !stale(mid)) {
-        if (needVerify) {
-          // a doubt about ownership: settle it before sending anything
-          const ok = await verifyLease(mid);
-          if (stale(mid)) return;
-          if (!ok) { if (lease) { retryTimer = setTimeout(flush, retryDelay); retryDelay = Math.min(retryDelay * 2, 60000); } break; }
-          if (!ops.length) break; // the fresh log settled everything
-        }
-        const op = ops[0];
-        inflight = op; inflightFor = mid;
-        if (op.type === 'add' && !op.sent) { op.sent = true; persistOps(id, ops); } // from here on the server may hold it
-        try {
-          if (op.type === 'add') {
-            const res = await api(`/matches/${mid}/actions`, { method: 'POST', body: op.action, lease });
-            if (stale(mid)) return;
-            match = { ...match, actions: [...match.actions.filter((x) => x.seq !== res.action.seq), res.action] };
-            if (res.scout) setScout(res.scout);
-          } else {
-            const q = op.cid ? `cid=${encodeURIComponent(op.cid)}` : `seq=${op.seq}`;
-            const res = await api(`/matches/${mid}/actions/last?${q}`, { method: 'DELETE', lease });
-            if (stale(mid)) return;
-            if (res.scout) setScout(res.scout);
-            // a retry whose target is already gone answers removed:null; the
-            // local log still holds the action, so take it out by target either way
-            const gone = res.removed ? (x) => x.seq !== res.removed.seq : (x) => (op.cid ? x.cid !== op.cid : x.seq !== op.seq);
-            match = { ...match, actions: match.actions.filter(gone) };
-          }
-          ops = ops.filter((o) => o !== op);
-          gen++;
-          persistOps(mid, ops);
-          cacheMatch(id, match);
-          retryDelay = 5000;
-          conflicts = 0;
-        } catch (e) {
-          if (stale(mid)) return;
-          if (e.offline) {
-            // no answer: the online event flushes again, but the browser may
-            // stay "online" while the server is unreachable, so retry anyway
-            retryTimer = setTimeout(flush, retryDelay);
-            retryDelay = Math.min(retryDelay * 2, 60000);
-            break;
-          }
-          if (e.code === 'scouted_elsewhere' || e.code === 'scout_lease_expired') {
-            // our lease is over: stop this writer, settle what the server
-            // already holds, keep the rest aside — before any sequence logic
-            const m = await api(`/matches/${mid}`).catch(() => null);
-            if (stale(mid)) return;
-            if (m) ownershipLost(m);
-            else { persistLease(mid, { lost: true }); lease = null; scout = e.current?.scout || scout; } // settled on the next successful load
-            break;
-          }
-          if (e.status === 409) {
-            if (++conflicts > 2) { persistDropped(id, ops); ops = []; persistOps(id, ops); showToast('Konflikt mit dem Server, eigene Aktionen verworfen', true); break; }
-            const m = await api(`/matches/${mid}`).catch(() => null);
-            if (stale(mid)) return;
-            if (!m) { // the recovery reload failed too: same backoff as any other error
-              retryTimer = setTimeout(flush, retryDelay);
-              retryDelay = Math.min(retryDelay * 2, 60000);
-              break;
-            }
-            adopt(m);
-            continue;
-          }
-          if (e.status >= 500) {
-            showToast('Server antwortet nicht, neuer Versuch gleich', true);
-            retryTimer = setTimeout(flush, retryDelay);
-            retryDelay = Math.min(retryDelay * 2, 60000);
-            break;
-          }
-          // refused for good (e.g. the match is finished): drop it and the undo aimed at it
-          showToast(e.message, true);
-          const rest = ops.filter((o) => o !== op && !(op.type === 'add' && o.type === 'undo' && o.cid === op.action.cid));
-          ops = reconcileOps(match.actions, rest, match.actions.slice(-1)[0]?.seq || 0).ops;
-          persistOps(id, ops);
-        } finally {
-          inflight = null;
-        }
-      }
-    } finally {
-      flushing = false;
-      // a doubt raised while a request was on the wire and nothing left to
-      // send: ask now, so a lost lease shows as read-only right away
-      if (alive && mid === id && needVerify && lease && !ops.length) { verifyLease(mid).catch(() => {}); }
-      // this flush belonged to a match the page has left: the flag it held
-      // kept the new match's queue waiting, so hand over now
-      if (alive && mid !== id && ops.length) flush();
-      // the final point is confirmed and nothing is pending: let go of the match
-      if (alive && mid === id && lease && !ops.length && !inflight && match && cfg && replay(cfg, match.actions).finished) releaseLease(false);
+      const r = await createRecording({
+        match_id: mid, team_id: $me?.team?.id ?? null, user_id: $me?.user?.id ?? null, base: b,
+        origin_id: mode === 'copy' ? match.selected || null : null,
+        origin_n: mode === 'copy' ? selectedRec?.n ?? null : null,
+        firstEdit: first
+      });
+      if (stale(mid)) return;
+      rec = r; edits = first ? [first] : []; selected = null;
+      showToast(mode === 'copy' ? 'Eigene Aufzeichnung als Kopie begonnen' : 'Eigene Aufzeichnung begonnen');
+      kick();
+    } catch (e) {
+      logDiag('store', e?.message || e);
+      showToast('Speichern auf dem Gerät fehlgeschlagen: ' + (e?.message || e), true);
     }
   }
+
+  let selecting = $state(false);
+  async function select(rid) {
+    if (!canSelect || !match || selecting) return;
+    selecting = true;
+    try {
+      match = await api(`/matches/${id}/select`, { method: 'POST', body: { recording_id: rid, rev: match.selection_rev ?? 0 } });
+      cacheMatch(id, match);
+      showToast('Als Ergebnis übernommen');
+    } catch (e) {
+      if (e.code === 'selection_moved') { showToast('Die Auswahl wurde inzwischen geändert, Stand aktualisiert', true); loadServer(id); }
+      else showToast(e.message, true);
+    } finally { selecting = false; }
+  }
+  async function exportMine() {
+    if (!rec) return;
+    const data = await exportRecording(rec.id);
+    downloadJson(`sideout-aufzeichnung-${id}-${rec.id.slice(0, 8)}.json`, data);
+  }
+  const syncText = $derived(!rec ? '' : pendingHere ? `${pendingHere} nicht hochgeladen` : rec.created ? 'auf Server gespeichert' : 'lokal gespeichert');
 
   function tapCell(skill, grade) {
     let who = selected;
@@ -625,24 +436,11 @@
   }
   function undo() {
     if (!actionsAll.length || !canScout) return;
-    if (!canWrite) {
-      // after a finished match the lease was released: undoing the final point acquires anew
-      if (claimable && $online && !acquiring) { acquireLease('claim').then((ok) => { if (ok) undo(); else explainNoWrite(); }); return; }
-      explainNoWrite();
-      return;
-    }
+    if (!canWrite) { explainNoWrite(); return; }
     const a = last;
-    const lastOp = ops[ops.length - 1];
-    // an add that never went out is simply taken back; anything else
-    // (confirmed, on the wire, or sent with the answer lost) gets a targeted
-    // undo, because the server may hold it
-    if (lastOp?.type === 'add' && !lastOp.sent && lastOp !== inflight) ops = ops.slice(0, -1);
-    else ops = [...ops, { type: 'undo', cid: a.cid ?? null, seq: a.seq }];
-    gen++;
-    persistOps(id, ops);
-    selected = null;
-    showToast('Rückgängig: ' + describe(a));
-    flush();
+    // undoing on a device without its own recording starts one (a copy or fresh)
+    if (!rec) { startRecording({ undo: true }); return; }
+    commit({ op: 'undo', seq: a.seq }, 'Rückgängig: ' + describe(a));
   }
 
   function keys(e) {
@@ -690,13 +488,47 @@
             </div>
           {/if}
         </section>
-        {#if holderElse}
-          <div class="panel hint scoutbar" role="status">
-            <span class="hint-txt"><b>{scout.actor || 'Jemand'}</b> scoutet auf einem anderen Gerät{scout.device ? ` (${scout.device})` : ''} · seit {hhmm(scout.since)}</span>
-            {#if canScout}<button class="btn primary" onclick={takeover} disabled={acquiring || !$online || !tabOwner}>Scouting übernehmen</button>{/if}
-          </div>
+        {#if canScout && !$sync.supported}
+          <div class="panel hint scoutbar" role="status"><span class="hint-txt">{$sync.unsupportedReason}</span></div>
         {:else if canScout && !tabOwner}
           <div class="panel hint scoutbar" role="status"><span class="hint-txt">Dieses Spiel wird in einem anderen Tab dieses Browsers gescoutet.</span></div>
+        {/if}
+        {#if askStart}
+          <div class="panel hint scoutbar" role="dialog">
+            <span class="hint-txt">Für dieses Spiel gibt es schon eine Aufzeichnung{selectedRec ? ` (${recordingLabel(selectedRec, myDevice)}, ${selectedRec.state?.sets_won ?? 0}:${selectedRec.state?.sets_lost ?? 0} Sätze)` : ''}. Eigene Aufzeichnung auf diesem Gerät:</span>
+            <button class="btn primary" onclick={() => createAndApply('copy', askStart)}>Diesen Stand fortsetzen (Kopie)</button>
+            <button class="btn" onclick={() => createAndApply('fresh', askStart)}>Neu beginnen</button>
+            <button class="btn ghost" onclick={() => (askStart = null)}>Abbrechen</button>
+          </div>
+        {:else if activeOther}
+          <div class="panel hint scoutbar" role="status">
+            <span class="hint-txt"><b>{activeOther.user || 'Jemand'}</b> scoutet gerade auf einem anderen Gerät{activeOther.device ? ` (${activeOther.device})` : ''} · seit {hhmm(activeOther.created_at)}{rec ? ' · beide Aufzeichnungen bleiben erhalten' : ''}</span>
+          </div>
+        {/if}
+        {#if recError}
+          <div class="panel hint scoutbar err" role="alert"><span class="hint-txt">Upload abgelehnt: {recError}. Die Aufzeichnung bleibt auf dem Gerät.</span><button class="btn" onclick={exportMine}>Exportieren</button></div>
+        {:else if resultIsOther}
+          <div class="panel hint scoutbar" role="status">
+            <span class="hint-txt">Als Ergebnis zählt {selectedRec ? recordingLabel(selectedRec, myDevice) : 'eine andere Aufzeichnung'}, nicht die dieses Geräts.</span>
+            {#if canSelect}<button class="btn" onclick={() => select(rec.id)} disabled={selecting || !$online}>Diese verwenden</button>{/if}
+          </div>
+        {/if}
+        {#if showRecs}
+          <details class="panel hint recs" bind:open={recsOpen}>
+            <summary>Aufzeichnungen ({recordings.length + (rec && !recordings.some((r) => r.id === rec.id) ? 1 : 0)})</summary>
+            <ul>
+              {#if rec && !recordings.some((r) => r.id === rec.id)}
+                <li><b>Dieses Gerät</b> <span class="muted">noch nicht hochgeladen</span></li>
+              {/if}
+              {#each recordings as r (r.id)}
+                <li class:sel={r.selected}>
+                  <b>{recordingLabel(r, myDevice)}</b>
+                  <span class="muted">{r.state ? `${r.state.sets_won}:${r.state.sets_lost} Sätze · Satz ${r.state.set} ${r.state.us}:${r.state.them}` : ''} · {r.n} Änderungen · {hhmm(r.last_write)}{r.origin_id ? ' · Kopie' : ''}</span>
+                  {#if r.selected}<span class="chip ok">Ergebnis</span>{:else if canSelect}<button class="btn sm" onclick={() => select(r.id)} disabled={selecting || !$online}>Als Ergebnis verwenden</button>{/if}
+                </li>
+              {/each}
+            </ul>
+          </details>
         {/if}
         {#if tossPending}
           <div class="panel hint toss">Satz 5, neue Auslosung. Wer schlägt auf?
@@ -732,25 +564,25 @@
           {/if}
         </section>
         <section class="panel last" id="lastBox">
-          <div class="txt">{last ? 'Zuletzt: ' + describe(last) : 'Noch keine Aktion.'}{#if ops.length}<span class="pending"> · {ops.length} ausstehend</span>{/if}</div>
-          <button class="btn" onclick={undo} disabled={!last || !canScout || (!canWrite && !claimable)}><svg class="ico-undo" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg> Rückgängig</button>
+          <div class="txt">{last ? 'Zuletzt: ' + describe(last) : 'Noch keine Aktion.'}{#if syncText}<span class:pending={pendingHere > 0} class:okt={!pendingHere}> · {syncText}</span>{/if}</div>
+          <button class="btn" onclick={undo} disabled={!last || !canScout || !canWrite}><svg class="ico-undo" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg> Rückgängig</button>
         </section>
       </div>
 
       <div class="col mid">
-        <Pad {expected} idle={!selected} disabled={!canScout || !(canWrite || claimable) || st.finished || tossPending} ontap={tapCell} />
+        <Pad {expected} idle={!selected} disabled={!canScout || !canWrite || st.finished || tossPending} ontap={tapCell} />
         <div class="pad-foot" class:has-mic={canScout}>
-          <button class="btn big us" disabled={!canScout || !(canWrite || claimable) || st.finished || tossPending} onclick={() => queue({ skill: 'opp', grade: '=' })}>Fehler Gegner <span class="muted">+1 wir</span></button>
+          <button class="btn big us" disabled={!canScout || !canWrite || st.finished || tossPending} onclick={() => queue({ skill: 'opp', grade: '=' })}>Fehler Gegner <span class="muted">+1 wir</span></button>
           {#if canScout}
             <button class="btn big mic" class:on={voiceMode} onclick={toggleVoiceMode} title={voiceMode ? 'Zurück zum Pad' : 'Sprache'} aria-label={voiceMode ? 'Zurück zum Pad' : 'Sprache'}>
               {#if voiceMode}<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z"/></svg>
               {:else}<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>{/if}
             </button>
           {/if}
-          <button class="btn big them" disabled={!canScout || !(canWrite || claimable) || st.finished || tossPending} onclick={() => queue({ skill: 'opp', grade: '#' })}>Punkt Gegner</button>
+          <button class="btn big them" disabled={!canScout || !canWrite || st.finished || tossPending} onclick={() => queue({ skill: 'opp', grade: '#' })}>Punkt Gegner</button>
         </div>
         {#if canScout}
-          <Voice bind:this={voice} players={match.players} onCourt={court.map((c) => c.id)} disabled={!(canWrite || claimable) || st.finished || tossPending} onaction={queue} />
+          <Voice bind:this={voice} players={match.players} onCourt={court.map((c) => c.id)} disabled={!canWrite || st.finished || tossPending} onaction={queue} />
         {/if}
         {#if st.finished}
           <div class="panel done">
@@ -785,8 +617,8 @@
         </section>
       </div>
       <section class="panel timeline">
-        <div class="tl-head"><h2>Verlauf</h2><span class="small muted">{actionsAll.length} Aktionen</span><span class="spacer"></span><a class="small" href="{base}/auswertung/{id}">Auswertung →</a></div>
-        <button class="tl-undo" onclick={undo} disabled={!last || !canScout} title={last ? 'Rückgängig: ' + describe(last) : 'Nichts zum Rückgängigmachen'}><svg class="ico-undo" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>{#if ops.length}<i>{ops.length}</i>{/if}</button>
+        <div class="tl-head"><h2>Verlauf</h2><span class="small muted">{actionsAll.length} Aktionen{#if syncText} · {syncText}{/if}</span><span class="spacer"></span><a class="small" href="{base}/auswertung/{id}">Auswertung →</a></div>
+        <button class="tl-undo" onclick={undo} disabled={!last || !canScout || !canWrite} title={last ? 'Rückgängig: ' + describe(last) : 'Nichts zum Rückgängigmachen'}><svg class="ico-undo" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>{#if pendingHere}<i>{pendingHere}</i>{/if}</button>
         <div class="tl" bind:this={tlEl}>
           {#each timeline as e (e.key)}
             {#if e.t === 'set'}
@@ -931,6 +763,14 @@
   .last { display: flex; align-items: center; gap: 10px; }
   .last .txt { flex: 1; font-size: 13px; color: var(--ink-2); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .pending { color: var(--g-neg); }
+  .okt { color: var(--ink-3); }
+  .scoutbar.err { border-color: var(--g-err); background: transparent; }
+  .recs summary { cursor: pointer; font-weight: 600; }
+  .recs ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+  .recs li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 6px 8px; border-radius: var(--r-m); background: var(--raised); }
+  .recs li.sel { outline: 1px solid var(--accent); }
+  .recs li .muted { flex: 1 1 160px; font-size: 12px; }
+  .chip.ok { border-color: var(--ok); color: var(--ok); }
   .tiles.three { grid-template-columns: repeat(3, 1fr); }
   .mini { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px; }
   .mini th, .mini td { padding: 5px 4px; text-align: right; white-space: nowrap; }
