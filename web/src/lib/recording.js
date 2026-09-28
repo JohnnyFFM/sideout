@@ -100,3 +100,7 @@ export function recordingLabel(r, myDevice) {
   const dev = r.device ? ` · ${r.device}` : '';
   return (r.device_id && r.device_id === myDevice ? 'Dieses Gerät' : who + dev);
 }
+
+/** first taps of a match still waiting for the copy-or-fresh answer while
+ *  the live page shows another match (or was left): matchId → { first, more } */
+export const pendingStarts = new Map();

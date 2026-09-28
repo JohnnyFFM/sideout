@@ -351,6 +351,31 @@ await sleep(2500);
 sv = await waitServer(2, (s) => s.recs[0].n === n2 + 1);
 check('A: a tap right before leaving the page is saved and uploaded', sv.recs[0].n === n2 + 1 && sv.us === 2, { sv });
 
+// 17b. a first tap on a planned match, followed by navigation before the store has answered, still starts the recording
+const m4 = (await J('/matches', { method: 'POST', body: { opponent: 'Vierter Gegner', date: '2026-09-24', lineup: { pos: pl.slice(0, 6), libero: pl[6] } } })).data;
+await A.go('/live/4', 2500);
+await A.ev(`(()=>{const b=document.querySelector('.btn.big.us'); b.click(); const a=document.createElement('a'); a.href='/live/2'; document.body.append(a); a.click(); return 1})()`);
+await sleep(2500);
+const sv4 = await waitServer(4, (s) => s.recs.length === 1 && s.recs[0].n === 1);
+loc = await A.local();
+check('A: the very first tap of match 4 is saved and uploaded although the page moved to match 2', sv4.recs.length === 1 && sv4.recs[0].n === 1 && sv4.us === 1 && loc.some((r) => r.match === m4.id), { sv4, loc });
+await A.go('/live/4', 2500);
+sA = await A.state();
+check('A: back on match 4 the recording is its own (1:0), no dialog', sA.us === 1 && !sA.dialog, { sA });
+// the same with the copy-or-fresh question: B has no recording of match 4, A has one → B's taps wait for the answer
+await B.go('/live/4', 2500);
+await B.ev(`(()=>{const b=document.querySelector('.btn.big.us'); b.click(); b.click(); const a=document.createElement('a'); a.href='/live/2'; document.body.append(a); a.click(); return 1})()`);
+await sleep(2000);
+await B.ev(`(()=>{const a=document.createElement('a'); a.href='/live/4'; document.body.append(a); a.click(); return 1})()`);
+await sleep(2500);
+sB = await B.state();
+check('B: back on match 4 the question is still open for the two taps', sB.dialog && (await B.local()).filter((r) => r.match === m4.id).length === 0, { sB });
+check('B: fresh', (await B.clickText('.scoutbar[role=dialog] button', 'Neu beginnen')) === 'clicked');
+await sleep(1500);
+sB = await B.state();
+const sv4b = await waitServer(4, (s) => s.recs.length === 2);
+check('B: both kept taps landed (2:0) and uploaded', sB.us === 2 && sv4b.recs.length === 2 && sv4b.recs.find((r) => r.user === 'Petra Kuhn')?.n === 2, { sB, sv4b });
+
 // 18. the account changes in another tab while an upload pass is running: nothing goes out under the new account
 await A.go('/live/2', 2500);
 await A.offline(true); await sleep(300);

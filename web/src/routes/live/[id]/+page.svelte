@@ -12,7 +12,7 @@
   import { me, mutations, online, showToast, logDiag } from '$lib/stores.js';
   import { replay, courtView, expectedSkills, stats, SKILL, PAD, GRADE_CLASS, ROMAN, firstName, eff, fix } from '$lib/engine.js';
   import { cacheMatch, cachedMatch } from '$lib/offline.js';
-  import { fold, baseFromMatch, newAction, playersOf, recordingLabel } from '$lib/recording.js';
+  import { fold, baseFromMatch, newAction, playersOf, recordingLabel, pendingStarts } from '$lib/recording.js';
   import { myRecording, getRecording, editsFrom, appendEdit, createRecording, deviceId, onChange, exportRecording } from '$lib/recstore.js';
   import { sync, kick } from '$lib/uploader.js';
   import { tabWriter } from '$lib/scoutlock.js';
@@ -41,7 +41,7 @@
   // anything any more: every await checks `stale()`
   let alive = true;
   const stale = (mid) => !alive || mid !== id;
-  $effect(() => () => { alive = false; });
+  $effect(() => () => { alive = false; if (askStart && shownMid != null) pendingStarts.set(shownMid, askStart); });
 
   const canScout = $derived(['coach', 'assistant'].includes($me?.user?.role));
   const canWrite = $derived(canScout && tabOwner && $sync.supported);
@@ -126,14 +126,19 @@
       const es = r ? (await editsFrom(r.id, 1)).map((e) => e.body) : [];
       if (stale(mid)) return;
       rec = r; edits = es;
+      if (!r && !askStart && pendingStarts.has(mid)) { askStart = pendingStarts.get(mid); pendingStarts.delete(mid); }
     } catch (e) {
       if (!stale(mid)) showToast('Lokaler Speicher: ' + (e?.message || e), true);
     }
   }
 
+  let shownMid = null;
   $effect(() => {
     const mid = id;
     untrack(() => {
+      // an open copy-or-fresh question of the match we are leaving keeps its taps
+      if (askStart && shownMid != null && shownMid !== mid) pendingStarts.set(shownMid, askStart);
+      shownMid = mid;
       match = null; rec = null; edits = []; askStart = null; loadError = '';
       deviceId().then((d) => { if (!stale(mid)) myDevice = d; }).catch(() => {});
       loadLocal(mid).then(() => loadServer(mid));
@@ -246,7 +251,7 @@
     const ctx = ctxNow();
     serial(async () => {
       const { r, es, live } = await resolve(ctx);
-      if (!r) { if (live) await startRecording(ctx, { add: a }); return; } // a first tap only starts a recording on the page it was made on
+      if (!r) { await startRecording(ctx, { add: a }); return; }
       const acts = fold(r.base, es).actions;
       if (replay(fold(r.base, es).cfg, acts).finished) { if (live) showToast('Das Spiel ist beendet'); return; }
       await commit(ctx, r, es, { op: 'add', action: newAction(acts, a) });
@@ -257,10 +262,19 @@
   // when the match already has a recording — the user's choice between a
   // copy of the shown state and a fresh start. Taps that arrive while the
   // question is open are kept and applied after the choice.
+  // A first tap is saved from its captured context even when the page has
+  // moved on; only the copy-or-fresh question needs the page, and it is
+  // kept per match (pendingStarts) until the page shows that match again.
   async function startRecording(ctx, pending) {
-    if (id !== ctx.mid) return;
-    if (askStart) { askStart = { ...askStart, more: [...askStart.more, pending] }; return; }
-    if ((ctx.m?.recordings || []).length) { askStart = { first: pending, more: [] }; return; }
+    const live = id === ctx.mid;
+    if (live && askStart) { askStart = { ...askStart, more: [...askStart.more, pending] }; return; }
+    if ((ctx.m?.recordings || []).length) {
+      if (live) { askStart = { first: pending, more: [] }; return; }
+      const p = pendingStarts.get(ctx.mid) || { first: pending, more: [] };
+      if (p.first !== pending) p.more.push(pending);
+      pendingStarts.set(ctx.mid, p);
+      return;
+    }
     await createAndApply(ctx, 'fresh', { first: pending, more: [] });
   }
   /** a pending tap → the edit it means on the given effective log */
@@ -278,7 +292,7 @@
     serial(() => createAndApply(ctx, mode, ask));
   }
   async function createAndApply(ctx, mode, ask) {
-    askStart = null;
+    if (id === ctx.mid) askStart = null;
     const m = ctx.m;
     if (!m || ctx.uid == null) return;
     const b = mode === 'copy' ? baseFromMatch(m) : baseFromMatch(m, { planning: true });
@@ -505,7 +519,7 @@
     serial(async () => {
       const { r, es, live } = await resolve(ctx);
       // undoing on a device without its own recording starts one (a copy or fresh)
-      if (!r) { if (live) await startRecording(ctx, { undo: true }); return; }
+      if (!r) { await startRecording(ctx, { undo: true }); return; }
       const acts = fold(r.base, es).actions;
       const a = acts[acts.length - 1];
       if (!a) return;
