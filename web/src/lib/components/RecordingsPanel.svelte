@@ -74,7 +74,8 @@
       {#each recordings as r (r.id)}
         <li class:sel={r.selected}>
           <b>{recordingLabel(r, myDevice)}</b>
-          <span class="muted">{r.state ? `${r.state.sets_won}:${r.state.sets_lost} Sätze · Satz ${r.state.set} ${r.state.us}:${r.state.them}` : ''} · {r.n} Änderungen · {hhmm(r.last_write)}{r.origin_id ? ' · Kopie' : ''}{r.device_id === myDevice && pendingHere ? ` · ${pendingHere} nicht hochgeladen` : ''}</span>
+          <span class="muted">{r.state ? `${r.state.sets_won}:${r.state.sets_lost} Sätze · Satz ${r.state.set} ${r.state.us}:${r.state.them}` : ''} · {r.n} Änderungen · {hhmm(r.last_write)}{r.origin_id ? ' · Kopie' : ''}</span>
+          <span class="chip where" class:pend={r.device_id === myDevice && !r.imported && pendingHere}>{r.device_id === myDevice && !r.imported ? (pendingHere ? `${pendingHere} nicht hochgeladen` : 'Gerät + Server') : 'Server'}</span>
           {#if r.selected}<span class="chip ok">Ergebnis</span>{:else if canSelect}<button class="btn sm" onclick={() => select(r.id)} disabled={busy || !$online}>Als Ergebnis verwenden</button>{/if}
         </li>
       {/each}
@@ -95,5 +96,7 @@
   .recpanel li.sel { outline: 1px solid var(--accent); }
   .recpanel li .muted { flex: 1 1 160px; font-size: 12px; }
   .chip.ok { border-color: var(--ok); color: var(--ok); }
+  .chip.where { font-size: 11px; color: var(--ink-3); }
+  .chip.where.pend { color: var(--g-neg); border-color: var(--g-neg); }
   .btn.sm { height: 28px; padding: 0 10px; font-size: 12px; }
 </style>

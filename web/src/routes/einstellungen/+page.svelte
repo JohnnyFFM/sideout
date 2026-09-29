@@ -11,6 +11,7 @@
   import { cachedMatch } from '$lib/offline.js';
   import { downloadJson } from '$lib/people.js';
   import { fmtDate } from '$lib/engine.js';
+  import { recordingLabel } from '$lib/recording.js';
 
   let theme = $state(typeof window !== 'undefined' ? window.soTheme.get() : 'dark');
   $effect(() => {
@@ -117,7 +118,7 @@
           <ul class="reclist">
             {#each recs as r (r.id)}
               <li>
-                <div class="rt"><b>{r.title}</b> <span class="muted">{r.imported ? r.device_label || 'Import' : r.device_id === myDevice ? 'dieses Gerät' : r.device_label}{!r.imported && r.user_id != null && r.user_id !== $me?.user?.id ? ' · anderes Konto' : ''} · {r.edits} Änderungen</span></div>
+                <div class="rt"><b>{r.title}</b> <span class="muted">{recordingLabel({ ...r, user: r.user_id === $me?.user?.id ? $me?.user?.display_name : null }, myDevice)}{!r.imported && r.user_id != null && r.user_id !== $me?.user?.id ? ' · anderes Konto' : ''} · {r.edits} Änderungen</span></div>
                 <div class="rs" class:bad={!!r.error} class:pend={!r.error && r.pending}>{r.error ? 'Fehler: ' + r.error : r.pending ? `${r.pending} nicht hochgeladen` : 'auf Server gespeichert'}</div>
                 <div class="ra"><a class="small" href="{base}/auswertung/{r.match_id}">Auswertung</a><button class="btn" onclick={() => exportRec(r)}>Exportieren</button></div>
               </li>

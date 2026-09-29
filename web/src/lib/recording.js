@@ -94,9 +94,14 @@ export function playersOf(teamPlayers, snapshot) {
   return out;
 }
 
-/** a short label for a recording in lists and panels */
+/** a readable name for a recording in lists and panels: who, on what, and
+ *  for imports where they came from (server rows carry `device`, local rows `device_label`) */
 export function recordingLabel(r, myDevice) {
+  if (r.device_id && r.device_id === myDevice && !r.imported) return 'Dieses Gerät';
   const who = r.user || 'Unbekannt';
-  const dev = r.device ? ` · ${r.device}` : '';
-  return (r.device_id && r.device_id === myDevice ? 'Dieses Gerät' : who + dev);
+  const dev = r.device ?? r.device_label ?? '';
+  if (r.device_id === 'legacy' && dev === 'Import') return `${who} · alter Spielstand vom Server (vor der Umstellung)`;
+  if (r.device_id === 'legacy') return `${who} · aus der alten App-Version eines Geräts${/beiseite/i.test(dev) ? ' (damals beiseitegelegt)' : ''}`;
+  if (r.imported) return `${who} · aus Datei importiert${dev ? ` (${dev})` : ''}`;
+  return `${who}${dev ? ' · ' + dev : ''}`;
 }
