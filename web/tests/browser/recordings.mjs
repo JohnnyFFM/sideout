@@ -55,7 +55,7 @@ function wrap(t, port) {
   const txt = (sel) => t.ev(`document.querySelector('${sel}')?.textContent.replace(/\\s+/g,' ').trim() || ''`);
   const offline = (on) => t.send('Network.emulateNetworkConditions', { offline: on, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
   const shot = async (name) => { const r = await t.send('Page.captureScreenshot', { format: 'png' }); writeFileSync(`${outDir}/${name}.png`, Buffer.from(r.result.data, 'base64')); };
-  const state = () => t.ev(`JSON.stringify({ us: +document.querySelector('.score .side.us .pts')?.textContent, them: +document.querySelector('.score .side.them .pts')?.textContent, bar: [...document.querySelectorAll('.scoutbar')].map(e=>e.textContent.replace(/\\s+/g,' ').trim()).join(' | '), padOn: document.querySelectorAll('.cell:not(:disabled)').length - 3, oppOn: !document.querySelector('.btn.big.us')?.disabled, undoOn: !document.querySelector('#lastBox button')?.disabled, last: document.querySelector('#lastBox .txt')?.textContent.replace(/\\s+/g,' ').trim() || '', recs: document.querySelector('.recs summary')?.textContent.trim() || '', dialog: !!document.querySelector('.scoutbar[role=dialog]') })`).then((s) => JSON.parse(s));
+  const state = () => t.ev(`JSON.stringify({ us: +document.querySelector('.score .side.us .pts')?.textContent, them: +document.querySelector('.score .side.them .pts')?.textContent, bar: [...document.querySelectorAll('.scoutbar')].map(e=>e.textContent.replace(/\\s+/g,' ').trim()).join(' | '), padOn: document.querySelectorAll('.cell:not(:disabled)').length - 3, oppOn: !document.querySelector('.btn.big.us')?.disabled, undoOn: !document.querySelector('#lastBox button')?.disabled, last: document.querySelector('#lastBox .txt')?.textContent.replace(/\\s+/g,' ').trim() || '', recs: document.querySelector('.recs summary')?.textContent.trim() || '', dialog: !!document.querySelector('.modal[role=dialog]') })`).then((s) => JSON.parse(s));
   const tap = () => t.ev(`(()=>{const b=document.querySelector('.btn.big.us'); if(!b||b.disabled) return 'blocked'; b.click(); return 'clicked'})()`);
   const tapThem = () => t.ev(`(()=>{const b=document.querySelector('.btn.big.them'); if(!b||b.disabled) return 'blocked'; b.click(); return 'clicked'})()`);
   const undo = () => t.ev(`(()=>{const b=document.querySelector('#lastBox button'); if(!b||b.disabled) return 'blocked'; b.click(); return 'clicked'})()`);
@@ -131,19 +131,13 @@ await B.go('/live/1', 1200);
 const toastB = await B.txt('.toast');
 let sB = await B.state();
 check('B: a toast names the active scout, no bar, pad enabled, no dialog yet', /Jonas Steitz scoutet gerade/.test(toastB) && !/scoutet gerade/.test(sB.bar) && sB.padOn > 0 && !sB.dialog && sB.us === 8, { toastB, sB });
-await B.tap(); await sleep(400);
-sB = await B.state();
-check('B: first tap asks copy or fresh, nothing recorded yet', sB.dialog && sB.us === 8 && (await B.local()).length === 0, { sB });
-await B.shot('rec-b-dialog');
-check('B: fresh start', (await B.clickText('.scoutbar[role=dialog] button', 'Neu beginnen')) === 'clicked');
-await sleep(600);
-await B.tap(); await sleep(1500);
+await B.tap(); await sleep(400); await B.tap(); await sleep(1500);
 sB = await B.state();
 sv = await waitServer(1, (s) => s.recs.length === 2 && s.recs[1].n === 2);
-check('B: own recording from the planning (0 → 2), uploaded as second recording; selection unchanged', sB.us === 2 && sv.recs.length === 2 && sv.recs[1].n === 2 && sv.selected === recA && sv.us === 8, { sB, sv });
+check('B: the first tap continues the shown result as an own copy (8 → 10), uploaded with origin = A; selection unchanged', sB.us === 10 && !sB.dialog && sv.recs.length === 2 && sv.recs[1].n === 2 && sv.recs[1].origin_id === recA && sv.selected === recA && sv.us === 8, { sB, sv });
+await B.shot('rec-b-own');
 const recB = sv.recs[1].id;
 check('B: no result bar on the live page', !/Als Ergebnis zählt/.test(sB.bar) && !sB.recs, { sB });
-await B.shot('rec-b-own');
 // the recordings live in the Spiele overview: an expandable entry per match
 await B.go('/spiele', 2500);
 check('B spiele: entry "2 Aufzeichnungen"', (await B.clickText('.matches .lnk', '2 Aufzeichnungen')) === 'clicked');
@@ -161,7 +155,7 @@ check('A auswertung: recordings panel with 2 entries', /Aufzeichnungen \(2\)/.te
 await A.ev(`document.querySelector('.recs').open = true`);
 check('A selects B', (await A.clickText('.recs li:not(.sel) button', 'Als Ergebnis')) === 'clicked');
 sv = await waitServer(1, (s) => s.selected === recB);
-check('server: B is the result now, state follows B', sv.selected === recB && sv.us === 2, { sv });
+check('server: B is the result now, state follows B', sv.selected === recB && sv.us === 10, { sv });
 await sleep(800);
 await A.shot('rec-a-auswertung');
 const aw = await A.txt('.srcbar');
@@ -174,7 +168,7 @@ check('B: no "other result" bar any more', !/Als Ergebnis zählt/.test(sB.bar), 
 // 5. a viewer never records
 await V.go('/live/1');
 const sV = await V.state();
-check('viewer: pad disabled, shows the result (B, 2:0), no dialog', sV.padOn === 0 && !sV.oppOn && sV.us === 2 && !sV.dialog && (await V.local()).length === 0, { sV });
+check('viewer: pad disabled, shows the result (B, 10:0), no dialog', sV.padOn === 0 && !sV.oppOn && sV.us === 10 && !sV.dialog && (await V.local()).length === 0, { sV });
 await V.tap();
 check('viewer: tap blocked', (await V.tap()) === 'blocked');
 
@@ -184,7 +178,7 @@ check('A undo', (await A.undo()) === 'clicked');
 await sleep(1500);
 sv = await waitServer(1, (s) => s.recs.find((r) => r.id === recA)?.n === 9);
 sA = await A.state();
-check('A: undo stored as edit 9, own state 7, result still B 2:0', sA.us === 7 && sv.recs.find((r) => r.id === recA).n === 9 && sv.us === 2 && sv.selected === recB, { sA, sv });
+check('A: undo stored as edit 9, own state 7, result still B 10:0', sA.us === 7 && sv.recs.find((r) => r.id === recA).n === 9 && sv.us === 10 && sv.selected === recB, { sA, sv });
 
 // 7. two tabs of one browser: one writer, shared store
 const A2 = await secondTab(A);
@@ -243,11 +237,11 @@ check('A spiele panel: coach sees "Als Ergebnis verwenden" for its own and the c
 check('A continues the result', (await A.clickText('.recpanel button', 'Ergebnis als Kopie')) === 'clicked');
 await sleep(2500);
 sA = await A.state();
-check('A: now on the live page with a copy of B (2:0), no dialog', sA.us === 2 && !sA.dialog && /\/live\/1$/.test(await A.ev('location.pathname')), { sA });
+check('A: now on the live page with a copy of B (10:0), no dialog', sA.us === 10 && !sA.dialog && /\/live\/1$/.test(await A.ev('location.pathname')), { sA });
 await A.tap(); await sleep(1500);
 sv = await waitServer(1, (s) => s.recs.length === 4);
 const copyA = (await J('/matches/1')).data.recordings.find((r) => r.origin_id === recB);
-check('server: the copy arrived with origin = B, one edit, 3:0; A\'s older recording untouched (10)', !!copyA && copyA.n === 1 && copyA.state.us === 3 && sv.recs.find((r) => r.id === recA).n === 10, { sv, copyA });
+check('server: the copy arrived with origin = B, one edit, 11:0; A\'s older recording untouched (10)', !!copyA && copyA.n === 1 && copyA.state.us === 11 && sv.recs.find((r) => r.id === recA).n === 10, { sv, copyA });
 loc = await A.local();
 check('A local: three own recordings of match 1 exist side by side', loc.filter((r) => r.match === 1 && !r.imported).length === 2 && loc.filter((r) => r.match === 1).length >= 2, { loc });
 await A.shot('rec-a-copy');
@@ -263,17 +257,13 @@ sv = await waitServer(3, (s) => s.recs.length === 1 && s.recs[0].n === 3);
 check('A: three rapid first taps → one recording with 3 edits, 3:0', loc.filter((r) => r.match === 3).length === 1 && loc.find((r) => r.match === 3).next === 4 && sv.recs.length === 1 && sv.recs[0].n === 3 && sv.us === 3, { loc, sv });
 const recA3 = sv.recs[0].id;
 
-// 12. taps during the copy/fresh question are kept (B on match 3, where A already records)
+// 12. two rapid first taps on a match another device records: one own copy with both taps, no question
 await B.go('/live/3', 2500);
 await B.ev(`(()=>{const b=document.querySelector('.btn.big.us'); b.click(); b.click(); return 1})()`);
-await sleep(500);
-sB = await B.state();
-check('B: question open after two quick taps, nothing recorded yet', sB.dialog && (await B.local()).filter((r) => r.match === 3).length === 0, { sB });
-check('B: fresh', (await B.clickText('.scoutbar[role=dialog] button', 'Neu beginnen')) === 'clicked');
-await sleep(1200);
+await sleep(1500);
 sB = await B.state();
 sv = await waitServer(3, (s) => s.recs.length === 2);
-check('B: both taps landed in the new recording (2:0), uploaded', sB.us === 2 && sv.recs.length === 2 && sv.recs.find((r) => r.id !== recA3)?.n === 2, { sB, sv });
+check('B: one copy of A\'s state with both taps (3 → 5), uploaded', sB.us === 5 && !sB.dialog && (await B.local()).filter((r) => r.match === 3).length === 1 && sv.recs.length === 2 && sv.recs.find((r) => r.id !== recA3)?.n === 2 && sv.recs.find((r) => r.id !== recA3)?.origin_id === recA3, { sB, sv });
 
 // 13. a failing recording (5xx) does not block the others; it retries later on its own
 A.setIntercept((method, url) => (method === 'PUT' && url.includes(`/api/matches/1/recordings/`) ? { status: 503, body: { error: 'down' } } : null));
@@ -336,7 +326,7 @@ await sleep(3000);
 sB = await B.state();
 bl = (await B.local()).find((r) => r.id === recB);
 sv = await server(1);
-check('B (jonas): petra\'s recording is not his, not shown as own, and not uploaded under his account', sB.us === 2 && !sB.dialog && bl.next - 1 - bl.confirmed === 1 && sv.recs.find((r) => r.id === recB).n === 2, { sB, bl, sv });
+check('B (jonas): petra\'s recording is not his, not shown as own, and not uploaded under his account', sB.us === 10 && !sB.dialog && bl.next - 1 - bl.confirmed === 1 && sv.recs.find((r) => r.id === recB).n === 2, { sB, bl, sv });
 await B.go('/einstellungen', 2500);
 check('B (jonas): settings mention the other account\'s pending recording', /anderen Kontos/.test(await A.txt('body') + await B.txt('.app-row .d')) || /anderen Kontos/.test(await B.ev(`document.body.textContent`)));
 await B.login('petra.k');
@@ -371,44 +361,24 @@ check('A: the very first tap of match 4 is saved and uploaded although the page 
 await A.go('/live/4', 2500);
 sA = await A.state();
 check('A: back on match 4 the recording is its own (1:0), no dialog', sA.us === 1 && !sA.dialog, { sA });
-// the same with the copy-or-fresh question: B has no recording of match 4, A has one → B's taps wait for the answer
+// B has no recording of match 4, A has one: B's first taps become an own copy even when the page moves on at once
 await B.go('/live/4', 2500);
 await B.ev(`(()=>{const b=document.querySelector('.btn.big.us'); b.click(); b.click(); const a=document.createElement('a'); a.href='/live/2'; document.body.append(a); a.click(); return 1})()`);
-await sleep(2000);
-// another account on the same browser (client-side navigation, the page keeps its memory) does not inherit the question
+await sleep(2500);
+let sv4b = await waitServer(4, (s) => s.recs.length === 2);
+check('B (petra): both taps landed in her copy of A\'s state (1 → 3), uploaded, page moved to match 2', sv4b.recs.find((r) => r.user === 'Petra Kuhn')?.n === 2 && sv4b.recs.find((r) => r.user === 'Petra Kuhn')?.us === 3 && /\/live\/2$/.test(await B.ev('location.pathname')), { sv4b });
+// another account on the same browser (client-side navigation, the page keeps its memory) gets its own copy, not petra's recording
 const anchor = (path) => `(()=>{const a=document.createElement('a'); a.href='${path}'; document.body.append(a); a.click(); return 1})()`;
 const switchTo = async (b, user) => { await b.login(user); await b.ev(anchor('/login')); await sleep(800); await b.ev(anchor('/live/4')); await sleep(2500); };
 await switchTo(B, 'jonas');
 sB = await B.state();
-check('B (jonas): no inherited question, nothing recorded for him', !sB.dialog && (await B.local()).filter((r) => r.match === m4.id).length === 0, { sB, who: await B.ev(`JSON.parse(localStorage.getItem('so_me')||'null')?.user?.username`) });
-await switchTo(B, 'petra.k');
-sB = await B.state();
-check('B (petra): back on match 4 the question is still open for her two taps', sB.dialog && (await B.local()).filter((r) => r.match === m4.id).length === 0, { sB });
-// the identity changes while the question is open (another tab signs in as jonas, this page refreshes who it is)
-const B2 = await secondTab(B);
-await B2.go('/login', 1500);
-await B2.login('jonas');
-await B.ev(`window.dispatchEvent(new Event('online')); 1`);
-await sleep(2500);
-sB = await B.state();
-check('B (jonas, same page): petra’s question left the screen, identity is jonas', !sB.dialog && (await B.ev(`JSON.parse(localStorage.getItem('so_me')||'null')?.user?.username`)) === 'jonas', { sB });
-await B.tap(); await sleep(500);
-sB = await B.state();
-check('B (jonas): his tap opens his own question, nothing appended to petra’s', sB.dialog && (await B.local()).filter((r) => r.match === m4.id).length === 0, { sB });
-check('B (jonas): fresh', (await B.clickText('.scoutbar[role=dialog] button', 'Neu beginnen')) === 'clicked');
-await sleep(1500);
-sB = await B.state();
-let sv4b = await waitServer(4, (s) => s.recs.length === 2);
-check('B (jonas): one tap in his own recording (1:0), uploaded', sB.us === 1 && sv4b.recs.filter((r) => r.user === 'Jonas Steitz').length === 2 && !sv4b.recs.some((r) => r.user === 'Petra Kuhn'), { sB, sv4b });
-await B2.send('Page.navigate', { url: 'about:blank' });
-await switchTo(B, 'petra.k');
-sB = await B.state();
-check('B (petra again): her question with her two taps is back', sB.dialog && sB.us === 1, { sB });
-check('B: fresh', (await B.clickText('.scoutbar[role=dialog] button', 'Neu beginnen')) === 'clicked');
-await sleep(1500);
-sB = await B.state();
+check('B (jonas): shows the result (A, 1:0), not petra\'s recording', sB.us === 1 && !sB.dialog, { sB, who: await B.ev(`JSON.parse(localStorage.getItem('so_me')||'null')?.user?.username`) });
+await B.tap(); await sleep(1500);
 sv4b = await waitServer(4, (s) => s.recs.length === 3);
-check('B: both kept taps landed in petra’s recording (2:0) and uploaded', sB.us === 2 && sv4b.recs.length === 3 && sv4b.recs.find((r) => r.user === 'Petra Kuhn')?.n === 2, { sB, sv4b });
+check('B (jonas): his tap made his own copy (1 → 2); petra\'s recording untouched (2)', sv4b.recs.filter((r) => r.user === 'Jonas Steitz').length === 2 && sv4b.recs.find((r) => r.user === 'Petra Kuhn')?.n === 2, { sv4b });
+await switchTo(B, 'petra.k');
+sB = await B.state();
+check('B (petra again): her own recording (3:0) continues', sB.us === 3 && !sB.dialog, { sB });
 
 // 18. the account changes in another tab while an upload pass is running: nothing goes out under the new account
 await A.go('/live/2', 2500);

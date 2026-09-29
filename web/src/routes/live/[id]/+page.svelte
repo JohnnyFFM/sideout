@@ -12,11 +12,10 @@
   import { me, mutations, online, showToast, logDiag } from '$lib/stores.js';
   import { replay, courtView, expectedSkills, stats, SKILL, PAD, GRADE_CLASS, ROMAN, firstName, eff, fix } from '$lib/engine.js';
   import { cacheMatch, cachedMatch } from '$lib/offline.js';
-  import { fold, baseFromMatch, newAction, playersOf, recordingLabel, pendingStarts } from '$lib/recording.js';
-  import { myRecording, getRecording, editsFrom, appendEdit, createRecording, deviceId, onChange, exportRecording } from '$lib/recstore.js';
+  import { fold, baseFromMatch, newAction, playersOf, recordingLabel } from '$lib/recording.js';
+  import { myRecording, getRecording, editsFrom, appendEdit, createRecording, deviceId, onChange } from '$lib/recstore.js';
   import { sync, kick } from '$lib/uploader.js';
   import { tabWriter } from '$lib/scoutlock.js';
-  import { downloadJson } from '$lib/people.js';
   import Court from '$lib/components/Court.svelte';
   import Pad from '$lib/components/Pad.svelte';
   import Voice from '$lib/components/Voice.svelte';
@@ -29,7 +28,6 @@
   let scope = $state('set');
   let loadError = $state('');
   let tabOwner = $state(false);
-  let askStart = $state(null);   // first taps waiting for "copy or fresh": { first: { add } | { undo: true }, more: [] }
   // every capture step (create, add, undo) runs in one chain: a tap never
   // sees the recording of the tap before it half-made, and sequence numbers
   // are computed after the previous edit is saved
@@ -40,8 +38,7 @@
   // anything any more: every await checks `stale()`
   let alive = true;
   const stale = (mid) => !alive || mid !== id;
-  $effect(() => () => { alive = false; if (askStart && shownMid != null) pendingStarts.set(startKey(askStart.ctx.uid, shownMid), askStart); });
-  const startKey = (uid, mid) => `${uid}:${mid}`;
+  $effect(() => () => { alive = false; });
 
   const canScout = $derived(['coach', 'assistant'].includes($me?.user?.role));
   const canWrite = $derived(canScout && tabOwner && $sync.supported);
@@ -93,6 +90,14 @@
   // ----- sync and the other recordings -----
   const pendingHere = $derived($sync.byMatch[id] || 0);
   const recError = $derived(rec?.error || null);
+  // an upload the server refused: said as a toast, the export lives in Einstellungen
+  let toldError = null;
+  $effect(() => {
+    const e = recError;
+    if (!e || e === toldError) return;
+    toldError = e;
+    untrack(() => showToast(`Upload abgelehnt: ${e} · die Aufzeichnung bleibt auf dem Gerät, Export unter Einstellungen`, true));
+  });
   const recordings = $derived(match?.recordings || []);
   const others = $derived(recordings.filter((r) => r.device_id !== myDevice));
   const activeOther = $derived(others.find((r) => r.active) || null);
@@ -141,21 +146,15 @@
       const es = r ? (await editsFrom(r.id, 1)).map((e) => e.body) : [];
       if (stale(mid)) return;
       rec = r; edits = es;
-      const k = startKey($me?.user?.id ?? null, mid);
-      if (!r && !askStart && pendingStarts.has(k)) { askStart = pendingStarts.get(k); pendingStarts.delete(k); }
     } catch (e) {
       if (!stale(mid)) showToast('Lokaler Speicher: ' + (e?.message || e), true);
     }
   }
 
-  let shownMid = null;
   $effect(() => {
     const mid = id;
     untrack(() => {
-      // an open copy-or-fresh question of the match we are leaving keeps its taps, under the account that made them
-      if (askStart && shownMid != null && shownMid !== mid) pendingStarts.set(startKey(askStart.ctx.uid, shownMid), askStart);
-      shownMid = mid;
-      match = null; rec = null; edits = []; askStart = null; loadError = '';
+      match = null; rec = null; edits = []; loadError = '';
       deviceId().then((d) => { if (!stale(mid)) myDevice = d; }).catch(() => {});
       loadLocal(mid).then(() => loadServer(mid));
     });
@@ -171,17 +170,9 @@
     return () => { lock.release(); off(); };
   });
   // the identity may land after the first effect (layout order, offline start)
-  // or change while the page is open (another tab signed in): an open
-  // question of the previous account is parked under that account and leaves
-  // the screen, then the local recording and question of the new one are loaded
-  $effect(() => {
-    const uid = $me?.user?.id ?? null;
-    const mid = id;
-    untrack(() => {
-      if (askStart && askStart.ctx?.uid !== uid) { pendingStarts.set(startKey(askStart.ctx.uid, mid), askStart); askStart = null; }
-      if (uid != null) loadLocal(mid);
-    });
-  });
+  // or change while the page is open (another tab signed in): the local
+  // recording of the signed-in account is looked up again
+  $effect(() => { const uid = $me?.user?.id ?? null; const mid = id; if (uid != null) untrack(() => loadLocal(mid)); });
 
   // another device wrote to this match, or the coach chose: refetch the server side only
   $effect(() => {
@@ -284,32 +275,14 @@
     });
   }
 
-  // the first tap on this device: a fresh recording from the planning, or —
-  // when the match already has a recording — the user's choice between a
-  // copy of the shown state and a fresh start. Taps that arrive while the
-  // question is open are kept and applied after the choice.
-  // A first tap is saved from its captured context even when the page has
-  // moved on; only the copy-or-fresh question needs the page, and it is
-  // kept per match (pendingStarts) until the page shows that match again.
+  // the first tap on this device continues what is loaded, without asking:
+  // a fresh recording from the planning when nothing was recorded yet, else
+  // a copy of the shown result (another scout's or an import) as the own
+  // recording, with its origin noted. Saved from the captured context even
+  // when the page has already moved on.
   async function startRecording(ctx, pending) {
     if (ctx.uid == null) return;
-    const live = id === ctx.mid && ($me?.user?.id ?? null) === ctx.uid;
-    if (live && askStart) {
-      // a tap joins an open question only when the same account asked it; another account's question is parked first
-      if (askStart.ctx?.uid === ctx.uid) { askStart = { ...askStart, more: [...askStart.more, pending] }; return; }
-      pendingStarts.set(startKey(askStart.ctx.uid, ctx.mid), askStart);
-      askStart = null;
-    }
-    if ((ctx.m?.recordings || []).length) {
-      // the question, with the context it was asked in: the taps stay with that account and match
-      if (live) { askStart = { first: pending, more: [], ctx }; return; }
-      const k = startKey(ctx.uid, ctx.mid);
-      const p = pendingStarts.get(k) || { first: pending, more: [], ctx };
-      if (p.first !== pending) p.more.push(pending);
-      pendingStarts.set(k, p);
-      return;
-    }
-    await createAndApply(ctx, 'fresh', { first: pending, more: [] });
+    await createAndApply(ctx, (ctx.m?.recordings || []).length ? 'copy' : 'fresh', { first: pending });
   }
   /** a pending tap → the edit it means on the given effective log */
   function editFor(pending, acts) {
@@ -318,15 +291,7 @@
     if (pending?.edit) return pending.edit;
     return null;
   }
-  function chooseStart(mode) {
-    const ask = askStart;
-    askStart = null;
-    if (!ask) return;
-    // answered with the context the taps were made in, never the current identity
-    serial(() => createAndApply(ask.ctx, mode, ask));
-  }
   async function createAndApply(ctx, mode, ask) {
-    if (id === ctx.mid) askStart = null;
     const m = ctx.m;
     if (!m || ctx.uid == null) return;
     const b = mode === 'copy' ? baseFromMatch(m) : baseFromMatch(m, { planning: true });
@@ -349,24 +314,12 @@
       return;
     }
     kick();
-    let es = first ? [first] : [];
     if (id === ctx.mid) {
-      rec = r; edits = es; selected = null;
-      showToast(mode === 'copy' ? 'Eigene Aufzeichnung als Kopie begonnen' : 'Eigene Aufzeichnung begonnen');
-    }
-    // the taps that came in while the question was open
-    const ctx2 = { ...ctx, r };
-    for (const p of ask?.more || []) {
-      const e = editFor(p, fold(r.base, es).actions);
-      if (e && (await commit(ctx2, r, es, e))) es = [...es, e];
+      rec = r; edits = first ? [first] : []; selected = null;
+      showToast(mode === 'copy' ? `Stand übernommen (${sel ? recordingLabel(sel, myDevice) : 'Ergebnis'}), eigene Aufzeichnung läuft` : 'Eigene Aufzeichnung begonnen');
     }
   }
 
-  async function exportMine() {
-    if (!rec) return;
-    const data = await exportRecording(rec.id);
-    downloadJson(`sideout-aufzeichnung-${id}-${rec.id.slice(0, 8)}.json`, data);
-  }
   const syncText = $derived(!rec ? '' : pendingHere ? `${pendingHere} nicht hochgeladen` : rec.created ? 'auf Server gespeichert' : 'lokal gespeichert');
 
   function tapCell(skill, grade) {
@@ -591,17 +544,7 @@
         {:else if canScout && !tabOwner}
           <div class="panel hint scoutbar" role="status"><span class="hint-txt">Dieses Spiel wird in einem anderen Tab dieses Browsers gescoutet.</span></div>
         {/if}
-        {#if askStart}
-          <div class="panel hint scoutbar" role="dialog">
-            <span class="hint-txt">Für dieses Spiel gibt es schon eine Aufzeichnung{selectedRec ? ` (${recordingLabel(selectedRec, myDevice)}, ${selectedRec.state?.sets_won ?? 0}:${selectedRec.state?.sets_lost ?? 0} Sätze)` : ''}. Eigene Aufzeichnung auf diesem Gerät:</span>
-            <button class="btn primary" onclick={() => chooseStart('copy')}>Diesen Stand fortsetzen (Kopie)</button>
-            <button class="btn" onclick={() => chooseStart('fresh')}>Neu beginnen</button>
-            <button class="btn ghost" onclick={() => (askStart = null)}>Abbrechen</button>
-          </div>
-        {/if}
-        {#if recError}
-          <div class="panel hint scoutbar err" role="alert"><span class="hint-txt">Upload abgelehnt: {recError}. Die Aufzeichnung bleibt auf dem Gerät.</span><button class="btn" onclick={exportMine}>Exportieren</button></div>
-        {/if}
+
         {#if tossPending}
           <div class="panel hint toss">Satz 5, neue Auslosung. Wer schlägt auf?
             <button class="btn" disabled={!canWrite} onclick={() => queue({ skill: 'srv', grade: '#' })}>Wir</button>
@@ -836,7 +779,7 @@
   .last .txt { flex: 1; font-size: 13px; color: var(--ink-2); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .pending { color: var(--g-neg); }
   .okt { color: var(--ink-3); }
-  .scoutbar.err { border-color: var(--g-err); background: transparent; }
+
 
   .tiles.three { grid-template-columns: repeat(3, 1fr); }
   .mini { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px; }
