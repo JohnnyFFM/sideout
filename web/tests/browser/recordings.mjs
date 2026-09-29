@@ -142,12 +142,18 @@ sB = await B.state();
 sv = await waitServer(1, (s) => s.recs.length === 2 && s.recs[1].n === 2);
 check('B: own recording from the planning (0 → 2), uploaded as second recording; selection unchanged', sB.us === 2 && sv.recs.length === 2 && sv.recs[1].n === 2 && sv.selected === recA && sv.us === 8, { sB, sv });
 const recB = sv.recs[1].id;
-check('B: told that another recording is the result', /Als Ergebnis zählt/.test(sB.bar) && /Aufzeichnungen \(2\)/.test(sB.recs), { sB });
+check('B: no result bar on the live page', !/Als Ergebnis zählt/.test(sB.bar) && !sB.recs, { sB });
 await B.shot('rec-b-own');
+// the recordings live in the Spiele overview: an expandable entry per match
+await B.go('/spiele', 2500);
+check('B spiele: entry "2 Aufzeichnungen"', (await B.clickText('.matches .lnk', '2 Aufzeichnungen')) === 'clicked');
+await sleep(1500);
+const panelB = await B.txt('.recpanel');
+check('B spiele panel: both recordings, the result marked, own device not the result', /Ergebnis/.test(panelB) && /Dieses Gerät/.test(panelB) && /Als Ergebnis zählt/.test(panelB) && !/Als Ergebnis verwenden/.test(panelB), { panelB });
 // A sees the second recording too, still shows its own
 await A.go('/live/1', 2500);
 sA = await A.state();
-check('A: still its own recording (8), lists 2 recordings, no dialog', sA.us === 8 && /Aufzeichnungen \(2\)/.test(sA.recs) && !sA.dialog, { sA });
+check('A: still its own recording (8), no dialog', sA.us === 8 && !sA.dialog, { sA });
 
 // 4. the coach selects B's recording as the result (from the evaluation page)
 await A.go('/auswertung/1', 2500);
@@ -228,14 +234,16 @@ check('server unchanged by the identical import (still 3 recordings, A at 10)', 
 const vloc2 = await V.local();
 check('viewer: import confirmed after upload (a viewer may not write → visible error instead)', vloc2.find((r) => r.id === recA).error !== null || vloc2.find((r) => r.id === recA).confirmed === 10, { vloc2 });
 
-// 10. A → B → A: A continues the result (B's recording) as a new copy of its own; the old one stays
-await A.go('/live/1', 2500);
+// 10. A → B → A: from the Spiele overview A continues the result (B's recording) as a new copy of its own; the old one stays
+await A.go('/spiele', 2500);
+check('A spiele: entry "n Aufzeichnungen" on match 1', (await A.ev(`(()=>{const li=[...document.querySelectorAll('.matches li')].find(l=>l.textContent.includes('VfL Bad Vilbel')); const b=li?.querySelector('.lnk'); if(!b) return 'none'; b.click(); return b.textContent.trim()})()`)).startsWith('3 Aufzeichnungen'));
+await sleep(1500);
+const panelA = await A.txt('.recpanel');
+check('A spiele panel: coach sees "Als Ergebnis verwenden" for its own and the copy action', /Als Ergebnis verwenden/.test(panelA) && /Ergebnis als Kopie fortsetzen/.test(panelA), { panelA });
+check('A continues the result', (await A.clickText('.recpanel button', 'Ergebnis als Kopie')) === 'clicked');
+await sleep(2500);
 sA = await A.state();
-check('A: bar offers "Ergebnis als Kopie fortsetzen"', /Ergebnis als Kopie fortsetzen/.test(sA.bar) && sA.us === 8, { sA });
-check('A continues the result', (await A.clickText('.scoutbar button', 'Ergebnis als Kopie')) === 'clicked');
-await sleep(800);
-sA = await A.state();
-check('A: now on a copy of B (2:0), no dialog', sA.us === 2 && !sA.dialog, { sA });
+check('A: now on the live page with a copy of B (2:0), no dialog', sA.us === 2 && !sA.dialog && /\/live\/1$/.test(await A.ev('location.pathname')), { sA });
 await A.tap(); await sleep(1500);
 sv = await waitServer(1, (s) => s.recs.length === 4);
 const copyA = (await J('/matches/1')).data.recordings.find((r) => r.origin_id === recB);

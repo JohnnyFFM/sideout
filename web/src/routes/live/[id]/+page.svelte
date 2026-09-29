@@ -36,7 +36,6 @@
   let chain = Promise.resolve();
   const serial = (fn) => { const p = chain.then(fn, fn); chain = p.catch(() => {}); return p; };
   let myDevice = $state('');
-  let recsOpen = $state(false);
   // a page that was left (or switched to another match) must not touch
   // anything any more: every await checks `stale()`
   let alive = true;
@@ -46,7 +45,6 @@
 
   const canScout = $derived(['coach', 'assistant'].includes($me?.user?.role));
   const canWrite = $derived(canScout && tabOwner && $sync.supported);
-  const canSelect = $derived($me?.user?.role === 'coach');
   const hhmm = (iso) => { const d = iso ? new Date(iso.endsWith('Z') || iso.includes('T') ? iso : iso.replace(' ', 'T') + 'Z') : null; return d && !isNaN(d) ? d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '–'; };
 
   // what is shown: my recording, else the match result (the selected recording, or the planning)
@@ -107,9 +105,17 @@
     untrack(() => showToast(`${o.user || 'Jemand'} scoutet gerade auf einem anderen Gerät${o.device ? ` (${o.device})` : ''}${rec ? ' · beide Aufzeichnungen bleiben erhalten' : ''}`));
   });
   const selectedRec = $derived(recordings.find((r) => r.selected) || null);
-  // my recording exists but the coach chose another one as the result
+  // my recording exists but the coach chose another one as the result: said
+  // once as a toast; the recordings and the choice live in the Spiele overview
   const resultIsOther = $derived(!!rec && !!match?.selected && match.selected !== rec.id);
-  const showRecs = $derived(recordings.length > 1 || (!!rec && !recordings.some((r) => r.id === rec.id) && recordings.length > 0));
+  let toldResult = null;
+  $effect(() => {
+    const sel = resultIsOther ? match.selected : null;
+    if (!sel || sel === toldResult) return;
+    toldResult = sel;
+    const who = selectedRec ? recordingLabel(selectedRec, myDevice) : 'eine andere Aufzeichnung';
+    setTimeout(() => showToast(`Als Ergebnis zählt ${who}, nicht die Aufzeichnung dieses Geräts · Auswahl unter Spiele`), activeOther ? 2600 : 0);
+  });
 
   async function loadServer(mid) {
     try {
@@ -355,27 +361,7 @@
       if (e && (await commit(ctx2, r, es, e))) es = [...es, e];
     }
   }
-  /** A → B → A: continue the current result on this device as a new copy;
-   *  the older own recording stays as it is */
-  function continueSelected() {
-    if (!canWrite || !match?.selected) return;
-    const ctx = ctxNow();
-    serial(() => createAndApply(ctx, 'copy', null));
-  }
 
-  let selecting = $state(false);
-  async function select(rid) {
-    if (!canSelect || !match || selecting) return;
-    selecting = true;
-    try {
-      match = await api(`/matches/${id}/select`, { method: 'POST', body: { recording_id: rid, rev: match.selection_rev ?? 0 } });
-      cacheMatch(id, match);
-      showToast('Als Ergebnis übernommen');
-    } catch (e) {
-      if (e.code === 'selection_moved') { showToast('Die Auswahl wurde inzwischen geändert, Stand aktualisiert', true); loadServer(id); }
-      else showToast(e.message, true);
-    } finally { selecting = false; }
-  }
   async function exportMine() {
     if (!rec) return;
     const data = await exportRecording(rec.id);
@@ -615,29 +601,6 @@
         {/if}
         {#if recError}
           <div class="panel hint scoutbar err" role="alert"><span class="hint-txt">Upload abgelehnt: {recError}. Die Aufzeichnung bleibt auf dem Gerät.</span><button class="btn" onclick={exportMine}>Exportieren</button></div>
-        {:else if resultIsOther}
-          <div class="panel hint scoutbar" role="status">
-            <span class="hint-txt">Als Ergebnis zählt {selectedRec ? recordingLabel(selectedRec, myDevice) : 'eine andere Aufzeichnung'}, nicht die dieses Geräts.</span>
-            {#if canSelect}<button class="btn" onclick={() => select(rec.id)} disabled={selecting || !$online}>Diese verwenden</button>{/if}
-            <button class="btn" onclick={continueSelected} disabled={!canWrite} title="Den Stand des Ergebnisses übernehmen und hier weiter tippen; die bisherige eigene Aufzeichnung bleibt erhalten">Ergebnis als Kopie fortsetzen</button>
-          </div>
-        {/if}
-        {#if showRecs}
-          <details class="panel hint recs" bind:open={recsOpen}>
-            <summary>Aufzeichnungen ({recordings.length + (rec && !recordings.some((r) => r.id === rec.id) ? 1 : 0)})</summary>
-            <ul>
-              {#if rec && !recordings.some((r) => r.id === rec.id)}
-                <li><b>Dieses Gerät</b> <span class="muted">noch nicht hochgeladen</span></li>
-              {/if}
-              {#each recordings as r (r.id)}
-                <li class:sel={r.selected}>
-                  <b>{recordingLabel(r, myDevice)}</b>
-                  <span class="muted">{r.state ? `${r.state.sets_won}:${r.state.sets_lost} Sätze · Satz ${r.state.set} ${r.state.us}:${r.state.them}` : ''} · {r.n} Änderungen · {hhmm(r.last_write)}{r.origin_id ? ' · Kopie' : ''}</span>
-                  {#if r.selected}<span class="chip ok">Ergebnis</span>{:else if canSelect}<button class="btn sm" onclick={() => select(r.id)} disabled={selecting || !$online}>Als Ergebnis verwenden</button>{/if}
-                </li>
-              {/each}
-            </ul>
-          </details>
         {/if}
         {#if tossPending}
           <div class="panel hint toss">Satz 5, neue Auslosung. Wer schlägt auf?
@@ -874,12 +837,7 @@
   .pending { color: var(--g-neg); }
   .okt { color: var(--ink-3); }
   .scoutbar.err { border-color: var(--g-err); background: transparent; }
-  .recs summary { cursor: pointer; font-weight: 600; }
-  .recs ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
-  .recs li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 6px 8px; border-radius: var(--r-m); background: var(--raised); }
-  .recs li.sel { outline: 1px solid var(--accent); }
-  .recs li .muted { flex: 1 1 160px; font-size: 12px; }
-  .chip.ok { border-color: var(--ok); color: var(--ok); }
+
   .tiles.three { grid-template-columns: repeat(3, 1fr); }
   .mini { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px; }
   .mini th, .mini td { padding: 5px 4px; text-align: right; white-space: nowrap; }

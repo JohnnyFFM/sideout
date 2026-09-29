@@ -6,6 +6,8 @@
   import { fmtDate } from '$lib/engine.js';
   import { cacheList, cachedList, cacheMatch, offlineReady } from '$lib/offline.js';
   import { sync } from '$lib/uploader.js';
+  import RecordingsPanel from '$lib/components/RecordingsPanel.svelte';
+  let open = $state({}); // match id → recordings panel shown
   let matches = $state(null);
   let error = $state('');
   let stale = $state(false);
@@ -53,7 +55,7 @@
             {#each list as m (m.id)}
               <li>
                 <span class="d">{fmtDate(m.date)}{#if m.time}<br />{m.time}{/if}</span>
-                <span><a class="opp" href={m.status === 'planned' ? `${base}/spiele/${m.id}` : `${base}/live/${m.id}`}>{m.opponent}</a><div class="ha">{m.home ? 'Heim' : 'Auswärts'}{m.hall ? ' · ' + m.hall : ''}{#if m.status !== 'done' && ready[m.id]}<span class="offl" title="Auf diesem Gerät gespeichert: Scouten geht auch ohne Empfang">offline bereit</span>{/if}{#if $sync.byMatch[m.id]}<span class="offl warn" title="Änderungen dieses Geräts, die noch nicht auf dem Server sind">{$sync.byMatch[m.id]} nicht hochgeladen</span>{/if}{#if m.scouting}<span class="who">scoutet: {m.scouting.actor || 'jemand'}{m.scouting.device ? ` (${m.scouting.device})` : ''}</span>{/if}{#if m.recordings > 1}<span class="who">{m.recordings} Aufzeichnungen</span>{/if}</div></span>
+                <span><a class="opp" href={m.status === 'planned' ? `${base}/spiele/${m.id}` : `${base}/live/${m.id}`}>{m.opponent}</a><div class="ha">{m.home ? 'Heim' : 'Auswärts'}{m.hall ? ' · ' + m.hall : ''}{#if m.status !== 'done' && ready[m.id]}<span class="offl" title="Auf diesem Gerät gespeichert: Scouten geht auch ohne Empfang">offline bereit</span>{/if}{#if $sync.byMatch[m.id]}<span class="offl warn" title="Änderungen dieses Geräts, die noch nicht auf dem Server sind">{$sync.byMatch[m.id]} nicht hochgeladen</span>{/if}{#if m.scouting}<span class="who">scoutet: {m.scouting.actor || 'jemand'}{m.scouting.device ? ` (${m.scouting.device})` : ''}</span>{/if}{#if m.recordings > 1 || (m.recordings > 0 && $sync.byMatch[m.id])}<button class="lnk" onclick={() => (open = { ...open, [m.id]: !open[m.id] })}>{m.recordings} {m.recordings === 1 ? 'Aufzeichnung' : 'Aufzeichnungen'} {open[m.id] ? '▴' : '▾'}</button>{/if}</div></span>
                 <span class="sets">{m.state.sets.map((s) => s.us + ':' + s.them).join(' ')}{#if m.status === 'live'} <em>({m.state.us}:{m.state.them})</em>{/if}</span>
                 <span class="res" class:w={m.status === 'done' && m.state.sets_won > m.state.sets_lost} class:l={m.status === 'done' && m.state.sets_won < m.state.sets_lost}>{m.status === 'planned' ? '–' : `${m.state.sets_won}:${m.state.sets_lost}`}</span>
                 <span class="acts">
@@ -62,6 +64,9 @@
                   {:else}<a class="btn" href="{base}/auswertung/{m.id}">Auswertung</a>{/if}
                 </span>
               </li>
+              {#if open[m.id]}
+                <li class="recs-row"><RecordingsPanel matchId={m.id} onchange={load} /></li>
+              {/if}
             {/each}
           </ul>
         </section>
@@ -74,6 +79,8 @@
   .matches { list-style: none; margin: 0; padding: 0; }
   .who { margin-left: 6px; font-size: 11px; color: var(--accent-text); white-space: nowrap; }
   .offl.warn { color: var(--g-neg); border-color: var(--g-neg); }
+  .lnk { margin-left: 6px; font-size: 11px; color: var(--accent-text); background: none; border: 0; padding: 0; cursor: pointer; font: inherit; font-size: 11px; white-space: nowrap; }
+  .matches li.recs-row { display: block; padding: 0 0 4px; }
   .offl { margin-left: 6px; font-size: 11px; padding: 1px 6px; border-radius: 9px; background: var(--raised); color: var(--ok); border: 1px solid var(--line-soft); white-space: nowrap; }
   .matches li { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto auto auto; gap: 10px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line-soft); font-size: 14px; }
   .matches li:last-child { border-bottom: 0; }
