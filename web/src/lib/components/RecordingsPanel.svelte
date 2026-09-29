@@ -8,7 +8,7 @@
   import { api } from '$lib/api.js';
   import { me, showToast, online } from '$lib/stores.js';
   import { recordingLabel, baseFromMatch } from '$lib/recording.js';
-  import { myRecording, deviceId, createRecording, onChange } from '$lib/recstore.js';
+  import { myRecording, deviceId, createRecording, onChange, setDeleted } from '$lib/recstore.js';
   import { kick, sync } from '$lib/uploader.js';
 
   let { matchId, onchange = null } = $props();
@@ -19,6 +19,8 @@
   let error = $state('');
   const canSelect = $derived($me?.user?.role === 'coach');
   const canScout = $derived(['coach', 'assistant'].includes($me?.user?.role));
+  // a coach deletes any recording that is not the result, everyone else only their own
+  const canDelete = (r) => !r.selected && (canSelect || (r.user_id != null && r.user_id === $me?.user?.id));
   const recordings = $derived(m?.recordings || []);
   const selectedRec = $derived(recordings.find((r) => r.selected) || null);
   const mineNotResult = $derived(!!rec && !!m?.selected && m.selected !== rec.id);
@@ -47,6 +49,19 @@
       if (e.code === 'selection_moved') { showToast('Die Auswahl wurde inzwischen geändert, Stand aktualisiert', true); load(); }
       else showToast(e.message, true);
     } finally { busy = false; }
+  }
+  async function remove(r) {
+    if (!canDelete(r) || busy) return;
+    if (!confirm(`Aufzeichnung „${recordingLabel(r, myDevice)}“ löschen? Sie verschwindet aus den Listen; die Daten bleiben auf dem Server.`)) return;
+    busy = true;
+    try {
+      await api(`/matches/${matchId}/recordings/${r.id}`, { method: 'DELETE' });
+      if (r.device_id === myDevice) await setDeleted(r.id).catch(() => {});
+      showToast('Aufzeichnung gelöscht');
+      await load();
+      onchange?.();
+    } catch (e) { showToast(e.message, true); }
+    finally { busy = false; }
   }
   /** A → B → A: the result's state becomes a new own recording on this device; the older own one stays */
   async function continueCopy() {
@@ -77,6 +92,7 @@
           <span class="muted">{r.state ? `${r.state.sets_won}:${r.state.sets_lost} Sätze · Satz ${r.state.set} ${r.state.us}:${r.state.them}` : ''} · {r.n} Änderungen · {hhmm(r.last_write)}{r.origin_id ? ' · Kopie' : ''}</span>
           <span class="chip where" class:pend={r.device_id === myDevice && !r.imported && pendingHere}>{r.device_id === myDevice && !r.imported ? (pendingHere ? `${pendingHere} nicht hochgeladen` : 'Gerät + Server') : 'Server'}</span>
           {#if r.selected}<span class="chip ok">Ergebnis</span>{:else if canSelect}<button class="btn sm" onclick={() => select(r.id)} disabled={busy || !$online}>Als Ergebnis verwenden</button>{/if}
+          {#if canDelete(r)}<button class="icon-btn del" title="Löschen" aria-label="Aufzeichnung löschen" onclick={() => remove(r)} disabled={busy || !$online}>🗑</button>{/if}
         </li>
       {/each}
     </ul>
@@ -99,4 +115,5 @@
   .chip.where { font-size: 11px; color: var(--ink-3); }
   .chip.where.pend { color: var(--g-neg); border-color: var(--g-neg); }
   .btn.sm { height: 28px; padding: 0 10px; font-size: 12px; }
+  .icon-btn.del { width: 28px; height: 28px; font-size: 12px; }
 </style>

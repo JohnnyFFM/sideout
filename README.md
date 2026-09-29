@@ -132,6 +132,7 @@ GET|POST /matches · GET|PATCH|DELETE /matches/{id}     (DELETE archives; a phon
 PUT /matches/{id}/lineups/{set}          {pos:[6 player ids], libero}   planning, before scouting starts
 PUT /matches/{id}/recordings/{rid}       {device_id, device_label, base?, edits:[{n, body}]} → {confirmed, selected, status, state}
 GET /matches/{id}/recordings/{rid}       meta, base, edits, folded snapshot (copy, export)
+DELETE /matches/{id}/recordings/{rid}    hides it (flag; coach or creator, never the result)
 POST /matches/{id}/select                {recording_id, rev}   the coach picks the result
 GET /matches/{id}/state · /matches/{id}/stats?set= · /matches/{id}/export.csv
 GET /season/stats

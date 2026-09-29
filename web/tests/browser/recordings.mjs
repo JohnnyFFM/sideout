@@ -59,7 +59,7 @@ function wrap(t, port) {
   const tap = () => t.ev(`(()=>{const b=document.querySelector('.btn.big.us'); if(!b||b.disabled) return 'blocked'; b.click(); return 'clicked'})()`);
   const tapThem = () => t.ev(`(()=>{const b=document.querySelector('.btn.big.them'); if(!b||b.disabled) return 'blocked'; b.click(); return 'clicked'})()`);
   const undo = () => t.ev(`(()=>{const b=document.querySelector('#lastBox button'); if(!b||b.disabled) return 'blocked'; b.click(); return 'clicked'})()`);
-  const local = () => t.ev(`(async()=>{const db=await new Promise((res,rej)=>{const r=indexedDB.open('sideout');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}); const all=await new Promise((res,rej)=>{const r=db.transaction('recordings').objectStore('recordings').getAll();r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}); db.close(); return JSON.stringify(all.map(r=>({id:r.id,match:r.match_id,next:r.next_n,confirmed:r.confirmed_n,created:r.created,error:r.error,imported:r.imported,device:r.device_id})))})()`).then((s) => JSON.parse(s));
+  const local = () => t.ev(`(async()=>{const db=await new Promise((res,rej)=>{const r=indexedDB.open('sideout');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}); const all=await new Promise((res,rej)=>{const r=db.transaction('recordings').objectStore('recordings').getAll();r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}); db.close(); return JSON.stringify(all.map(r=>({id:r.id,match:r.match_id,next:r.next_n,confirmed:r.confirmed_n,created:r.created,error:r.error,imported:r.imported,deleted:!!r.deleted,device:r.device_id})))})()`).then((s) => JSON.parse(s));
   const click = (sel) => t.ev(`(()=>{const b=document.querySelector('${sel}'); if(!b||b.disabled) return 'blocked'; b.click(); return 'clicked'})()`);
   const clickText = (sel, text) => t.ev(`(()=>{const b=[...document.querySelectorAll('${sel}')].find(x=>x.textContent.trim().startsWith('${text}')); if(!b||b.disabled) return 'blocked'; b.click(); return 'clicked'})()`);
   const login = async (user) => { await t.ev(`fetch('/api/auth/logout',{method:'POST',headers:{'X-Requested-By':'x'}}).catch(()=>0)`); await t.ev(`fetch('/api/auth/login',{method:'POST',headers:{'X-Requested-By':'x','Content-Type':'application/json'},body:JSON.stringify({username:'${user}',password:'geheim123'})}).then(r=>r.status)`); };
@@ -420,6 +420,33 @@ await importOn(B, wrong); await sleep(3000);
 bl = (await B.local()).find((r) => r.id === recA3);
 sv = await server(3);
 check('B: a longer backup with a different edit 5 is appended locally, sent, refused by the server and shown as error; the server keeps its own', bl && bl.next === total3 + 1 && bl.confirmed <= 4 && /edit_mismatch/.test(bl.error || '') && sv.recs.find((r) => r.id === recA3).n === n3b + 1, { bl, sv });
+
+// 20. deleting a recording: a flag, by the coach or the creator, never the result
+await A.go('/spiele', 2500);
+await A.ev(`(()=>{const li=[...document.querySelectorAll('.matches li')].find(l=>l.textContent.includes('VfL Bad Vilbel')); li?.querySelector('.lnk')?.click(); return 1})()`);
+await sleep(1500);
+const nBefore = (await server(1)).recs.length;
+const delBtns = await A.ev(`document.querySelectorAll('.recpanel .del').length`);
+check('A (coach): a delete button on every recording but the result', delBtns === nBefore - 1, { delBtns, nBefore });
+await A.ev(`window.confirm = () => true; 1`);
+check('A deletes the legacy import', (await A.ev(`(()=>{const li=[...document.querySelectorAll('.recpanel li')].find(l=>/alten App-Version/.test(l.textContent)); const b=li?.querySelector('.del'); if(!b) return 'none'; b.click(); return 'clicked'})()`)) === 'clicked');
+sv = await waitServer(1, (s) => s.recs.length === nBefore - 1);
+check('server: the recording is hidden, the others stay', sv.recs.length === nBefore - 1 && !sv.recs.some((r) => /alten App|beiseite/.test(r.device)), { sv });
+// B (assistant) sees no delete button on the coach's recordings, deletes her own non-result one on match 3
+await B.go('/spiele', 2500);
+await B.ev(`(()=>{const li=[...document.querySelectorAll('.matches li')].find(l=>l.textContent.includes('Dritter Gegner')); li?.querySelector('.lnk')?.click(); return 1})()`);
+await sleep(1500);
+const own3 = (await B.local()).find((r) => r.match === 3);
+const bDel = await B.ev(`[...document.querySelectorAll('.recpanel li')].map(l=>({t:l.textContent.replace(/\\s+/g,' ').trim().slice(0,40), del: !!l.querySelector('.del')}))`);
+check('B (assistant): delete only on her own recording', bDel.filter((x) => x.del).length === 1 && bDel.find((x) => x.del)?.t.startsWith('Dieses Gerät'), { bDel });
+await B.ev(`window.confirm = () => true; 1`);
+check('B deletes her own', (await B.click('.recpanel .del')) === 'clicked');
+sv = await waitServer(3, (s) => !s.recs.some((r) => r.id === own3.id));
+check('server: hidden; B local: flagged deleted, not continued any more', !sv.recs.some((r) => r.id === own3.id) && (await B.local()).find((r) => r.id === own3.id)?.deleted === true, { sv });
+await B.go('/live/3', 2500);
+await B.tap(); await sleep(1500);
+sv = await waitServer(3, (s) => s.recs.length === 2);
+check('B: the next tap starts a new own copy of the result instead of the deleted one', sv.recs.length === 2 && sv.recs.every((r) => r.id !== own3.id), { sv });
 
 for (const [n, b] of [['A', A], ['B', B], ['V', V]]) check(`${n}: no page errors`, b.errors.length === 0, b.errors);
 console.log(fails ? `\n${fails} FAILED` : '\nall ok');

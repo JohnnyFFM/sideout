@@ -13,6 +13,7 @@
   import { fold, playersOf, recordingLabel } from '$lib/recording.js';
   import { myRecording, editsFrom, deviceId, onChange } from '$lib/recstore.js';
   import { sync } from '$lib/uploader.js';
+  import RecordingsPanel from '$lib/components/RecordingsPanel.svelte';
 
   const id = $derived(Number($page.params.id));
   let match = $state(null);
@@ -149,15 +150,7 @@
     {#if recordings.length > 1}
       <details class="panel recs">
         <summary>Aufzeichnungen ({recordings.length})</summary>
-        <ul>
-          {#each recordings as r (r.id)}
-            <li class:sel={r.selected}>
-              <b>{recordingLabel(r, myDevice)}</b>
-              <span class="muted">{r.state ? `${r.state.sets_won}:${r.state.sets_lost} Sätze · Satz ${r.state.set} ${r.state.us}:${r.state.them}` : ''} · {r.n} Änderungen · {hhmm(r.last_write)}{r.origin_id ? ' · Kopie' : ''}</span>
-              {#if r.selected}<span class="chip ok">Ergebnis</span>{:else if canSelect}<button class="btn sm" onclick={() => select(r.id)} disabled={selecting || !$online}>Als Ergebnis verwenden</button>{/if}
-            </li>
-          {/each}
-        </ul>
+        <RecordingsPanel matchId={id} onchange={load} />
       </details>
     {/if}
     <div class="toolbar">

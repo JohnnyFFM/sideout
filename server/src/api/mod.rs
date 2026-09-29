@@ -43,7 +43,7 @@ pub fn router(state: AppState) -> Router {
         .route("/matches/{id}", get(matches::get_one).patch(matches::update).delete(matches::remove))
         .route("/matches/{id}/lineups/{set}", put(matches::put_lineup))
         // recordings: one per scout and device, uploaded in batches; the coach selects the result
-        .route("/matches/{id}/recordings/{rid}", put(recordings::upload).get(recordings::get_recording))
+        .route("/matches/{id}/recordings/{rid}", put(recordings::upload).get(recordings::get_recording).delete(recordings::delete_recording))
         .route("/matches/{id}/select", post(recordings::select))
         // the old protocol's write routes answer 503 for a while (see ApiError::Gone)
         .route("/matches/{id}/actions", post(matches::gone))

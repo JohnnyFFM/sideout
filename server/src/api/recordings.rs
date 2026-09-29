@@ -187,6 +187,29 @@ pub async fn get_recording(State(state): State<AppState>, user: CurrentUser, Pat
     Ok(Json(m))
 }
 
+/// DELETE /matches/{id}/recordings/{rid} — a coach of the team or the
+/// creator hides a recording that is not the result. A flag, never a prune:
+/// the rows stay, a late upload into it is still stored.
+pub async fn delete_recording(State(state): State<AppState>, user: CurrentUser, Path((id, rid)): Path<(i64, String)>) -> ApiResult<Json<Value>> {
+    let mut tx = state.dbw.begin().await?;
+    let (row, team_id) = match_and_role(&mut tx, &user, id, Role::Assistant).await?;
+    let rec = recording_meta_conn(&mut tx, &rid).await?.filter(|m| m.match_id == id).ok_or(ApiError::NotFound)?;
+    let role = team_role_conn(&mut tx, user.id, team_id).await?.unwrap_or(Role::Viewer);
+    if role < Role::Coach && rec.user_id != Some(user.id) {
+        return Err(ApiError::Forbidden);
+    }
+    if row.get::<Option<String>, _>("selected_recording").as_deref() == Some(rid.as_str()) {
+        return Err(ApiError::BadRequest("Das Ergebnis kann nicht gelöscht werden; erst eine andere Aufzeichnung als Ergebnis wählen".into()));
+    }
+    if !rec.deleted {
+        sqlx::query("UPDATE recordings SET deleted = 1 WHERE id = ?").bind(&rid).execute(&mut *tx).await?;
+        audit_conn(&mut tx, team_id, "match", id, "recording_deleted", &rid, Some(user.id)).await?;
+    }
+    tx.commit().await?;
+    publish(&state, team_id, &user, id, 0, "recording");
+    Ok(Json(json!({ "ok": true, "id": rid })))
+}
+
 #[derive(serde::Deserialize)]
 pub struct SelectBody {
     pub recording_id: String,
@@ -198,7 +221,7 @@ pub struct SelectBody {
 pub async fn select(State(state): State<AppState>, user: CurrentUser, Path(id): Path<i64>, Json(body): Json<SelectBody>) -> ApiResult<Json<Value>> {
     let mut tx = state.dbw.begin().await?;
     let (row, team_id) = match_and_role(&mut tx, &user, id, Role::Coach).await?;
-    let rec = recording_meta_conn(&mut tx, &body.recording_id).await?.filter(|m| m.match_id == id).ok_or(ApiError::NotFound)?;
+    let rec = recording_meta_conn(&mut tx, &body.recording_id).await?.filter(|m| m.match_id == id && !m.deleted).ok_or(ApiError::NotFound)?;
     let res = sqlx::query("UPDATE matches SET selected_recording = ?, selection_rev = selection_rev + 1, updated_at = datetime('now') WHERE id = ? AND selection_rev = ?")
         .bind(&rec.id).bind(id).bind(body.rev)
         .execute(&mut *tx)

@@ -193,6 +193,52 @@ async fn second_recording_keeps_the_selection_until_the_coach_picks() {
 }
 
 #[tokio::test]
+async fn deleting_a_recording_is_a_flag_for_coach_or_creator_never_the_result() {
+    let app = app().await;
+    let (c, mid, code) = fixture(&app).await;
+    let base = base_for(&app, &c, mid).await;
+    let (st, _) = upload(&app, &c, mid, "r1", Some(base.clone()), vec![opp(1, 1, "=")]).await;
+    assert_eq!(st, StatusCode::OK);
+    // an assistant joins and records too
+    let (_, body, bob) = call(&app, Method::POST, "/auth/join", None, Some(json!({ "code": code, "display_name": "Bob", "username": "bob", "password": "geheim123" }))).await;
+    let bob = bob.unwrap();
+    let team_id = body["team"]["id"].as_i64().unwrap();
+    let bob_id = body["user"]["id"].as_i64().unwrap();
+    call(&app, Method::PATCH, &format!("/teams/{team_id}/members/{bob_id}"), Some(&c), Some(json!({ "role": "assistant" }))).await;
+    let (st, _) = upload(&app, &bob, mid, "r2", Some(base.clone()), vec![opp(1, 1, "#")]).await;
+    assert_eq!(st, StatusCode::OK);
+    let (_, _) = upload(&app, &bob, mid, "r3", Some(base.clone()), vec![opp(1, 1, "#")]).await;
+    // the result cannot be deleted, not even by the coach
+    let (st, b, _) = call(&app, Method::DELETE, &format!("/matches/{mid}/recordings/r1"), Some(&c), None).await;
+    assert_eq!(st, StatusCode::BAD_REQUEST, "{b}");
+    // the assistant may delete his own, not the coach's
+    let (st, _, _) = call(&app, Method::DELETE, &format!("/matches/{mid}/recordings/r2"), Some(&bob), None).await;
+    assert_eq!(st, StatusCode::OK);
+    let m = get(&app, &c, mid).await;
+    let ids: Vec<&str> = m["recordings"].as_array().unwrap().iter().map(|r| r["id"].as_str().unwrap()).collect();
+    assert_eq!(ids, vec!["r1", "r3"]);
+    // select the coach's r1 → then r1 is the result; make r3 the result and let the coach delete bob's r3? no: delete r1 after selecting r3
+    let rev = m["selection_rev"].as_i64().unwrap();
+    let (st, _, _) = call(&app, Method::POST, &format!("/matches/{mid}/select"), Some(&c), Some(json!({ "recording_id": "r3", "rev": rev }))).await;
+    assert_eq!(st, StatusCode::OK);
+    let (st, _, _) = call(&app, Method::DELETE, &format!("/matches/{mid}/recordings/r1"), Some(&bob), None).await;
+    assert_eq!(st, StatusCode::FORBIDDEN, "an assistant cannot delete someone else's");
+    let (st, _, _) = call(&app, Method::DELETE, &format!("/matches/{mid}/recordings/r1"), Some(&c), None).await;
+    assert_eq!(st, StatusCode::OK, "the coach can");
+    // a deleted recording cannot be selected; a late upload into it is still stored, it stays hidden
+    let (st, _, _) = call(&app, Method::POST, &format!("/matches/{mid}/select"), Some(&c), Some(json!({ "recording_id": "r2", "rev": rev + 1 }))).await;
+    assert_eq!(st, StatusCode::NOT_FOUND);
+    let (st, b) = upload(&app, &bob, mid, "r2", None, vec![opp(2, 2, "#")]).await;
+    assert_eq!(st, StatusCode::OK, "{b}");
+    assert_eq!(b["confirmed"], 2);
+    let m = get(&app, &c, mid).await;
+    assert_eq!(m["recordings"].as_array().unwrap().len(), 1);
+    assert_eq!(m["recordings"][0]["id"], "r3");
+    let n: i64 = sqlx::query("SELECT count(*) AS n FROM edits WHERE recording_id = 'r2'").fetch_one(&app.state.db).await.unwrap().get("n");
+    assert_eq!(n, 2, "rows kept");
+}
+
+#[tokio::test]
 async fn an_import_never_counts_as_live_scouting() {
     let app = app().await;
     let (c, mid, _) = fixture(&app).await;

@@ -217,6 +217,8 @@ pub struct RecMeta {
     pub active: bool,
     /// a transport of past work (old queue, file, legacy migration), not live scouting
     pub imported: bool,
+    /// hidden by a coach or its creator; rows kept
+    pub deleted: bool,
 }
 
 fn rec_meta(r: &sqlx::sqlite::SqliteRow) -> RecMeta {
@@ -235,6 +237,7 @@ fn rec_meta(r: &sqlx::sqlite::SqliteRow) -> RecMeta {
         n: r.get("n"),
         active: r.get::<i64, _>("active") != 0,
         imported: r.get::<i64, _>("imported") != 0,
+        deleted: r.get::<i64, _>("deleted") != 0,
     }
 }
 
@@ -249,7 +252,7 @@ pub fn rec_meta_json(m: &RecMeta) -> Value {
         "id": m.id, "match_id": m.match_id, "team_id": m.team_id, "user_id": m.user_id, "user": m.user_name,
         "device_id": m.device_id, "device": m.device_label,
         "origin_id": m.origin_id, "origin_n": m.origin_n,
-        "created_at": m.created_at, "last_write": m.last_write, "n": m.n, "active": m.active, "imported": m.imported,
+        "created_at": m.created_at, "last_write": m.last_write, "n": m.n, "active": m.active, "imported": m.imported, "deleted": m.deleted,
     })
 }
 
@@ -259,7 +262,7 @@ pub async fn recording_meta_conn(conn: &mut SqliteConnection, rid: &str) -> ApiR
 }
 
 pub async fn recordings_of_conn(conn: &mut SqliteConnection, match_id: i64) -> ApiResult<Vec<RecMeta>> {
-    let rows = sqlx::query(&format!("{REC_SELECT} WHERE r.match_id = ? ORDER BY r.created_at, r.id")).bind(match_id).fetch_all(conn).await?;
+    let rows = sqlx::query(&format!("{REC_SELECT} WHERE r.match_id = ? AND r.deleted = 0 ORDER BY r.created_at, r.id")).bind(match_id).fetch_all(conn).await?;
     Ok(rows.iter().map(rec_meta).collect())
 }
 

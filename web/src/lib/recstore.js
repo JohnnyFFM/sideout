@@ -104,7 +104,7 @@ export async function recordingsOf(matchId) {
 export async function myRecording(matchId, userId) {
   const dev = await deviceId();
   const all = await recordingsOf(matchId);
-  const mine = all.filter((r) => r.device_id === dev && !r.imported && r.user_id != null && r.user_id === userId).sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+  const mine = all.filter((r) => r.device_id === dev && !r.imported && !r.deleted && r.user_id != null && r.user_id === userId).sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
   return mine[0] || null;
 }
 
@@ -179,6 +179,17 @@ export async function markConfirmed(recId, n, { created = true } = {}) {
   notify('status');
 }
 
+/** deleted on the server (by its creator or a coach): hidden here too, never continued, never uploaded again */
+export async function setDeleted(recId) {
+  const db = await openDb();
+  const tx = db.transaction('recordings', 'readwrite');
+  const recs = tx.objectStore('recordings');
+  const rec = await wrap(recs.get(recId));
+  if (rec) { rec.deleted = true; recs.put(rec); }
+  await done(tx);
+  notify('status');
+}
+
 export async function setError(recId, error) {
   const db = await openDb();
   const tx = db.transaction('recordings', 'readwrite');
@@ -191,7 +202,7 @@ export async function setError(recId, error) {
 
 /** edits not yet confirmed by the server (the base travels with the first batch) */
 export const pendingOf = (r) => r.next_n - 1 - r.confirmed_n;
-export const needsUpload = (r) => pendingOf(r) > 0 || !r.created;
+export const needsUpload = (r) => !r.deleted && (pendingOf(r) > 0 || !r.created);
 
 /** what the signed-in account may send: its own recordings and imports (an explicit exception) */
 export const ownedBy = (r, userId) => r.imported || (userId != null && r.user_id === userId);
@@ -211,6 +222,7 @@ export async function pendingSummary(userId) {
   let foreign = 0;
   const errors = [];
   for (const r of all) {
+    if (r.deleted) continue;
     const p = pendingOf(r) || (r.created ? 0 : 1);
     if (!ownedBy(r, userId)) { if (p > 0) foreign++; continue; }
     if (p > 0) { byMatch[r.match_id] = (byMatch[r.match_id] || 0) + p; total += p; }
