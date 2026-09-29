@@ -193,6 +193,21 @@ async fn second_recording_keeps_the_selection_until_the_coach_picks() {
 }
 
 #[tokio::test]
+async fn an_import_never_counts_as_live_scouting() {
+    let app = app().await;
+    let (c, mid, _) = fixture(&app).await;
+    let base = base_for(&app, &c, mid).await;
+    let (st, b, _) = call(&app, Method::PUT, &format!("/matches/{mid}/recordings/imp1"), Some(&c), Some(json!({ "imported": true, "device_id": "legacy", "device_label": "Import (alt)", "base": base, "edits": [opp(1, 1, "=")] }))).await;
+    assert_eq!(st, StatusCode::OK, "{b}");
+    let (_, l, _) = call(&app, Method::GET, "/matches", Some(&c), None).await;
+    assert!(l["matches"][0]["scouting"].is_null(), "an import is not someone scouting right now");
+    let m = get(&app, &c, mid).await;
+    assert_eq!(m["recordings"][0]["imported"], true);
+    assert_eq!(m["recordings"][0]["active"], false);
+    assert_eq!(m["state"]["us"], 1, "but it is a recording like any other");
+}
+
+#[tokio::test]
 async fn an_upload_names_its_account_and_a_foreign_cookie_is_refused() {
     let app = app().await;
     let (c, mid, _) = fixture(&app).await;

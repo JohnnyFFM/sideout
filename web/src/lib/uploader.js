@@ -61,6 +61,7 @@ async function uploadOne(rec, uid) {
   const edits = await editsFrom(rec.id, rec.confirmed_n + 1, BATCH);
   const body = {
     uploader: uid,
+    imported: !!rec.imported,
     device_id: rec.device_id, device_label: rec.device_label,
     origin_id: rec.origin_id, origin_n: rec.origin_n,
     edits: edits.map((e) => ({ n: e.n, body: e.body }))

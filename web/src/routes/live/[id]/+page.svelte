@@ -98,6 +98,14 @@
   const recordings = $derived(match?.recordings || []);
   const others = $derived(recordings.filter((r) => r.device_id !== myDevice));
   const activeOther = $derived(others.find((r) => r.active) || null);
+  // someone else is scouting right now: said once as a toast, not as a bar in the way
+  let toldAbout = null;
+  $effect(() => {
+    const o = activeOther;
+    if (!o || o.id === toldAbout) return;
+    toldAbout = o.id;
+    untrack(() => showToast(`${o.user || 'Jemand'} scoutet gerade auf einem anderen Gerät${o.device ? ` (${o.device})` : ''}${rec ? ' · beide Aufzeichnungen bleiben erhalten' : ''}`));
+  });
   const selectedRec = $derived(recordings.find((r) => r.selected) || null);
   // my recording exists but the coach chose another one as the result
   const resultIsOther = $derived(!!rec && !!match?.selected && match.selected !== rec.id);
@@ -603,10 +611,6 @@
             <button class="btn primary" onclick={() => chooseStart('copy')}>Diesen Stand fortsetzen (Kopie)</button>
             <button class="btn" onclick={() => chooseStart('fresh')}>Neu beginnen</button>
             <button class="btn ghost" onclick={() => (askStart = null)}>Abbrechen</button>
-          </div>
-        {:else if activeOther}
-          <div class="panel hint scoutbar" role="status">
-            <span class="hint-txt"><b>{activeOther.user || 'Jemand'}</b> scoutet gerade auf einem anderen Gerät{activeOther.device ? ` (${activeOther.device})` : ''} · seit {hhmm(activeOther.created_at)}{rec ? ' · beide Aufzeichnungen bleiben erhalten' : ''}</span>
           </div>
         {/if}
         {#if recError}

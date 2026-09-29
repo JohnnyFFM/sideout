@@ -127,9 +127,10 @@ let loc = await A.local();
 check('A local store: both recordings confirmed', loc.every((r) => r.confirmed === r.next - 1 && r.created), { loc });
 
 // 3. device B: sees who scouts, may record on its own; the choice on first tap; the selection stays
-await B.go('/live/1');
+await B.go('/live/1', 1200);
+const toastB = await B.txt('.toast');
 let sB = await B.state();
-check('B: banner names the active scout, pad enabled, no dialog yet', /Jonas Steitz scoutet gerade/.test(sB.bar) && sB.padOn > 0 && !sB.dialog && sB.us === 8, { sB });
+check('B: a toast names the active scout, no bar, pad enabled, no dialog yet', /Jonas Steitz scoutet gerade/.test(toastB) && !/scoutet gerade/.test(sB.bar) && sB.padOn > 0 && !sB.dialog && sB.us === 8, { toastB, sB });
 await B.tap(); await sleep(400);
 sB = await B.state();
 check('B: first tap asks copy or fresh, nothing recorded yet', sB.dialog && sB.us === 8 && (await B.local()).length === 0, { sB });

@@ -213,8 +213,10 @@ pub struct RecMeta {
     pub last_write: String,
     /// number of edits stored (dense, so also the highest edit number)
     pub n: i64,
-    /// newest edit younger than ACTIVE_MINUTES
+    /// newest edit younger than ACTIVE_MINUTES (never for an import)
     pub active: bool,
+    /// a transport of past work (old queue, file, legacy migration), not live scouting
+    pub imported: bool,
 }
 
 fn rec_meta(r: &sqlx::sqlite::SqliteRow) -> RecMeta {
@@ -232,12 +234,13 @@ fn rec_meta(r: &sqlx::sqlite::SqliteRow) -> RecMeta {
         last_write: r.get("last_write"),
         n: r.get("n"),
         active: r.get::<i64, _>("active") != 0,
+        imported: r.get::<i64, _>("imported") != 0,
     }
 }
 
 const REC_SELECT: &str = "SELECT r.*, u.display_name AS user_name,
         (SELECT count(*) FROM edits e WHERE e.recording_id = r.id) AS n,
-        (r.last_write > datetime('now', '-10 minutes')) AS active
+        (r.imported = 0 AND r.last_write > datetime('now', '-10 minutes')) AS active
      FROM recordings r LEFT JOIN users u ON u.id = r.user_id";
 const _: () = assert!(ACTIVE_MINUTES == 10);
 
@@ -246,7 +249,7 @@ pub fn rec_meta_json(m: &RecMeta) -> Value {
         "id": m.id, "match_id": m.match_id, "team_id": m.team_id, "user_id": m.user_id, "user": m.user_name,
         "device_id": m.device_id, "device": m.device_label,
         "origin_id": m.origin_id, "origin_n": m.origin_n,
-        "created_at": m.created_at, "last_write": m.last_write, "n": m.n, "active": m.active,
+        "created_at": m.created_at, "last_write": m.last_write, "n": m.n, "active": m.active, "imported": m.imported,
     })
 }
 
@@ -385,8 +388,8 @@ pub async fn migrate_legacy(dbw: &SqlitePool) -> ApiResult<usize> {
             let base = recording::base_from_snapshot(&snap);
             let canon = serde_json::to_string(&base).map_err(|e| ApiError::Internal(e.to_string()))?;
             sqlx::query(
-                "INSERT INTO recordings (id, match_id, team_id, user_id, device_id, device_label, base, created_at, last_write)
-                 VALUES (?, ?, ?, ?, 'legacy', 'Import', ?, ?, ?)",
+                "INSERT INTO recordings (id, match_id, team_id, user_id, device_id, device_label, base, created_at, last_write, imported)
+                 VALUES (?, ?, ?, ?, 'legacy', 'Import', ?, ?, ?, 1)",
             )
             .bind(&rid)
             .bind(mid)

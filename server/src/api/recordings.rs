@@ -96,11 +96,12 @@ pub async fn upload(
             let (_, canon) = parse_base(b).map_err(ApiError::BadRequest)?;
             let origin_id = body.get("origin_id").and_then(|x| x.as_str()).filter(|s| valid_id(s)).map(str::to_string);
             let origin_n = body.get("origin_n").and_then(|x| x.as_i64());
+            let imported = body.get("imported").and_then(|x| x.as_bool()).unwrap_or(false);
             sqlx::query(
-                "INSERT INTO recordings (id, match_id, team_id, user_id, device_id, device_label, origin_id, origin_n, base)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO recordings (id, match_id, team_id, user_id, device_id, device_label, origin_id, origin_n, base, imported)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             )
-            .bind(&rid).bind(id).bind(team_id).bind(user.id).bind(&device_id).bind(&device_label).bind(origin_id).bind(origin_n).bind(&canon)
+            .bind(&rid).bind(id).bind(team_id).bind(user.id).bind(&device_id).bind(&device_label).bind(origin_id).bind(origin_n).bind(&canon).bind(imported as i64)
             .execute(&mut *tx)
             .await?;
             audit_conn(&mut tx, team_id, "match", id, "recording_new", &rid, Some(user.id)).await?;
