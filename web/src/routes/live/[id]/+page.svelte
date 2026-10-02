@@ -107,7 +107,7 @@
     const o = activeOther;
     if (!o || o.id === toldAbout) return;
     toldAbout = o.id;
-    untrack(() => showToast(`${o.user || 'Jemand'} scoutet gerade auf einem anderen Gerät${o.device ? ` (${o.device})` : ''}${rec ? ' · beide Aufzeichnungen bleiben erhalten' : ''}`));
+    untrack(() => showToast(o.user_id != null && o.user_id === $me?.user?.id ? 'Du scoutest gerade auf einem anderen Gerät' : `${o.user || 'Jemand'} scoutet gerade`));
   });
   const selectedRec = $derived(recordings.find((r) => r.selected) || null);
   // my recording exists but the coach chose another one as the result: said
@@ -118,8 +118,8 @@
     const sel = resultIsOther ? match.selected : null;
     if (!sel || sel === toldResult) return;
     toldResult = sel;
-    const who = selectedRec ? recordingLabel(selectedRec, myDevice) : 'eine andere Aufzeichnung';
-    setTimeout(() => showToast(`Als Ergebnis zählt ${who}, nicht die Aufzeichnung dieses Geräts · Auswahl unter Spiele`), activeOther ? 2600 : 0);
+    const who = selectedRec ? recordingLabel(selectedRec) : 'jemand anderem';
+    setTimeout(() => showToast(`Als Ergebnis zählt die Aufzeichnung von ${who}, nicht die dieses Geräts · Auswahl unter Spiele`), activeOther ? 2600 : 0);
   });
 
   async function loadServer(mid) {
@@ -316,7 +316,7 @@
     kick();
     if (id === ctx.mid) {
       rec = r; edits = first ? [first] : []; selected = null;
-      showToast(mode === 'copy' ? `Stand übernommen (${sel ? recordingLabel(sel, myDevice) : 'Ergebnis'}), eigene Aufzeichnung läuft` : 'Eigene Aufzeichnung begonnen');
+      showToast(mode === 'copy' ? `Stand von ${sel ? recordingLabel(sel) : 'Ergebnis'} übernommen, eigene Aufzeichnung läuft` : 'Eigene Aufzeichnung begonnen');
     }
   }
 

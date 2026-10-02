@@ -94,14 +94,16 @@ export function playersOf(teamPlayers, snapshot) {
   return out;
 }
 
-/** a readable name for a recording in lists and panels: who, on what, and
- *  for imports where they came from (server rows carry `device`, local rows `device_label`) */
-export function recordingLabel(r, myDevice) {
-  if (r.device_id && r.device_id === myDevice && !r.imported) return 'Dieses Gerät';
-  const who = r.user || 'Unbekannt';
-  const dev = r.device ?? r.device_label ?? '';
-  if (r.device_id === 'legacy' && dev === 'Import') return `${who} · alter Spielstand vom Server (vor der Umstellung)`;
-  if (r.device_id === 'legacy') return `${who} · aus der alten App-Version eines Geräts${/beiseite/i.test(dev) ? ' (damals beiseitegelegt)' : ''}`;
-  if (r.imported) return `${who} · aus Datei importiert${dev ? ` (${dev})` : ''}`;
-  return `${who}${dev ? ' · ' + dev : ''}`;
+/** who recorded: the account. Devices have no names; `isHere` marks the one you look at from. */
+export function recordingLabel(r) {
+  return r.user || 'Unbekannt';
+}
+export const isHere = (r, myDevice) => !!myDevice && r.device_id === myDevice && !r.imported;
+/** "3:0 · 298 · 16:52": sets, size, time of the newest edit */
+export function recordingMeta(r) {
+  const t = r.last_write ? r.last_write : '';
+  const d = t ? new Date(t.includes('T') ? t : t.replace(' ', 'T') + 'Z') : null;
+  const when = d && !isNaN(d) ? (Date.now() - d.getTime() > 20 * 3600 * 1000 ? d.toLocaleDateString('de-DE', { day: 'numeric', month: 'numeric' }) + ' ' : '') + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '';
+  const sets = r.state ? `${r.state.sets_won}:${r.state.sets_lost}` : '';
+  return [sets, r.n != null ? String(r.n) : '', when].filter(Boolean).join(' · ');
 }

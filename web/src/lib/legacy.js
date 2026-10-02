@@ -1,13 +1,21 @@
-// One-time rescue of what the old client left in localStorage: unsent op
+// One-time move of what the old client left in localStorage: unsent op
 // queues (`so_ops_<match>`) and set-aside queues (`so_ops_dropped_<match>`),
-// together with the match payload it had cached (`so_match_<match>`). Each
-// contiguous episode becomes an imported recording (foreign device, not
-// editable here) that the uploader sends like any other. The original keys
-// stay untouched; a key is remembered by its length so a later, longer
-// value is looked at again. Anything without a cached match stays raw and
-// is only noted in the diagnostics.
+// together with the match payload it had cached (`so_match_<match>`).
+//
+// In the old model those ops were the continuation of the match's one
+// shared log, so they become a continuation here too, never extra rows:
+//   1. the server's migrated recording of the match (`legacy-<match>`)
+//      exists → it is adopted by this device (base and edits fetched, the
+//      old ops appended as new edits) and continued from now on;
+//   2. else this device already records the match → the ops are appended
+//      to that recording;
+//   3. else a new own recording is started from the cached match with the
+//      ops as its first edits.
+// Needs the server for case 1; a key that could not be handled stays and is
+// tried again on the next start. The original keys are never deleted.
 
-import { importRecording, metaGet, metaSet, deviceId } from './recstore.js';
+import { api } from './api.js';
+import { metaGet, metaSet, deviceId, myRecording, appendEdit, getRecording, adoptRecording } from './recstore.js';
 import { logDiag } from './stores.js';
 
 const rosterEntry = (p) => ({ id: p.id, number: p.number, name: p.name, position: p.position });
@@ -34,7 +42,7 @@ export function episodes(ops) {
   return out;
 }
 
-/** ops of one episode → edits, given the confirmed actions they sat on */
+/** ops → edits, given the actions they sat on (seq is a label, the fold appends regardless) */
 export function toEdits(ops, baseActions) {
   const sim = baseActions.map((a) => a.seq);
   const edits = [];
@@ -52,28 +60,61 @@ export function toEdits(ops, baseActions) {
   return edits;
 }
 
-export async function importLegacy() {
-  if (typeof localStorage === 'undefined') return 0;
+function readOps(key) {
+  try {
+    const v = JSON.parse(localStorage.getItem(key) || 'null');
+    return key.includes('dropped') ? v?.ops || [] : v || [];
+  } catch { return []; }
+}
+
+export async function importLegacy(userId) {
+  if (typeof localStorage === 'undefined' || userId == null) return 0;
   const keys = Object.keys(localStorage).filter((k) => /^so_ops_(dropped_)?\d+$/.test(k));
   if (!keys.length) return 0;
   const done = (await metaGet('legacy_done')) || {};
-  const dev = await deviceId();
-  let imported = 0;
+  // per match: the set-aside episodes first (older), then the live queue
+  const byMatch = new Map();
   for (const key of keys) {
     const raw = localStorage.getItem(key) || '';
     if (done[key] === raw.length) continue;
-    const dropped = key.includes('dropped');
-    const matchId = Number(key.replace(/\D/g, ''));
-    let ops = [];
-    try { const v = JSON.parse(raw); ops = dropped ? v?.ops || [] : v || []; } catch { ops = []; }
+    const mid = Number(key.replace(/\D/g, ''));
+    const m = byMatch.get(mid) || { keys: [], ops: [] };
+    m.keys.push([key, raw.length]);
+    const ops = readOps(key);
+    if (key.includes('dropped')) m.ops = episodes(ops).flat().concat(m.ops); else m.ops = m.ops.concat(ops);
+    byMatch.set(mid, m);
+  }
+  let moved = 0;
+  for (const [mid, { keys: ks, ops }] of byMatch) {
+    const mark = () => { for (const [k, len] of ks) done[k] = len; };
+    if (!ops.length) { mark(); continue; }
     let cached = null;
-    try { cached = JSON.parse(localStorage.getItem(`so_match_${matchId}`) || 'null'); } catch { cached = null; }
-    if (!ops.length) { done[key] = raw.length; continue; }
-    if (!cached) { logDiag('legacy', `${key}: ${ops.length} alte Aktionen ohne gespeicherten Spielstand, Rohdaten bleiben`); continue; }
-    const eps = episodes(ops);
-    for (const [k, ep] of eps.entries()) {
-      const firstAdd = ep.find((o) => o.type === 'add');
-      const firstSeq = firstAdd ? firstAdd.action.seq : (ep[0].seq ?? 0) + 1;
+    try { cached = JSON.parse(localStorage.getItem(`so_match_${mid}`) || 'null'); } catch { cached = null; }
+    try {
+      // 1. the match's migrated recording on the server: adopt and continue it
+      const legacyId = `legacy-${mid}`;
+      let legacy = null;
+      try { legacy = await api(`/matches/${mid}/recordings/${legacyId}`); } catch (e) { if (e.offline) throw e; legacy = null; }
+      if (legacy) {
+        const have = await getRecording(legacyId);
+        const edits = toEdits(ops, legacy.snapshot.actions);
+        if (have) { for (const e of edits) await appendEdit(legacyId, e); }
+        else await adoptRecording({ id: legacyId, match_id: mid, base: legacy.base, edits: legacy.edits.map((e) => e.body), confirmed: legacy.n, userId, newEdits: edits, origin_id: legacy.origin_id, origin_n: legacy.origin_n });
+        logDiag('legacy', `Spiel ${mid}: ${edits.length} alte Aktionen in die Aufzeichnung übernommen`);
+        moved += edits.length; mark(); continue;
+      }
+      // 2. this device already records the match
+      const mine = await myRecording(mid, userId);
+      if (mine) {
+        const edits = toEdits(ops, cached?.actions || []);
+        for (const e of edits) await appendEdit(mine.id, e);
+        logDiag('legacy', `Spiel ${mid}: ${edits.length} alte Aktionen an die eigene Aufzeichnung angehängt`);
+        moved += edits.length; mark(); continue;
+      }
+      // 3. a new own recording from the cached match
+      if (!cached) { logDiag('legacy', `Spiel ${mid}: ${ops.length} alte Aktionen ohne gespeicherten Spielstand, bleiben liegen`); continue; }
+      const firstAdd = ops.find((o) => o.type === 'add');
+      const firstSeq = firstAdd ? firstAdd.action.seq : (ops[0].seq ?? 0) + 1;
       const baseActions = (cached.actions || []).filter((a) => a.seq < firstSeq).map(baseAction);
       const base = {
         schema: 1,
@@ -82,18 +123,14 @@ export async function importLegacy() {
         roster: (cached.players || []).map(rosterEntry),
         actions: baseActions
       };
-      const edits = toEdits(ep, baseActions);
-      if (!edits.length) continue;
-      const id = `legacy-${dev}-${matchId}-${dropped ? 'd' : 'q'}${k}`.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64);
-      try {
-        const r = await importRecording({ id, match_id: matchId, base, device_id: 'legacy', device_label: dropped ? 'Import (beiseitegelegt)' : 'Import (alt)' }, edits.map((b) => ({ body: b })));
-        if (!r.existed) { imported++; logDiag('legacy', `${key}: ${edits.length} Aktionen als Aufzeichnung ${id} übernommen`); }
-      } catch (e) {
-        logDiag('legacy', `${key}: ${e?.message || e}`);
-      }
+      const edits = toEdits(ops, baseActions);
+      await adoptRecording({ id: `legacy-${(await deviceId()).slice(2, 12)}-${mid}`, match_id: mid, base, edits: [], confirmed: 0, userId, newEdits: edits, created: false });
+      logDiag('legacy', `Spiel ${mid}: ${edits.length} alte Aktionen als eigene Aufzeichnung übernommen`);
+      moved += edits.length; mark();
+    } catch (e) {
+      logDiag('legacy', `Spiel ${mid}: ${e?.message || e} (wird beim nächsten Start erneut versucht)`);
     }
-    done[key] = raw.length;
   }
   await metaSet('legacy_done', done);
-  return imported;
+  return moved;
 }

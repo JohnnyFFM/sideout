@@ -239,6 +239,26 @@ async fn deleting_a_recording_is_a_flag_for_coach_or_creator_never_the_result() 
 }
 
 #[tokio::test]
+async fn a_device_adopts_the_migrated_recording_on_its_first_upload() {
+    let app = app().await;
+    let (c, mid, _) = fixture(&app).await;
+    sqlx::query("INSERT INTO legacy_actions (match_id, seq, set_no, skill, grade) VALUES (?, 1, 1, 'opp', '=')").bind(mid).execute(&app.state.dbw).await.unwrap();
+    crate::store::migrate_legacy(&app.state.dbw).await.unwrap();
+    let m = get(&app, &c, mid).await;
+    assert_eq!(m["recordings"][0]["device_id"], "legacy");
+    assert_eq!(m["recordings"][0]["imported"], true);
+    // the phone continues it: no base needed, the edits continue the stored ones
+    let (st, b, _) = call(&app, Method::PUT, &format!("/matches/{mid}/recordings/legacy-{mid}"), Some(&c), Some(json!({ "device_id": "d-phone", "device_label": "", "edits": [opp(1, 2, "=")] }))).await;
+    assert_eq!(st, StatusCode::OK, "{b}");
+    assert_eq!(b["confirmed"], 1);
+    let m = get(&app, &c, mid).await;
+    assert_eq!(m["recordings"].as_array().unwrap().len(), 1, "still one recording");
+    assert_eq!(m["recordings"][0]["device_id"], "d-phone");
+    assert_eq!(m["recordings"][0]["imported"], false);
+    assert_eq!(m["state"]["us"], 2);
+}
+
+#[tokio::test]
 async fn an_import_never_counts_as_live_scouting() {
     let app = app().await;
     let (c, mid, _) = fixture(&app).await;

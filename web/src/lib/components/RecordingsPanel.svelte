@@ -7,7 +7,7 @@
   import { untrack } from 'svelte';
   import { api } from '$lib/api.js';
   import { me, showToast, online } from '$lib/stores.js';
-  import { recordingLabel, baseFromMatch } from '$lib/recording.js';
+  import { recordingLabel, recordingMeta, isHere, baseFromMatch } from '$lib/recording.js';
   import { myRecording, deviceId, createRecording, onChange, setDeleted } from '$lib/recstore.js';
   import { kick, sync } from '$lib/uploader.js';
 
@@ -26,7 +26,6 @@
   const mineNotResult = $derived(!!rec && !!m?.selected && m.selected !== rec.id);
   const mineNotUploaded = $derived(!!rec && !recordings.some((r) => r.id === rec.id));
   const pendingHere = $derived($sync.byMatch[matchId] || 0);
-  const hhmm = (iso) => { const d = iso ? new Date(iso.includes('T') ? iso : iso.replace(' ', 'T') + 'Z') : null; return d && !isNaN(d) ? d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '–'; };
 
   async function load() {
     try {
@@ -52,7 +51,7 @@
   }
   async function remove(r) {
     if (!canDelete(r) || busy) return;
-    if (!confirm(`Aufzeichnung „${recordingLabel(r, myDevice)}“ löschen? Sie verschwindet aus den Listen; die Daten bleiben auf dem Server.`)) return;
+    if (!confirm(`Aufzeichnung von ${recordingLabel(r)} (${recordingMeta(r)}) löschen? Sie verschwindet aus den Listen; die Daten bleiben auf dem Server.`)) return;
     busy = true;
     try {
       await api(`/matches/${matchId}/recordings/${r.id}`, { method: 'DELETE' });
@@ -84,13 +83,12 @@
   {:else}
     <ul>
       {#if mineNotUploaded}
-        <li><b>Dieses Gerät</b> <span class="muted">{pendingHere ? `${pendingHere} nicht hochgeladen` : 'noch nicht hochgeladen'}</span></li>
+        <li><b>{$me?.user?.display_name || 'Ich'}</b><span class="here" title="auf diesem Gerät">📱</span> <span class="muted pend">{pendingHere ? `${pendingHere} nicht hochgeladen` : 'noch nicht hochgeladen'}</span></li>
       {/if}
       {#each recordings as r (r.id)}
         <li class:sel={r.selected}>
-          <b>{recordingLabel(r, myDevice)}</b>
-          <span class="muted">{r.state ? `${r.state.sets_won}:${r.state.sets_lost} Sätze · Satz ${r.state.set} ${r.state.us}:${r.state.them}` : ''} · {r.n} Änderungen · {hhmm(r.last_write)}{r.origin_id ? ' · Kopie' : ''}</span>
-          <span class="chip where" class:pend={r.device_id === myDevice && !r.imported && pendingHere}>{r.device_id === myDevice && !r.imported ? (pendingHere ? `${pendingHere} nicht hochgeladen` : 'Gerät + Server') : 'Server'}</span>
+          <b>{recordingLabel(r)}</b>{#if isHere(r, myDevice)}<span class="here" title="auf diesem Gerät">📱</span>{/if}
+          <span class="muted">{recordingMeta(r)}{isHere(r, myDevice) && pendingHere ? ` · ` : ''}{#if isHere(r, myDevice) && pendingHere}<span class="pend">{pendingHere} nicht hochgeladen</span>{/if}</span>
           {#if r.selected}<span class="chip ok">Ergebnis</span>{:else if canSelect}<button class="btn sm" onclick={() => select(r.id)} disabled={busy || !$online}>Als Ergebnis verwenden</button>{/if}
           {#if canDelete(r)}<button class="icon-btn del" title="Löschen" aria-label="Aufzeichnung löschen" onclick={() => remove(r)} disabled={busy || !$online}>🗑</button>{/if}
         </li>
@@ -98,7 +96,7 @@
     </ul>
     {#if mineNotResult && canScout}
       <div class="row" style="margin-top:8px; align-items:center; gap:8px; flex-wrap:wrap">
-        <span class="small muted">Als Ergebnis zählt {selectedRec ? recordingLabel(selectedRec, myDevice) : 'eine andere Aufzeichnung'}, nicht die dieses Geräts.</span>
+        <span class="small muted">Als Ergebnis zählt die Aufzeichnung von {selectedRec ? recordingLabel(selectedRec) : 'jemand anderem'}, nicht die dieses Geräts.</span>
         <button class="btn sm" onclick={continueCopy} disabled={busy} title="Den Stand des Ergebnisses übernehmen und auf diesem Gerät weiter tippen; die bisherige eigene Aufzeichnung bleibt erhalten">Ergebnis als Kopie fortsetzen</button>
       </div>
     {/if}
@@ -112,8 +110,8 @@
   .recpanel li.sel { outline: 1px solid var(--accent); }
   .recpanel li .muted { flex: 1 1 160px; font-size: 12px; }
   .chip.ok { border-color: var(--ok); color: var(--ok); }
-  .chip.where { font-size: 11px; color: var(--ink-3); }
-  .chip.where.pend { color: var(--g-neg); border-color: var(--g-neg); }
+  .here { margin-left: 2px; font-size: 13px; }
+  .pend { color: var(--g-neg); }
   .btn.sm { height: 28px; padding: 0 10px; font-size: 12px; }
   .icon-btn.del { width: 28px; height: 28px; font-size: 12px; }
 </style>

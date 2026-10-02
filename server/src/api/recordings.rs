@@ -77,7 +77,7 @@ pub async fn upload(
     let (row, team_id) = match_and_role(&mut tx, &user, id, Role::Assistant).await?;
     let device_id = str_field(&body, "device_id", 64);
     let device_label = str_field(&body, "device_label", 40);
-    let existing = sqlx::query("SELECT match_id, base FROM recordings WHERE id = ?").bind(&rid).fetch_optional(&mut *tx).await?;
+    let existing = sqlx::query("SELECT match_id, base, device_id FROM recordings WHERE id = ?").bind(&rid).fetch_optional(&mut *tx).await?;
     let base_in = body.get("base").filter(|b| !b.is_null());
     match &existing {
         Some(r) => {
@@ -89,6 +89,12 @@ pub async fn upload(
                 if canon != r.get::<String, _>("base") {
                     return Err(ApiError::Refused("recording_mismatch", json!({ "reason": "Anfangsstand weicht vom gespeicherten ab" })));
                 }
+            }
+            // the match's migrated recording (no device yet) becomes the recording of
+            // the first device that continues it: from then on it is that device's own
+            if r.get::<String, _>("device_id") == "legacy" && !device_id.is_empty() && device_id != "legacy" {
+                sqlx::query("UPDATE recordings SET device_id = ?, imported = 0 WHERE id = ?").bind(&device_id).bind(&rid).execute(&mut *tx).await?;
+                audit_conn(&mut tx, team_id, "match", id, "recording_adopted", &rid, Some(user.id)).await?;
             }
         }
         None => {

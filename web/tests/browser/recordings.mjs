@@ -143,7 +143,7 @@ await B.go('/spiele', 2500);
 check('B spiele: entry "2 Aufzeichnungen"', (await B.clickText('.matches .lnk', '2 Aufzeichnungen')) === 'clicked');
 await sleep(1500);
 const panelB = await B.txt('.recpanel');
-check('B spiele panel: both recordings, the result marked, own device not the result', /Ergebnis/.test(panelB) && /Dieses Gerät/.test(panelB) && /Als Ergebnis zählt/.test(panelB) && !/Als Ergebnis verwenden/.test(panelB), { panelB });
+check('B spiele panel: both recordings as persons, the glyph on the own one, the result marked, no coach actions', /Ergebnis/.test(panelB) && /Petra Kuhn📱/.test(panelB) && /Jonas Steitz/.test(panelB) && !/Jonas Steitz📱/.test(panelB) && /Als Ergebnis zählt/.test(panelB) && !/Als Ergebnis verwenden/.test(panelB), { panelB });
 // A sees the second recording too, still shows its own
 await A.go('/live/1', 2500);
 sA = await A.state();
@@ -192,20 +192,27 @@ await A2.send('Page.navigate', { url: 'about:blank' }); await sleep(500);
 sv = await waitServer(1, (s) => s.recs.find((r) => r.id === recA)?.n === 10);
 check('server: edit 10 arrived', sv.recs.find((r) => r.id === recA).n === 10, { sv });
 
-// 8. the old client's leftovers are imported once: a dropped queue on top of the cached match
-const cached = (await J('/matches/1')).data;
-const legacyOps = [{ type: 'add', action: { seq: cached.actions.length + 1, skill: 'opp', grade: '=', cid: 'x1' } }, { type: 'add', action: { seq: cached.actions.length + 2, skill: 'opp', grade: '#', cid: 'x2' } }];
-await B.ev(`(()=>{localStorage.setItem('so_match_1', ${JSON.stringify(JSON.stringify(cached))}); localStorage.setItem('so_ops_dropped_1', JSON.stringify({ at: 'x', ops: ${JSON.stringify(legacyOps)} })); return 1})()`);
+// 8. the old client's leftovers continue the match's one migrated recording: no extra rows
+// (the server's migration left `legacy-2` without a device; the phone's old queue sat on top of the match it had cached)
+const plan2 = (await J('/matches/2')).data;
+const base2 = { schema: 1, first_serve_us: plan2.planning.first_serve === 'us', lineups: plan2.planning.lineups, roster: plan2.players.map((p) => ({ id: p.id, number: p.number, name: p.name, position: p.position })), actions: [] };
+const lg = await J('/matches/2/recordings/legacy-2', { method: 'PUT', body: { device_id: 'legacy', device_label: '', imported: true, base: base2, edits: [{ n: 1, body: { op: 'add', action: { seq: 1, skill: 'opp', grade: '=' } } }] } });
+check('server holds the migrated recording legacy-2', lg.status === 200 && lg.data.confirmed === 1, { lg });
+const cached2 = (await J('/matches/2')).data;
+const legacyOps = [{ type: 'add', action: { seq: cached2.actions.length + 1, skill: 'opp', grade: '=', cid: 'x1' } }, { type: 'add', action: { seq: cached2.actions.length + 2, skill: 'opp', grade: '#', cid: 'x2' } }];
+await B.ev(`(()=>{localStorage.setItem('so_match_2', ${JSON.stringify(JSON.stringify(cached2))}); localStorage.setItem('so_ops_dropped_2', JSON.stringify({ at: 'x', ops: ${JSON.stringify(legacyOps)} })); return 1})()`);
 await B.go('/spiele', 3500);
-sv = await waitServer(1, (s) => s.recs.length === 3);
-const imp = sv.recs.find((r) => r.device === 'Import (beiseitegelegt)');
-check('legacy dropped queue imported as its own recording and uploaded (2 edits on the cached base)', !!imp && imp.n === 2 && imp.us === cached.state.us + 1, { sv });
-check('B legacy key untouched', (await B.ev(`!!localStorage.getItem('so_ops_dropped_1')`)) === true);
+sv = await waitServer(2, (s) => s.recs.find((r) => r.id === 'legacy-2')?.n === 3);
+const lg2 = (await J('/matches/2')).data.recordings.find((r) => r.id === 'legacy-2');
+check('the old queue became edits 2–3 of legacy-2, adopted by B\'s device, still one migrated recording', sv.recs.length === 2 && lg2?.n === 3 && lg2.device_id !== 'legacy' && lg2.imported === false && lg2.state.us === 2 && lg2.state.them === 1, { sv, lg2 });
+check('B legacy key untouched', (await B.ev(`!!localStorage.getItem('so_ops_dropped_2')`)) === true);
 await B.go('/spiele', 2500);
-sv = await server(1);
-check('legacy import runs once', sv.recs.length === 3, { sv });
+check('legacy import runs once', (await server(2)).recs.find((r) => r.id === 'legacy-2').n === 3);
 loc = await B.local();
-check('B local: imported recording marked imported, own recording untouched', loc.some((r) => r.imported) && loc.some((r) => !r.imported && r.id === recB), { loc });
+check('B local: legacy-2 is now an own recording of this device, confirmed', loc.some((r) => r.id === 'legacy-2' && !r.imported && r.confirmed === 3 && r.created), { loc });
+await B.go('/live/2', 2500);
+sB = await B.state();
+check('B on match 2 continues legacy-2 (2:1), no copy', sB.us === 2 && sB.them === 1 && !sB.dialog, { sB });
 
 // 9. export → import on another device round-trips without duplicates
 await A.go('/einstellungen', 2500);
@@ -224,13 +231,13 @@ const vloc = await V.local();
 check('viewer imported the file: recording present, foreign device, uploads (identical content is accepted, no duplicate)', vloc.some((r) => r.id === recA && r.imported), { vloc });
 await sleep(2000);
 sv = await server(1);
-check('server unchanged by the identical import (still 3 recordings, A at 10)', sv.recs.length === 3 && sv.recs.find((r) => r.id === recA).n === 10, { sv });
+check('server unchanged by the identical import (still 2 recordings, A at 10)', sv.recs.length === 2 && sv.recs.find((r) => r.id === recA).n === 10, { sv });
 const vloc2 = await V.local();
 check('viewer: import confirmed after upload (a viewer may not write → visible error instead)', vloc2.find((r) => r.id === recA).error !== null || vloc2.find((r) => r.id === recA).confirmed === 10, { vloc2 });
 
 // 10. A → B → A: from the Spiele overview A continues the result (B's recording) as a new copy of its own; the old one stays
 await A.go('/spiele', 2500);
-check('A spiele: entry "n Aufzeichnungen" on match 1', (await A.ev(`(()=>{const li=[...document.querySelectorAll('.matches li')].find(l=>l.textContent.includes('VfL Bad Vilbel')); const b=li?.querySelector('.lnk'); if(!b) return 'none'; b.click(); return b.textContent.trim()})()`)).startsWith('3 Aufzeichnungen'));
+check('A spiele: entry "n Aufzeichnungen" on match 1', (await A.ev(`(()=>{const li=[...document.querySelectorAll('.matches li')].find(l=>l.textContent.includes('VfL Bad Vilbel')); const b=li?.querySelector('.lnk'); if(!b) return 'none'; b.click(); return b.textContent.trim()})()`)).startsWith('2 Aufzeichnungen'));
 await sleep(1500);
 const panelA = await A.txt('.recpanel');
 check('A spiele panel: coach sees "Als Ergebnis verwenden" for its own and the copy action', /Als Ergebnis verwenden/.test(panelA) && /Ergebnis als Kopie fortsetzen/.test(panelA), { panelA });
@@ -239,7 +246,7 @@ await sleep(2500);
 sA = await A.state();
 check('A: now on the live page with a copy of B (10:0), no dialog', sA.us === 10 && !sA.dialog && /\/live\/1$/.test(await A.ev('location.pathname')), { sA });
 await A.tap(); await sleep(1500);
-sv = await waitServer(1, (s) => s.recs.length === 4);
+sv = await waitServer(1, (s) => s.recs.length === 3);
 const copyA = (await J('/matches/1')).data.recordings.find((r) => r.origin_id === recB);
 check('server: the copy arrived with origin = B, one edit, 11:0; A\'s older recording untouched (10)', !!copyA && copyA.n === 1 && copyA.state.us === 11 && sv.recs.find((r) => r.id === recA).n === 10, { sv, copyA });
 loc = await A.local();
@@ -429,16 +436,16 @@ const nBefore = (await server(1)).recs.length;
 const delBtns = await A.ev(`document.querySelectorAll('.recpanel .del').length`);
 check('A (coach): a delete button on every recording but the result', delBtns === nBefore - 1, { delBtns, nBefore });
 await A.ev(`window.confirm = () => true; 1`);
-check('A deletes the legacy import', (await A.ev(`(()=>{const li=[...document.querySelectorAll('.recpanel li')].find(l=>/alten App-Version/.test(l.textContent)); const b=li?.querySelector('.del'); if(!b) return 'none'; b.click(); return 'clicked'})()`)) === 'clicked');
+check('A deletes its older own recording (10 edits)', (await A.ev(`(()=>{const li=[...document.querySelectorAll('.recpanel li')].find(l=>/· 10 ·/.test(l.textContent)); const b=li?.querySelector('.del'); if(!b) return 'none'; b.click(); return 'clicked'})()`)) === 'clicked');
 sv = await waitServer(1, (s) => s.recs.length === nBefore - 1);
-check('server: the recording is hidden, the others stay', sv.recs.length === nBefore - 1 && !sv.recs.some((r) => /alten App|beiseite/.test(r.device)), { sv });
+check('server: the recording is hidden, the others stay', sv.recs.length === nBefore - 1 && !sv.recs.some((r) => r.id === recA), { sv });
 // B (assistant) sees no delete button on the coach's recordings, deletes her own non-result one on match 3
 await B.go('/spiele', 2500);
 await B.ev(`(()=>{const li=[...document.querySelectorAll('.matches li')].find(l=>l.textContent.includes('Dritter Gegner')); li?.querySelector('.lnk')?.click(); return 1})()`);
 await sleep(1500);
 const own3 = (await B.local()).find((r) => r.match === 3);
 const bDel = await B.ev(`[...document.querySelectorAll('.recpanel li')].map(l=>({t:l.textContent.replace(/\\s+/g,' ').trim().slice(0,40), del: !!l.querySelector('.del')}))`);
-check('B (assistant): delete only on her own recording', bDel.filter((x) => x.del).length === 1 && bDel.find((x) => x.del)?.t.startsWith('Dieses Gerät'), { bDel });
+check('B (assistant): delete only on her own recording', bDel.filter((x) => x.del).length === 1 && /📱/.test(bDel.find((x) => x.del)?.t || ''), { bDel });
 await B.ev(`window.confirm = () => true; 1`);
 check('B deletes her own', (await B.click('.recpanel .del')) === 'clicked');
 sv = await waitServer(3, (s) => !s.recs.some((r) => r.id === own3.id));

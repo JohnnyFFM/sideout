@@ -119,7 +119,7 @@ export async function createRecording({ match_id, team_id = null, user_id = null
   const now = new Date().toISOString();
   const rec = {
     id: newId(), match_id: Number(match_id), team_id, user_id,
-    device_id: await deviceId(), device_label: deviceLabel(),
+    device_id: await deviceId(), device_label: '',
     origin_id, origin_n, base, next_n: firstEdit ? 2 : 1, confirmed_n: 0, created: false, error: null, imported: false,
     created_at: now, updated_at: now
   };
@@ -286,6 +286,30 @@ export async function importRecording(rec, edits) {
   await done(tx);
   notify('data');
   return { id: rec.id, existed: false, added: n };
+}
+
+/** a recording this device takes over as its own (the match's migrated
+ *  recording from the server, or a fresh one): stored with the given
+ *  confirmed state, new edits appended behind it, continued from now on */
+export async function adoptRecording({ id, match_id, base, edits = [], confirmed = 0, userId, newEdits = [], origin_id = null, origin_n = null, created = true }) {
+  const db = await openDb();
+  const dev = await deviceId(); // before the transaction: an await inside it would let it auto-commit
+  const now = new Date().toISOString();
+  const tx = db.transaction(['recordings', 'edits'], 'readwrite');
+  const recs = tx.objectStore('recordings');
+  if (await wrap(recs.get(id))) { tx.abort(); throw new Error('Aufzeichnung schon vorhanden'); }
+  const all = [...edits, ...newEdits];
+  recs.add({
+    id, match_id: Number(match_id), team_id: null, user_id: userId,
+    device_id: dev, device_label: '',
+    origin_id, origin_n, base, next_n: all.length + 1, confirmed_n: Math.min(confirmed, edits.length), created,
+    error: null, imported: false, created_at: now, updated_at: now
+  });
+  const es = tx.objectStore('edits');
+  all.forEach((body, i) => es.add({ recording_id: id, n: i + 1, body, t: now }));
+  await done(tx);
+  notify('data');
+  return id;
 }
 
 /** everything of one recording, for export */

@@ -25,7 +25,7 @@
       kick();
       if (!data.me.offline) {
         connectSSE();
-        importLegacy().then((n) => { if (n) showToast(`${n} alte Aufzeichnung${n === 1 ? '' : 'en'} von diesem Gerät übernommen`); }).catch(() => {});
+        importLegacy(data.me.user?.id ?? null).then((n) => { if (n) showToast(`${n} Aktionen aus der alten App-Version übernommen`); }).catch(() => {});
       }
     } else {
       disconnectSSE();

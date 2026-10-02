@@ -140,7 +140,7 @@
     </div>
     {#if rec && !mineIsResult}
       <div class="panel srcbar" role="status">
-        <span class="txt">{recordings.length ? 'Als Ergebnis zählt ' + (recordings.find((r) => r.selected) ? recordingLabel(recordings.find((r) => r.selected), myDevice) : 'eine andere Aufzeichnung') : 'Die Aufzeichnung dieses Geräts ist noch nicht auf dem Server'}{pendingHere ? ` · ${pendingHere} Änderungen nicht hochgeladen` : ''}.</span>
+        <span class="txt">{recordings.length ? 'Als Ergebnis zählt die Aufzeichnung von ' + (recordings.find((r) => r.selected) ? recordingLabel(recordings.find((r) => r.selected)) : 'jemand anderem') : 'Die Aufzeichnung dieses Geräts ist noch nicht auf dem Server'}{pendingHere ? ` · ${pendingHere} Änderungen nicht hochgeladen` : ''}.</span>
         <span class="tabs"><button class:active={source === 'result'} onclick={() => (source = 'result')}>Ergebnis</button><button class:active={source === 'mine'} onclick={() => (source = 'mine')}>Dieses Gerät</button></span>
         {#if canSelect && recordings.some((r) => r.id === rec.id)}<button class="btn" onclick={() => select(rec.id)} disabled={selecting || !$online}>Diese als Ergebnis verwenden</button>{/if}
       </div>
