@@ -99,11 +99,21 @@ export function recordingLabel(r) {
   return r.user || 'Unbekannt';
 }
 export const isHere = (r, myDevice) => !!myDevice && r.device_id === myDevice && !r.imported;
-/** "3:0 · 298 · 16:52": sets, size, time of the newest edit */
-export function recordingMeta(r) {
+/** "25:21 (12:8) · +4 Aktionen · 16:52": the score as the match list shows
+ *  it (finished sets, the running set in brackets), the size as a difference
+ *  to the result (`ref`), the time of the newest edit */
+export function recordingMeta(r, ref = null) {
   const t = r.last_write ? r.last_write : '';
   const d = t ? new Date(t.includes('T') ? t : t.replace(' ', 'T') + 'Z') : null;
   const when = d && !isNaN(d) ? (Date.now() - d.getTime() > 20 * 3600 * 1000 ? d.toLocaleDateString('de-DE', { day: 'numeric', month: 'numeric' }) + ' ' : '') + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '';
-  const sets = r.state ? `${r.state.sets_won}:${r.state.sets_lost}` : '';
-  return [sets, r.n != null ? String(r.n) : '', when].filter(Boolean).join(' · ');
+  const st = r.state;
+  const score = st ? [st.sets.map((s) => `${s.us}:${s.them}`).join(' '), st.finished ? '' : `(${st.us}:${st.them})`].filter(Boolean).join(' ') : '';
+  const n = st?.last_seq ?? null;
+  let size = '';
+  if (n != null) {
+    const refN = ref && ref.id !== r.id ? ref.state?.last_seq ?? null : null;
+    if (refN == null) size = `${n} Aktionen`;
+    else { const d = n - refN; size = d === 0 ? 'gleich viele Aktionen' : `${d > 0 ? '+' : '−'}${Math.abs(d)} Aktionen`; }
+  }
+  return [score, size, when].filter(Boolean).join(' · ');
 }

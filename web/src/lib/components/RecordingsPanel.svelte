@@ -51,7 +51,7 @@
   }
   async function remove(r) {
     if (!canDelete(r) || busy) return;
-    if (!confirm(`Aufzeichnung von ${recordingLabel(r)} (${recordingMeta(r)}) löschen? Sie verschwindet aus den Listen; die Daten bleiben auf dem Server.`)) return;
+    if (!confirm(`Aufzeichnung von ${recordingLabel(r)} (${recordingMeta(r, selectedRec)}) löschen? Sie verschwindet aus den Listen; die Daten bleiben auf dem Server.`)) return;
     busy = true;
     try {
       await api(`/matches/${matchId}/recordings/${r.id}`, { method: 'DELETE' });
@@ -88,7 +88,7 @@
       {#each recordings as r (r.id)}
         <li class:sel={r.selected}>
           <b>{recordingLabel(r)}</b>{#if isHere(r, myDevice)}<span class="here" title="auf diesem Gerät">📱</span>{/if}
-          <span class="muted">{recordingMeta(r)}{isHere(r, myDevice) && pendingHere ? ` · ` : ''}{#if isHere(r, myDevice) && pendingHere}<span class="pend">{pendingHere} nicht hochgeladen</span>{/if}</span>
+          <span class="muted">{recordingMeta(r, selectedRec)}{isHere(r, myDevice) && pendingHere ? ` · ` : ''}{#if isHere(r, myDevice) && pendingHere}<span class="pend">{pendingHere} nicht hochgeladen</span>{/if}</span>
           {#if r.selected}<span class="chip ok">Ergebnis</span>{:else if canSelect}<button class="btn sm" onclick={() => select(r.id)} disabled={busy || !$online}>Als Ergebnis verwenden</button>{/if}
           {#if canDelete(r)}<button class="icon-btn del" title="Löschen" aria-label="Aufzeichnung löschen" onclick={() => remove(r)} disabled={busy || !$online}>🗑</button>{/if}
         </li>

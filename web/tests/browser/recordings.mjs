@@ -436,14 +436,16 @@ const nBefore = (await server(1)).recs.length;
 const delBtns = await A.ev(`document.querySelectorAll('.recpanel .del').length`);
 check('A (coach): a delete button on every recording but the result', delBtns === nBefore - 1, { delBtns, nBefore });
 await A.ev(`window.confirm = () => true; 1`);
-check('A deletes its older own recording (10 edits)', (await A.ev(`(()=>{const li=[...document.querySelectorAll('.recpanel li')].find(l=>/· 10 ·/.test(l.textContent)); const b=li?.querySelector('.del'); if(!b) return 'none'; b.click(); return 'clicked'})()`)) === 'clicked');
+const rowsA = await A.ev(`[...document.querySelectorAll('.recpanel li')].map(l=>l.textContent.replace(/\\s+/g,' ').trim())`);
+check('A panel: scores as in the list, sizes relative to the result, the result absolute', rowsA.some((t) => /\(\d+:\d+\)/.test(t)) && rowsA.some((t) => /[+−]\d+ Aktionen/.test(t)) && rowsA.some((t) => /Ergebnis/.test(t) && /\d+ Aktionen/.test(t) && !/[+−]\d+ Aktionen/.test(t)), { rowsA });
+check('A deletes its older own recording (the first row, not the result)', (await A.ev(`(()=>{const li=document.querySelectorAll('.recpanel li')[0]; if(!li||li.classList.contains('sel')) return 'none'; const b=li.querySelector('.del'); if(!b) return 'nodel'; b.click(); return 'clicked'})()`)) === 'clicked');
 sv = await waitServer(1, (s) => s.recs.length === nBefore - 1);
 check('server: the recording is hidden, the others stay', sv.recs.length === nBefore - 1 && !sv.recs.some((r) => r.id === recA), { sv });
 // B (assistant) sees no delete button on the coach's recordings, deletes her own non-result one on match 3
 await B.go('/spiele', 2500);
 await B.ev(`(()=>{const li=[...document.querySelectorAll('.matches li')].find(l=>l.textContent.includes('Dritter Gegner')); li?.querySelector('.lnk')?.click(); return 1})()`);
 await sleep(1500);
-const own3 = (await B.local()).find((r) => r.match === 3);
+const own3 = (await B.local()).find((r) => r.match === 3 && !r.imported && !r.deleted);
 const bDel = await B.ev(`[...document.querySelectorAll('.recpanel li')].map(l=>({t:l.textContent.replace(/\\s+/g,' ').trim().slice(0,40), del: !!l.querySelector('.del')}))`);
 check('B (assistant): delete only on her own recording', bDel.filter((x) => x.del).length === 1 && /📱/.test(bDel.find((x) => x.del)?.t || ''), { bDel });
 await B.ev(`window.confirm = () => true; 1`);
