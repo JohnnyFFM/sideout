@@ -138,10 +138,16 @@ check('B: the first tap continues the shown result as an own copy (8 → 10), up
 await B.shot('rec-b-own');
 const recB = sv.recs[1].id;
 check('B: no result bar on the live page', !/Als Ergebnis zählt/.test(sB.bar) && !sB.recs, { sB });
-// the Spiele overview lists only what differs: A's recording is fully contained in B's, so there is one and no entry
+// the Spiele overview counts only what differs: A's recording is fully contained in B's, folded away behind a toggle in the panel
 await B.go('/spiele', 2500);
-const listB = await B.txt('.matches');
-check('B spiele: no "Aufzeichnungen" entry while A\'s recording is a pure prefix of the result', !/Aufzeichnung/.test(listB), { listB });
+check('B spiele: entry "1 Aufzeichnung" (the contained one is not counted)', (await B.clickText('.matches .lnk', '1 Aufzeichnung')) === 'clicked');
+await sleep(1500);
+let panelB = await B.txt('.recpanel');
+check('B spiele panel: only the result listed, the glyph on it, a toggle for the contained state', /Ergebnis/.test(panelB) && /Petra Kuhn📱/.test(panelB) && !/Jonas Steitz/.test(panelB) && /Ein früherer Stand im Ergebnis enthalten · anzeigen/.test(panelB) && !/Als Ergebnis zählt/.test(panelB), { panelB });
+check('B shows the contained state', (await B.clickText('.recpanel .lnk', 'Ein früherer Stand')) === 'clicked');
+await sleep(300);
+panelB = await B.txt('.recpanel');
+check('B spiele panel: A\'s recording shown as contained, no coach actions', /Jonas Steitz/.test(panelB) && /im Ergebnis enthalten/.test(panelB) && !/Als Ergebnis verwenden/.test(panelB) && (await B.ev(`document.querySelectorAll('.recpanel li.contained').length`)) === 1, { panelB });
 // A sees the second recording too, still shows its own
 await A.go('/live/1', 2500);
 sA = await A.state();
@@ -149,7 +155,7 @@ check('A: still its own recording (8), no dialog', sA.us === 8 && !sA.dialog, { 
 
 // 4. A's recording is a prefix of the result: the evaluation offers the switch to it but lists no alternatives
 await A.go('/auswertung/1', 2500);
-check('A auswertung: no recordings panel while A\'s recording is a prefix of the result', (await A.ev(`document.querySelectorAll('.recs').length`)) === 0);
+check('A auswertung: recordings panel counts one listed plus one contained', /Aufzeichnungen \(1 \+ 1 enthalten\)/.test(await A.txt('.recs summary')), { s: await A.txt('.recs summary') });
 let aw = await A.txt('.srcbar');
 check('A auswertung: own recording differs from the result, switch offered', /Als Ergebnis zählt/.test(aw) && /Dieses Gerät/.test(aw), { aw });
 // B: its recording is the result

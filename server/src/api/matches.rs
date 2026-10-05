@@ -47,6 +47,8 @@ pub async fn list(State(state): State<AppState>, user: CurrentUser) -> ApiResult
         let mut recs = recordings_of_conn(&mut conn, r.get("id")).await?;
         mark_superseded(&mut recs, r.get::<Option<String>, _>("selected_recording").as_deref());
         m["recordings"] = json!(recs.iter().filter(|x| !x.superseded).count());
+        // older states the result contains: not counted, but reachable from the panel
+        m["recordings_contained"] = json!(recs.iter().filter(|x| x.superseded).count());
         // who is scouting right now (a recording with a write in the last minutes)
         m["scouting"] = recs
             .iter()

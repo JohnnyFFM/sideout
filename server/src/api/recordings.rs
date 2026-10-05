@@ -13,7 +13,7 @@ use crate::auth::{CurrentUser, Role};
 use crate::engine;
 use crate::error::{ApiError, ApiResult};
 use crate::events::EventMsg;
-use crate::recording::{self, parse_base, parse_edit};
+use crate::recording::{self, base_from_snapshot, parse_base, parse_edit, Base};
 use crate::state::AppState;
 use crate::store::{
     audit_conn, fetch_match_any_conn, load_recording_conn, rec_meta_json, recording_meta_conn, refresh_status_conn,
@@ -79,8 +79,8 @@ pub async fn upload(
     let device_label = str_field(&body, "device_label", 40);
     let existing = sqlx::query("SELECT match_id, base, device_id FROM recordings WHERE id = ?").bind(&rid).fetch_optional(&mut *tx).await?;
     let base_in = body.get("base").filter(|b| !b.is_null());
-    // a new copy of a recording: where it was taken from and how far that was
-    let mut new_copy: Option<(String, i64)> = None;
+    // a new copy of a recording: where it was taken from, how far that was, and its base
+    let mut new_copy: Option<(String, i64, Base)> = None;
     match &existing {
         Some(r) => {
             if r.get::<i64, _>("match_id") != id {
@@ -101,7 +101,7 @@ pub async fn upload(
         }
         None => {
             let Some(b) = base_in else { return Err(ApiError::BadRequest("Anfangsstand fehlt".into())) };
-            let (_, canon) = parse_base(b).map_err(ApiError::BadRequest)?;
+            let (parsed, canon) = parse_base(b).map_err(ApiError::BadRequest)?;
             let origin_id = body.get("origin_id").and_then(|x| x.as_str()).filter(|s| valid_id(s)).map(str::to_string);
             let origin_n = body.get("origin_n").and_then(|x| x.as_i64());
             let imported = body.get("imported").and_then(|x| x.as_bool()).unwrap_or(false);
@@ -115,7 +115,7 @@ pub async fn upload(
             audit_conn(&mut tx, team_id, "match", id, "recording_new", &rid, Some(user.id)).await?;
             if !imported {
                 if let (Some(o), Some(n)) = (origin_id, origin_n) {
-                    new_copy = Some((o, n));
+                    new_copy = Some((o, n, parsed));
                 }
             }
         }
@@ -165,12 +165,13 @@ pub async fn upload(
     }
     // continuing the result on another device: a copy taken from the result
     // while it had exactly that many edits — nothing came in between — is the
-    // result from now on; the coach only picks when two recordings differ
+    // result from now on; the coach only picks when two recordings differ.
+    // The claim is checked against the stored data: the copy's base must be
+    // the result's folded state (its roster may add today's players).
     let mut promoted = false;
-    if let Some((oid, on)) = &new_copy {
+    if let Some((oid, on, got)) = &new_copy {
         if selected_before.as_deref() == Some(oid.as_str()) {
-            let have: i64 = sqlx::query("SELECT count(*) AS n FROM edits WHERE recording_id = ?").bind(oid).fetch_one(&mut *tx).await?.get("n");
-            if have == *on {
+            if continues_exactly(&mut tx, oid, *on, got).await? {
                 sqlx::query("UPDATE matches SET selected_recording = ?, selection_rev = selection_rev + 1, updated_at = datetime('now') WHERE id = ?")
                     .bind(&rid).bind(id).execute(&mut *tx).await?;
                 audit_conn(&mut tx, team_id, "match", id, "recording_continued", &rid, Some(user.id)).await?;
@@ -199,6 +200,21 @@ pub async fn upload(
         "status": cur.get::<String, _>("status"),
         "state": state_summary(&st),
     })))
+}
+
+/// Does a base equal the folded state of recording `oid` after exactly its
+/// first `n` edits, with `n` being all the recording has? Serve, lineups and
+/// actions must match; the roster may only have grown.
+async fn continues_exactly(conn: &mut sqlx::SqliteConnection, oid: &str, n: i64, got: &Base) -> ApiResult<bool> {
+    let Some((ob, oe)) = load_recording_conn(conn, oid).await? else { return Ok(false) };
+    if n < 0 || oe.len() != n as usize {
+        return Ok(false);
+    }
+    let want = base_from_snapshot(&recording::fold(&ob, &oe));
+    Ok(want.first_serve_us == got.first_serve_us
+        && want.lineups == got.lineups
+        && want.actions == got.actions
+        && want.roster.iter().all(|p| got.roster.iter().any(|q| q.id == p.id)))
 }
 
 /// GET /matches/{id}/recordings/{rid} — everything: meta, base, edits and

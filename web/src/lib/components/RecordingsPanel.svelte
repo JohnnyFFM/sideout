@@ -4,7 +4,7 @@
   // which one is the result. The coach picks the result here; a device whose
   // own recording is not the result can continue the result as a new copy,
   // which becomes the result itself when nothing came in between. Recordings
-  // the result fully contains (`superseded`) are not listed.
+  // the result fully contains (`superseded`) are folded away behind a toggle.
   import { goto } from '$app/navigation';
   import { untrack } from 'svelte';
   import { api } from '$lib/api.js';
@@ -25,9 +25,12 @@
   const canDelete = (r) => !r.selected && (canSelect || (r.user_id != null && r.user_id === $me?.user?.id));
   const all = $derived(m?.recordings || []);
   const recordings = $derived(all.filter((r) => !r.superseded));
+  const contained = $derived(all.filter((r) => r.superseded));
+  let showContained = $state(false);
+  const rows = $derived(showContained ? all : recordings);
   const selectedRec = $derived(recordings.find((r) => r.selected) || null);
-  // a copy of the result with nothing in between becomes the result on its first upload: not "another" recording meanwhile
-  const mineNotResult = $derived(!!rec && !!m?.selected && m.selected !== rec.id && !(rec.origin_id === m.selected && rec.origin_n != null && rec.origin_n === selectedRec?.n));
+  // a copy of the result with nothing in between becomes the result on its first upload: not "another" recording until then
+  const mineNotResult = $derived(!!rec && !!m?.selected && m.selected !== rec.id && !(!rec.created && rec.origin_id === m.selected && rec.origin_n != null && rec.origin_n === selectedRec?.n));
   const mineNotUploaded = $derived(!!rec && !all.some((r) => r.id === rec.id));
   const pendingHere = $derived($sync.byMatch[matchId] || 0);
 
@@ -89,15 +92,18 @@
       {#if mineNotUploaded}
         <li><b>{$me?.user?.display_name || 'Ich'}</b><span class="here" title="auf diesem Gerät">📱</span> <span class="muted pend">{pendingHere ? `${pendingHere} nicht hochgeladen` : 'noch nicht hochgeladen'}</span></li>
       {/if}
-      {#each recordings as r (r.id)}
-        <li class:sel={r.selected}>
-          <b>{recordingLabel(r)}</b>{#if isHere(r, myDevice)}<span class="here" title="auf diesem Gerät">📱</span>{/if}
+      {#each rows as r (r.id)}
+        <li class:sel={r.selected} class:contained={r.superseded}>
+          <b>{recordingLabel(r)}</b>{#if isHere(r, myDevice)}<span class="here" title="auf diesem Gerät">📱</span>{/if}{#if r.superseded}<span class="chip" title="Ein früherer Stand des Ergebnisses: alle Aktionen sind darin enthalten">im Ergebnis enthalten</span>{/if}
           <span class="muted">{recordingMeta(r, selectedRec)}{isHere(r, myDevice) && pendingHere ? ` · ` : ''}{#if isHere(r, myDevice) && pendingHere}<span class="pend">{pendingHere} nicht hochgeladen</span>{/if}</span>
           {#if r.selected}<span class="chip ok">Ergebnis</span>{:else if canSelect}<button class="btn sm" onclick={() => select(r.id)} disabled={busy || !$online}>Als Ergebnis verwenden</button>{/if}
           {#if canDelete(r)}<button class="icon-btn del" title="Löschen" aria-label="Aufzeichnung löschen" onclick={() => remove(r)} disabled={busy || !$online}>🗑</button>{/if}
         </li>
       {/each}
     </ul>
+    {#if contained.length}
+      <button class="lnk small" onclick={() => (showContained = !showContained)}>{contained.length === 1 ? 'Ein früherer Stand' : `${contained.length} frühere Stände`} im Ergebnis enthalten · {showContained ? 'ausblenden' : 'anzeigen'}</button>
+    {/if}
     {#if mineNotResult && canScout}
       <div class="row" style="margin-top:8px; align-items:center; gap:8px; flex-wrap:wrap">
         <span class="small muted">Als Ergebnis zählt die Aufzeichnung von {selectedRec ? recordingLabel(selectedRec) : 'jemand anderem'}, nicht die dieses Geräts.</span>
@@ -112,6 +118,8 @@
   .recpanel ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
   .recpanel li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 6px 8px; border-radius: var(--r-m); background: var(--raised); }
   .recpanel li.sel { outline: 1px solid var(--accent); }
+  .recpanel li.contained { opacity: 0.7; }
+  .recpanel .lnk { margin-top: 6px; }
   .recpanel li .muted { flex: 1 1 160px; font-size: 12px; }
   .chip.ok { border-color: var(--ok); color: var(--ok); }
   .here { margin-left: 2px; font-size: 13px; }

@@ -469,6 +469,12 @@ async fn copy_up(app: &App, cookie: &str, mid: i64, rid: &str, origin: &str, n: 
     let (st, b, _) = call(app, Method::PUT, &format!("/matches/{mid}/recordings/{rid}"), Some(cookie), Some(json!({ "device_id": "dev-b", "device_label": "", "origin_id": origin, "origin_n": n, "base": base, "edits": edits, "imported": imported }))).await;
     (st, b)
 }
+/// the base a copy of recording `rid` after its first `n` edits carries: its folded state
+async fn copy_base(app: &App, rid: &str, n: usize) -> Value {
+    let mut conn = app.state.db.acquire().await.unwrap();
+    let (b, e) = crate::store::load_recording_conn(&mut conn, rid).await.unwrap().unwrap();
+    serde_json::to_value(crate::recording::base_from_snapshot(&crate::recording::fold(&b, &e[..n]))).unwrap()
+}
 async fn list_count(app: &App, cookie: &str) -> i64 {
     call(app, Method::GET, "/matches", Some(cookie), None).await.1["matches"][0]["recordings"].as_i64().unwrap()
 }
@@ -488,37 +494,46 @@ async fn continuing_the_result_with_nothing_in_between_moves_the_result_and_hide
     call(&app, Method::PATCH, &format!("/teams/{team_id}/members/{bob_id}"), Some(&c), Some(json!({ "role": "assistant" }))).await;
     // a copy: where it was taken from and how many edits that recording had then
     let rec = |m: &Value, rid: &str| m["recordings"].as_array().unwrap().iter().find(|r| r["id"] == rid).cloned().unwrap();
-    // bob continues the result from its second edit: his copy is the result, r1 only a hidden prefix
-    let (st, b) = copy_up(&app, &bob, mid, "r2", "r1", 2, &base, vec![opp(1, 3, "#")], false).await;
+    // a copy that claims to continue the result but carries another state (the empty planning): stored, never promoted
+    let (st, b) = copy_up(&app, &bob, mid, "r0", "r1", 2, &base, vec![], false).await;
+    assert_eq!(st, StatusCode::OK, "{b}");
+    assert_eq!(b["selected"], false);
+    assert_eq!(get(&app, &c, mid).await["selected"], "r1");
+    // bob continues the result from its second edit: his copy is the result, r1 only a hidden prefix, the points survive
+    let (st, b) = copy_up(&app, &bob, mid, "r2", "r1", 2, &copy_base(&app, "r1", 2).await, vec![opp(1, 3, "#")], false).await;
     assert_eq!(st, StatusCode::OK, "{b}");
     assert_eq!(b["selected"], true);
     let m = get(&app, &c, mid).await;
     assert_eq!(m["selected"], "r2");
+    assert_eq!(m["state"]["us"], 2, "the two points of r1 are in the result");
+    assert_eq!(m["state"]["them"], 1);
+    assert_eq!(m["actions"].as_array().unwrap().len(), 3);
     assert_eq!(rec(&m, "r1")["superseded"], true);
     assert_eq!(rec(&m, "r2")["superseded"], false);
-    assert_eq!(list_count(&app, &c).await, 1, "the overview counts only what differs");
+    assert_eq!(list_count(&app, &c).await, 2, "the overview counts what differs (r0 and r2), not the contained r1");
+    assert_eq!(call(&app, Method::GET, "/matches", Some(&c), None).await.1["matches"][0]["recordings_contained"], 1);
     // one more edit into r1: it differs from the result again and is listed; the selection stays
     let (st, _) = upload(&app, &c, mid, "r1", None, vec![opp(3, 3, "=")]).await;
     assert_eq!(st, StatusCode::OK);
     let m = get(&app, &c, mid).await;
     assert_eq!(m["selected"], "r2");
     assert_eq!(rec(&m, "r1")["superseded"], false);
-    assert_eq!(list_count(&app, &c).await, 2);
+    assert_eq!(list_count(&app, &c).await, 3);
     // not promoted: a copy of a recording that is not the result
-    let (st, b) = copy_up(&app, &bob, mid, "r3", "r1", 3, &base, vec![], false).await;
+    let (st, b) = copy_up(&app, &bob, mid, "r3", "r1", 3, &copy_base(&app, "r1", 3).await, vec![], false).await;
     assert_eq!(st, StatusCode::OK, "{b}");
     assert_eq!(b["selected"], false);
     // not promoted: a copy of the result taken before its newest edit (something came in between)
-    let (st, b) = copy_up(&app, &bob, mid, "r4", "r2", 0, &base, vec![], false).await;
+    let (st, b) = copy_up(&app, &bob, mid, "r4", "r2", 0, &copy_base(&app, "r2", 0).await, vec![], false).await;
     assert_eq!(st, StatusCode::OK, "{b}");
     assert_eq!(b["selected"], false);
     // not promoted: an import, even of the result's exact state
-    let (st, b) = copy_up(&app, &bob, mid, "r5", "r2", 1, &base, vec![], true).await;
+    let (st, b) = copy_up(&app, &bob, mid, "r5", "r2", 1, &copy_base(&app, "r2", 1).await, vec![], true).await;
     assert_eq!(st, StatusCode::OK, "{b}");
     assert_eq!(b["selected"], false);
     assert_eq!(get(&app, &c, mid).await["selected"], "r2");
     // promoted: a clean continuation of the result; r2 becomes the hidden prefix, r1 (which differs) stays listed
-    let (st, b) = copy_up(&app, &bob, mid, "r6", "r2", 1, &base, vec![], false).await;
+    let (st, b) = copy_up(&app, &bob, mid, "r6", "r2", 1, &copy_base(&app, "r2", 1).await, vec![], false).await;
     assert_eq!(st, StatusCode::OK, "{b}");
     assert_eq!(b["selected"], true);
     let m = get(&app, &c, mid).await;

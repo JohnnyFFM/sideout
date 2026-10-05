@@ -110,19 +110,28 @@
     untrack(() => showToast(o.user_id != null && o.user_id === $me?.user?.id ? 'Du scoutest gerade auf einem anderen Gerät' : `${o.user || 'Jemand'} scoutet gerade`));
   });
   const selectedRec = $derived(recordings.find((r) => r.selected) || null);
-  // my recording is a copy of the result with nothing in between: the server
-  // makes it the result on its first upload, so no word about it meanwhile
-  const cleanContinuation = $derived(!!rec && !!match?.selected && rec.origin_id === match.selected && rec.origin_n != null && rec.origin_n === selectedRec?.n);
+  // my recording is a copy of the result with nothing in between and not
+  // uploaded yet: the server makes it the result on its first upload, so no
+  // word about it meanwhile
+  const cleanContinuation = $derived(!!rec && !rec.created && !!match?.selected && rec.origin_id === match.selected && rec.origin_n != null && rec.origin_n === selectedRec?.n);
   // my recording exists but another one is the result: said once as a toast;
-  // the recordings and the choice live in the Spiele overview
+  // the recordings and the choice live in the Spiele overview. A copy that
+  // was just uploaded may have become the result: the match is re-read first.
   const resultIsOther = $derived(!!rec && !!match?.selected && match.selected !== rec.id && !cleanContinuation);
   let toldResult = null;
   $effect(() => {
     const sel = resultIsOther ? match.selected : null;
     if (!sel || sel === toldResult) return;
     toldResult = sel;
-    const who = selectedRec ? recordingLabel(selectedRec) : 'jemand anderem';
-    setTimeout(() => showToast(`Als Ergebnis zählt die Aufzeichnung von ${who}, nicht die dieses Geräts · Auswahl unter Spiele`), activeOther ? 2600 : 0);
+    const r = rec;
+    untrack(async () => {
+      if (r.origin_id === sel && r.created) {
+        await loadServer(id);
+        if (stale(r.match_id) || match?.selected !== sel) { toldResult = null; return; }
+      }
+      const who = selectedRec ? recordingLabel(selectedRec) : 'jemand anderem';
+      setTimeout(() => showToast(`Als Ergebnis zählt die Aufzeichnung von ${who}, nicht die dieses Geräts · Auswahl unter Spiele`), activeOther ? 2600 : 0);
+    });
   });
 
   async function loadServer(mid) {
