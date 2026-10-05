@@ -219,6 +219,9 @@ pub struct RecMeta {
     pub imported: bool,
     /// hidden by a coach or its creator; rows kept
     pub deleted: bool,
+    /// a pure prefix of the result's chain of copies: every edit went into the
+    /// copy, nothing of its own. Not listed. Set by `mark_superseded`.
+    pub superseded: bool,
 }
 
 fn rec_meta(r: &sqlx::sqlite::SqliteRow) -> RecMeta {
@@ -238,6 +241,7 @@ fn rec_meta(r: &sqlx::sqlite::SqliteRow) -> RecMeta {
         active: r.get::<i64, _>("active") != 0,
         imported: r.get::<i64, _>("imported") != 0,
         deleted: r.get::<i64, _>("deleted") != 0,
+        superseded: false,
     }
 }
 
@@ -253,12 +257,34 @@ pub fn rec_meta_json(m: &RecMeta) -> Value {
         "device_id": m.device_id, "device": m.device_label,
         "origin_id": m.origin_id, "origin_n": m.origin_n,
         "created_at": m.created_at, "last_write": m.last_write, "n": m.n, "active": m.active, "imported": m.imported, "deleted": m.deleted,
+        "superseded": m.superseded,
     })
 }
 
 pub async fn recording_meta_conn(conn: &mut SqliteConnection, rid: &str) -> ApiResult<Option<RecMeta>> {
     let r = sqlx::query(&format!("{REC_SELECT} WHERE r.id = ?")).bind(rid).fetch_optional(conn).await?;
     Ok(r.as_ref().map(rec_meta))
+}
+
+/// Marks what the result makes redundant: walking the result's copies back
+/// (`origin_id`), a recording whose edits all went into the copy (`origin_n`
+/// equals its count) carries nothing of its own and is not listed. One
+/// further tap into it ends that.
+pub fn mark_superseded(recs: &mut [RecMeta], selected: Option<&str>) {
+    let mut cur = selected.map(str::to_string);
+    let mut seen = std::collections::HashSet::new();
+    while let Some(id) = cur.take() {
+        if !seen.insert(id.clone()) {
+            break;
+        }
+        let Some((oid, on)) = recs.iter().find(|r| r.id == id).and_then(|c| Some((c.origin_id.clone()?, c.origin_n?))) else { break };
+        let Some(o) = recs.iter_mut().find(|r| r.id == oid) else { break };
+        if o.n != on {
+            break;
+        }
+        o.superseded = true;
+        cur = Some(oid);
+    }
 }
 
 pub async fn recordings_of_conn(conn: &mut SqliteConnection, match_id: i64) -> ApiResult<Vec<RecMeta>> {

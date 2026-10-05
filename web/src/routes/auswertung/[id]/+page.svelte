@@ -47,7 +47,7 @@
   const s = $derived(cfg ? stats(cfg, players, actions, set) : null);
   const byId = $derived(Object.fromEntries(players.map((p) => [p.id, p])));
   const nSets = $derived(full ? full.sets.length + (full.finished ? 0 : 1) : 0);
-  const recordings = $derived(match?.recordings || []);
+  const recordings = $derived((match?.recordings || []).filter((r) => !r.superseded)); // what the result fully contains is not listed
   const mineIsResult = $derived(!!rec && match?.selected === rec.id);
   const canSelect = $derived($me?.user?.role === 'coach');
   const pendingHere = $derived($sync.byMatch[id] || 0);

@@ -79,6 +79,8 @@ pub async fn upload(
     let device_label = str_field(&body, "device_label", 40);
     let existing = sqlx::query("SELECT match_id, base, device_id FROM recordings WHERE id = ?").bind(&rid).fetch_optional(&mut *tx).await?;
     let base_in = body.get("base").filter(|b| !b.is_null());
+    // a new copy of a recording: where it was taken from and how far that was
+    let mut new_copy: Option<(String, i64)> = None;
     match &existing {
         Some(r) => {
             if r.get::<i64, _>("match_id") != id {
@@ -107,10 +109,15 @@ pub async fn upload(
                 "INSERT INTO recordings (id, match_id, team_id, user_id, device_id, device_label, origin_id, origin_n, base, imported)
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             )
-            .bind(&rid).bind(id).bind(team_id).bind(user.id).bind(&device_id).bind(&device_label).bind(origin_id).bind(origin_n).bind(&canon).bind(imported as i64)
+            .bind(&rid).bind(id).bind(team_id).bind(user.id).bind(&device_id).bind(&device_label).bind(origin_id.as_deref()).bind(origin_n).bind(&canon).bind(imported as i64)
             .execute(&mut *tx)
             .await?;
             audit_conn(&mut tx, team_id, "match", id, "recording_new", &rid, Some(user.id)).await?;
+            if !imported {
+                if let (Some(o), Some(n)) = (origin_id, origin_n) {
+                    new_copy = Some((o, n));
+                }
+            }
         }
     }
     let mut confirmed: i64 = sqlx::query("SELECT coalesce(max(n), 0) AS n FROM edits WHERE recording_id = ?")
@@ -156,6 +163,21 @@ pub async fn upload(
         sqlx::query("UPDATE matches SET selected_recording = ?, selection_rev = selection_rev + 1, updated_at = datetime('now') WHERE id = ? AND selected_recording IS NULL")
             .bind(&rid).bind(id).execute(&mut *tx).await?;
     }
+    // continuing the result on another device: a copy taken from the result
+    // while it had exactly that many edits — nothing came in between — is the
+    // result from now on; the coach only picks when two recordings differ
+    let mut promoted = false;
+    if let Some((oid, on)) = &new_copy {
+        if selected_before.as_deref() == Some(oid.as_str()) {
+            let have: i64 = sqlx::query("SELECT count(*) AS n FROM edits WHERE recording_id = ?").bind(oid).fetch_one(&mut *tx).await?.get("n");
+            if have == *on {
+                sqlx::query("UPDATE matches SET selected_recording = ?, selection_rev = selection_rev + 1, updated_at = datetime('now') WHERE id = ?")
+                    .bind(&rid).bind(id).execute(&mut *tx).await?;
+                audit_conn(&mut tx, team_id, "match", id, "recording_continued", &rid, Some(user.id)).await?;
+                promoted = true;
+            }
+        }
+    }
     refresh_status_conn(&mut tx, id).await?;
     if stored > 0 {
         audit_conn(&mut tx, team_id, "match", id, "recording", &format!("{rid} bis {confirmed}"), Some(user.id)).await?;
@@ -166,6 +188,9 @@ pub async fn upload(
     tx.commit().await?;
     if stored > 0 || existing.is_none() {
         publish(&state, team_id, &user, id, cur.get("version"), "recording");
+    }
+    if promoted {
+        publish(&state, team_id, &user, id, 0, "selected");
     }
     let st = engine::replay(&snap.cfg, &snap.actions);
     Ok(Json(json!({

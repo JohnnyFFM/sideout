@@ -18,7 +18,7 @@ use crate::recording::stat_players;
 use crate::state::AppState;
 use crate::store::{
     action_json, audit, audit_conn, fetch_match_row, fetch_match_row_conn, lineups_json, load_planning_conn, load_players,
-    match_json, planning_snapshot_conn, rec_meta_json, recordings_of_conn, selected_snapshot, selected_snapshot_conn,
+    match_json, planning_snapshot_conn, mark_superseded, rec_meta_json, recordings_of_conn, selected_snapshot, selected_snapshot_conn,
     snapshot_of_conn, state_summary,
 };
 
@@ -44,8 +44,9 @@ pub async fn list(State(state): State<AppState>, user: CurrentUser) -> ApiResult
         let mut m = match_json(r);
         let (_, snap) = selected_snapshot_conn(&mut conn, r).await?;
         m["state"] = serde_json::to_value(engine::replay(&snap.cfg, &snap.actions)).unwrap_or(Value::Null);
-        let recs = recordings_of_conn(&mut conn, r.get("id")).await?;
-        m["recordings"] = json!(recs.len());
+        let mut recs = recordings_of_conn(&mut conn, r.get("id")).await?;
+        mark_superseded(&mut recs, r.get::<Option<String>, _>("selected_recording").as_deref());
+        m["recordings"] = json!(recs.iter().filter(|x| !x.superseded).count());
         // who is scouting right now (a recording with a write in the last minutes)
         m["scouting"] = recs
             .iter()
@@ -196,7 +197,9 @@ pub async fn match_payload_row(state: &AppState, row: &sqlx::sqlite::SqliteRow) 
         .await?;
     let (sel, snap) = selected_snapshot_conn(&mut conn, row).await?;
     let mut recs = vec![];
-    for r in recordings_of_conn(&mut conn, id).await? {
+    let mut all = recordings_of_conn(&mut conn, id).await?;
+    mark_superseded(&mut all, sel.as_deref());
+    for r in all {
         let mut j = rec_meta_json(&r);
         if let Some(s) = snapshot_of_conn(&mut conn, &r.id).await? {
             j["state"] = state_summary(&engine::replay(&s.cfg, &s.actions));

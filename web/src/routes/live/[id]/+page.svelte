@@ -110,9 +110,12 @@
     untrack(() => showToast(o.user_id != null && o.user_id === $me?.user?.id ? 'Du scoutest gerade auf einem anderen Gerät' : `${o.user || 'Jemand'} scoutet gerade`));
   });
   const selectedRec = $derived(recordings.find((r) => r.selected) || null);
-  // my recording exists but the coach chose another one as the result: said
-  // once as a toast; the recordings and the choice live in the Spiele overview
-  const resultIsOther = $derived(!!rec && !!match?.selected && match.selected !== rec.id);
+  // my recording is a copy of the result with nothing in between: the server
+  // makes it the result on its first upload, so no word about it meanwhile
+  const cleanContinuation = $derived(!!rec && !!match?.selected && rec.origin_id === match.selected && rec.origin_n != null && rec.origin_n === selectedRec?.n);
+  // my recording exists but another one is the result: said once as a toast;
+  // the recordings and the choice live in the Spiele overview
+  const resultIsOther = $derived(!!rec && !!match?.selected && match.selected !== rec.id && !cleanContinuation);
   let toldResult = null;
   $effect(() => {
     const sel = resultIsOther ? match.selected : null;
@@ -278,8 +281,9 @@
   // the first tap on this device continues what is loaded, without asking:
   // a fresh recording from the planning when nothing was recorded yet, else
   // a copy of the shown result (another scout's or an import) as the own
-  // recording, with its origin noted. Saved from the captured context even
-  // when the page has already moved on.
+  // recording, with its origin noted; the server makes that copy the result
+  // when nothing came in between. Saved from the captured context even when
+  // the page has already moved on.
   async function startRecording(ctx, pending) {
     if (ctx.uid == null) return;
     await createAndApply(ctx, (ctx.m?.recordings || []).length ? 'copy' : 'fresh', { first: pending });
@@ -316,7 +320,7 @@
     kick();
     if (id === ctx.mid) {
       rec = r; edits = first ? [first] : []; selected = null;
-      showToast(mode === 'copy' ? `Stand von ${sel ? recordingLabel(sel) : 'Ergebnis'} übernommen, eigene Aufzeichnung läuft` : 'Eigene Aufzeichnung begonnen');
+      showToast(mode === 'copy' ? `Ergebnis von ${sel ? recordingLabel(sel) : 'jemand anderem'} wird auf diesem Gerät fortgesetzt` : 'Eigene Aufzeichnung begonnen');
     }
   }
 

@@ -76,7 +76,7 @@ async function secondTab(b) {
 const lr = await fetch(`${origin}/api/auth/login`, { method: 'POST', headers: { 'X-Requested-By': 'x', 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'jonas', password: 'geheim123' }) });
 const cookie = lr.headers.get('set-cookie').split(';')[0];
 const J = async (path, opts = {}) => { const r = await fetch(`${origin}/api${path}`, { method: opts.method || 'GET', headers: { 'X-Requested-By': 'x', 'Content-Type': 'application/json', cookie }, body: opts.body ? JSON.stringify(opts.body) : undefined }); return { status: r.status, data: await r.json().catch(() => null) }; };
-const server = async (mid = 1) => { const m = (await J(`/matches/${mid}`)).data; return { us: m.state.us, them: m.state.them, last_seq: m.state.last_seq, status: m.status, selected: m.selected, recs: m.recordings.map((r) => ({ id: r.id, n: r.n, device: r.device, user: r.user, us: r.state?.us, active: r.active, origin_id: r.origin_id })) }; };
+const server = async (mid = 1) => { const m = (await J(`/matches/${mid}`)).data; return { us: m.state.us, them: m.state.them, last_seq: m.state.last_seq, status: m.status, selected: m.selected, recs: m.recordings.map((r) => ({ id: r.id, n: r.n, device: r.device, user: r.user, us: r.state?.us, active: r.active, origin_id: r.origin_id, superseded: r.superseded })) }; };
 const waitServer = async (mid, pred, ms = 8000) => { const t0 = Date.now(); let s; do { s = await server(mid); if (pred(s)) return s; await sleep(300); } while (Date.now() - t0 < ms); return s; };
 
 const A = await browser(9490, 'edge-profile70', 'jonas');          // device A: coach
@@ -126,44 +126,36 @@ check('A list: pending badges gone', !/nicht hochgeladen/.test(list2), { list2 }
 let loc = await A.local();
 check('A local store: both recordings confirmed', loc.every((r) => r.confirmed === r.next - 1 && r.created), { loc });
 
-// 3. device B: sees who scouts, may record on its own; the choice on first tap; the selection stays
+// 3. device B: sees who scouts; its first tap continues the result as an own copy, which is the result from then on (nothing came in between)
 await B.go('/live/1', 1200);
 const toastB = await B.txt('.toast');
 let sB = await B.state();
 check('B: a toast names the active scout, no bar, pad enabled, no dialog yet', /Jonas Steitz scoutet gerade/.test(toastB) && !/scoutet gerade/.test(sB.bar) && sB.padOn > 0 && !sB.dialog && sB.us === 8, { toastB, sB });
 await B.tap(); await sleep(400); await B.tap(); await sleep(1500);
 sB = await B.state();
-sv = await waitServer(1, (s) => s.recs.length === 2 && s.recs[1].n === 2);
-check('B: the first tap continues the shown result as an own copy (8 → 10), uploaded with origin = A; selection unchanged', sB.us === 10 && !sB.dialog && sv.recs.length === 2 && sv.recs[1].n === 2 && sv.recs[1].origin_id === recA && sv.selected === recA && sv.us === 8, { sB, sv });
+sv = await waitServer(1, (s) => s.recs.length === 2 && s.recs[1].n === 2 && s.selected === s.recs[1].id);
+check('B: the first tap continues the shown result as an own copy (8 → 10), uploaded with origin = A; the copy is the result now, A\'s recording a hidden prefix', sB.us === 10 && !sB.dialog && sv.recs.length === 2 && sv.recs[1].n === 2 && sv.recs[1].origin_id === recA && sv.selected === sv.recs[1].id && sv.us === 10 && sv.recs[0].superseded === true && sv.recs[1].superseded === false, { sB, sv });
 await B.shot('rec-b-own');
 const recB = sv.recs[1].id;
 check('B: no result bar on the live page', !/Als Ergebnis zählt/.test(sB.bar) && !sB.recs, { sB });
-// the recordings live in the Spiele overview: an expandable entry per match
+// the Spiele overview lists only what differs: A's recording is fully contained in B's, so there is one and no entry
 await B.go('/spiele', 2500);
-check('B spiele: entry "2 Aufzeichnungen"', (await B.clickText('.matches .lnk', '2 Aufzeichnungen')) === 'clicked');
-await sleep(1500);
-const panelB = await B.txt('.recpanel');
-check('B spiele panel: both recordings as persons, the glyph on the own one, the result marked, no coach actions', /Ergebnis/.test(panelB) && /Petra Kuhn📱/.test(panelB) && /Jonas Steitz/.test(panelB) && !/Jonas Steitz📱/.test(panelB) && /Als Ergebnis zählt/.test(panelB) && !/Als Ergebnis verwenden/.test(panelB), { panelB });
+const listB = await B.txt('.matches');
+check('B spiele: no "Aufzeichnungen" entry while A\'s recording is a pure prefix of the result', !/Aufzeichnung/.test(listB), { listB });
 // A sees the second recording too, still shows its own
 await A.go('/live/1', 2500);
 sA = await A.state();
 check('A: still its own recording (8), no dialog', sA.us === 8 && !sA.dialog, { sA });
 
-// 4. the coach selects B's recording as the result (from the evaluation page)
+// 4. A's recording is a prefix of the result: the evaluation offers the switch to it but lists no alternatives
 await A.go('/auswertung/1', 2500);
-check('A auswertung: recordings panel with 2 entries', /Aufzeichnungen \(2\)/.test(await A.txt('.recs summary')));
-await A.ev(`document.querySelector('.recs').open = true`);
-check('A selects B', (await A.clickText('.recs li:not(.sel) button', 'Als Ergebnis')) === 'clicked');
-sv = await waitServer(1, (s) => s.selected === recB);
-check('server: B is the result now, state follows B', sv.selected === recB && sv.us === 10, { sv });
-await sleep(800);
-await A.shot('rec-a-auswertung');
-const aw = await A.txt('.srcbar');
+check('A auswertung: no recordings panel while A\'s recording is a prefix of the result', (await A.ev(`document.querySelectorAll('.recs').length`)) === 0);
+let aw = await A.txt('.srcbar');
 check('A auswertung: own recording differs from the result, switch offered', /Als Ergebnis zählt/.test(aw) && /Dieses Gerät/.test(aw), { aw });
-// B: the bar says its recording is the result now
+// B: its recording is the result
 await B.go('/live/1', 2500);
 sB = await B.state();
-check('B: no "other result" bar any more', !/Als Ergebnis zählt/.test(sB.bar), { sB });
+check('B: no "other result" bar', !/Als Ergebnis zählt/.test(sB.bar), { sB });
 
 // 5. a viewer never records
 await V.go('/live/1');
@@ -179,6 +171,19 @@ await sleep(1500);
 sv = await waitServer(1, (s) => s.recs.find((r) => r.id === recA)?.n === 9);
 sA = await A.state();
 check('A: undo stored as edit 9, own state 7, result still B 10:0', sA.us === 7 && sv.recs.find((r) => r.id === recA).n === 9 && sv.us === 10 && sv.selected === recB, { sA, sv });
+// A's recording differs from the result now: listed again, the coach picks it and picks B back
+await A.go('/auswertung/1', 2500);
+check('A auswertung: recordings panel with 2 entries once the recordings differ', /Aufzeichnungen \(2\)/.test(await A.txt('.recs summary')));
+await A.ev(`document.querySelector('.recs').open = true`);
+check('A selects its own', (await A.clickText('.recs li:not(.sel) button', 'Als Ergebnis')) === 'clicked');
+sv = await waitServer(1, (s) => s.selected === recA);
+check('server: A is the result now, state follows A (7:0)', sv.selected === recA && sv.us === 7, { sv });
+await sleep(800);
+check('A selects B again', (await A.clickText('.recs li:not(.sel) button', 'Als Ergebnis')) === 'clicked');
+sv = await waitServer(1, (s) => s.selected === recB);
+check('server: B is the result again (10:0)', sv.selected === recB && sv.us === 10, { sv });
+await A.shot('rec-a-auswertung');
+await A.go('/live/1', 2500);
 
 // 7. two tabs of one browser: one writer, shared store
 const A2 = await secondTab(A);
@@ -235,20 +240,22 @@ check('server unchanged by the identical import (still 2 recordings, A at 10)', 
 const vloc2 = await V.local();
 check('viewer: import confirmed after upload (a viewer may not write → visible error instead)', vloc2.find((r) => r.id === recA).error !== null || vloc2.find((r) => r.id === recA).confirmed === 10, { vloc2 });
 
-// 10. A → B → A: from the Spiele overview A continues the result (B's recording) as a new copy of its own; the old one stays
+// 10. A → B → A: from the Spiele overview A continues the result (B's recording) as a new copy of its own, which is the result from then on; the old one stays
 await A.go('/spiele', 2500);
 check('A spiele: entry "n Aufzeichnungen" on match 1', (await A.ev(`(()=>{const li=[...document.querySelectorAll('.matches li')].find(l=>l.textContent.includes('VfL Bad Vilbel')); const b=li?.querySelector('.lnk'); if(!b) return 'none'; b.click(); return b.textContent.trim()})()`)).startsWith('2 Aufzeichnungen'));
 await sleep(1500);
 const panelA = await A.txt('.recpanel');
-check('A spiele panel: coach sees "Als Ergebnis verwenden" for its own and the copy action', /Als Ergebnis verwenden/.test(panelA) && /Ergebnis als Kopie fortsetzen/.test(panelA), { panelA });
-check('A continues the result', (await A.clickText('.recpanel button', 'Ergebnis als Kopie')) === 'clicked');
+check('A spiele panel: coach sees "Als Ergebnis verwenden" for its own and the continue action', /Als Ergebnis verwenden/.test(panelA) && /Ergebnis fortsetzen/.test(panelA), { panelA });
+check('A continues the result', (await A.clickText('.recpanel button', 'Ergebnis fortsetzen')) === 'clicked');
 await sleep(2500);
 sA = await A.state();
 check('A: now on the live page with a copy of B (10:0), no dialog', sA.us === 10 && !sA.dialog && /\/live\/1$/.test(await A.ev('location.pathname')), { sA });
+const toastA = await A.txt('.toast');
+check('A: no "other result" hint for a clean continuation of the result', !/Als Ergebnis zählt/.test(toastA) && !/Als Ergebnis zählt/.test(sA.bar), { toastA, sA });
 await A.tap(); await sleep(1500);
 sv = await waitServer(1, (s) => s.recs.length === 3);
 const copyA = (await J('/matches/1')).data.recordings.find((r) => r.origin_id === recB);
-check('server: the copy arrived with origin = B, one edit, 11:0; A\'s older recording untouched (10)', !!copyA && copyA.n === 1 && copyA.state.us === 11 && sv.recs.find((r) => r.id === recA).n === 10, { sv, copyA });
+check('server: the copy arrived with origin = B, one edit, 11:0, and is the result; B\'s recording a hidden prefix; A\'s older recording untouched (10)', !!copyA && copyA.n === 1 && copyA.state.us === 11 && sv.selected === copyA.id && sv.recs.find((r) => r.id === recB).superseded === true && sv.recs.find((r) => r.id === recA).n === 10, { sv, copyA });
 loc = await A.local();
 check('A local: three own recordings of match 1 exist side by side', loc.filter((r) => r.match === 1 && !r.imported).length === 2 && loc.filter((r) => r.match === 1).length >= 2, { loc });
 await A.shot('rec-a-copy');
@@ -270,7 +277,7 @@ await B.ev(`(()=>{const b=document.querySelector('.btn.big.us'); b.click(); b.cl
 await sleep(1500);
 sB = await B.state();
 sv = await waitServer(3, (s) => s.recs.length === 2);
-check('B: one copy of A\'s state with both taps (3 → 5), uploaded', sB.us === 5 && !sB.dialog && (await B.local()).filter((r) => r.match === 3).length === 1 && sv.recs.length === 2 && sv.recs.find((r) => r.id !== recA3)?.n === 2 && sv.recs.find((r) => r.id !== recA3)?.origin_id === recA3, { sB, sv });
+check('B: one copy of A\'s state with both taps (3 → 5), uploaded, the result now', sB.us === 5 && !sB.dialog && (await B.local()).filter((r) => r.match === 3).length === 1 && sv.recs.length === 2 && sv.recs.find((r) => r.id !== recA3)?.n === 2 && sv.recs.find((r) => r.id !== recA3)?.origin_id === recA3 && sv.selected !== recA3, { sB, sv });
 
 // 13. a failing recording (5xx) does not block the others; it retries later on its own
 A.setIntercept((method, url) => (method === 'PUT' && url.includes(`/api/matches/1/recordings/`) ? { status: 503, body: { error: 'down' } } : null));
@@ -333,7 +340,7 @@ await sleep(3000);
 sB = await B.state();
 bl = (await B.local()).find((r) => r.id === recB);
 sv = await server(1);
-check('B (jonas): petra\'s recording is not his, not shown as own, and not uploaded under his account', sB.us === 10 && !sB.dialog && bl.next - 1 - bl.confirmed === 1 && sv.recs.find((r) => r.id === recB).n === 2, { sB, bl, sv });
+check('B (jonas): petra\'s recording is not his, not shown as own (the result, 12:0, is shown), and not uploaded under his account', sB.us === 12 && !sB.dialog && bl.next - 1 - bl.confirmed === 1 && sv.recs.find((r) => r.id === recB).n === 2, { sB, bl, sv });
 await B.go('/einstellungen', 2500);
 check('B (jonas): settings mention the other account\'s pending recording', /anderen Kontos/.test(await A.txt('body') + await B.txt('.app-row .d')) || /anderen Kontos/.test(await B.ev(`document.body.textContent`)));
 await B.login('petra.k');
@@ -379,7 +386,7 @@ const anchor = (path) => `(()=>{const a=document.createElement('a'); a.href='${p
 const switchTo = async (b, user) => { await b.login(user); await b.ev(anchor('/login')); await sleep(800); await b.ev(anchor('/live/4')); await sleep(2500); };
 await switchTo(B, 'jonas');
 sB = await B.state();
-check('B (jonas): shows the result (A, 1:0), not petra\'s recording', sB.us === 1 && !sB.dialog, { sB, who: await B.ev(`JSON.parse(localStorage.getItem('so_me')||'null')?.user?.username`) });
+check('B (jonas): shows the result (petra\'s continuation, 3:0), not as his own', sB.us === 3 && !sB.dialog, { sB, who: await B.ev(`JSON.parse(localStorage.getItem('so_me')||'null')?.user?.username`) });
 await B.tap(); await sleep(1500);
 sv4b = await waitServer(4, (s) => s.recs.length === 3);
 check('B (jonas): his tap made his own copy (1 → 2); petra\'s recording untouched (2)', sv4b.recs.filter((r) => r.user === 'Jonas Steitz').length === 2 && sv4b.recs.find((r) => r.user === 'Petra Kuhn')?.n === 2, { sv4b });
@@ -442,6 +449,8 @@ check('A deletes its older own recording (the first row, not the result)', (awai
 sv = await waitServer(1, (s) => s.recs.length === nBefore - 1);
 check('server: the recording is hidden, the others stay', sv.recs.length === nBefore - 1 && !sv.recs.some((r) => r.id === recA), { sv });
 // B (assistant) sees no delete button on the coach's recordings, deletes her own non-result one on match 3
+// (hers is the result there: the coach takes A's recording first)
+{ const m3s = (await J('/matches/3')).data; const r = await J('/matches/3/select', { method: 'POST', body: { recording_id: recA3, rev: m3s.selection_rev } }); check('coach takes A\'s recording as the result of match 3', r.status === 200 && r.data.selected === recA3, { r }); }
 await B.go('/spiele', 2500);
 await B.ev(`(()=>{const li=[...document.querySelectorAll('.matches li')].find(l=>l.textContent.includes('Dritter Gegner')); li?.querySelector('.lnk')?.click(); return 1})()`);
 await sleep(1500);

@@ -2,7 +2,9 @@
   import { base } from '$app/paths';
   // The recordings of one match: who recorded on which device, how far,
   // which one is the result. The coach picks the result here; a device whose
-  // own recording is not the result can continue the result as a new copy.
+  // own recording is not the result can continue the result as a new copy,
+  // which becomes the result itself when nothing came in between. Recordings
+  // the result fully contains (`superseded`) are not listed.
   import { goto } from '$app/navigation';
   import { untrack } from 'svelte';
   import { api } from '$lib/api.js';
@@ -21,10 +23,12 @@
   const canScout = $derived(['coach', 'assistant'].includes($me?.user?.role));
   // a coach deletes any recording that is not the result, everyone else only their own
   const canDelete = (r) => !r.selected && (canSelect || (r.user_id != null && r.user_id === $me?.user?.id));
-  const recordings = $derived(m?.recordings || []);
+  const all = $derived(m?.recordings || []);
+  const recordings = $derived(all.filter((r) => !r.superseded));
   const selectedRec = $derived(recordings.find((r) => r.selected) || null);
-  const mineNotResult = $derived(!!rec && !!m?.selected && m.selected !== rec.id);
-  const mineNotUploaded = $derived(!!rec && !recordings.some((r) => r.id === rec.id));
+  // a copy of the result with nothing in between becomes the result on its first upload: not "another" recording meanwhile
+  const mineNotResult = $derived(!!rec && !!m?.selected && m.selected !== rec.id && !(rec.origin_id === m.selected && rec.origin_n != null && rec.origin_n === selectedRec?.n));
+  const mineNotUploaded = $derived(!!rec && !all.some((r) => r.id === rec.id));
   const pendingHere = $derived($sync.byMatch[matchId] || 0);
 
   async function load() {
@@ -97,7 +101,7 @@
     {#if mineNotResult && canScout}
       <div class="row" style="margin-top:8px; align-items:center; gap:8px; flex-wrap:wrap">
         <span class="small muted">Als Ergebnis zählt die Aufzeichnung von {selectedRec ? recordingLabel(selectedRec) : 'jemand anderem'}, nicht die dieses Geräts.</span>
-        <button class="btn sm" onclick={continueCopy} disabled={busy} title="Den Stand des Ergebnisses übernehmen und auf diesem Gerät weiter tippen; die bisherige eigene Aufzeichnung bleibt erhalten">Ergebnis als Kopie fortsetzen</button>
+        <button class="btn sm" onclick={continueCopy} disabled={busy} title="Den Stand des Ergebnisses übernehmen und auf diesem Gerät weiter tippen; kommt nichts dazwischen, zählt die Fortsetzung als Ergebnis. Die bisherige eigene Aufzeichnung bleibt erhalten">Ergebnis fortsetzen</button>
       </div>
     {/if}
   {/if}
