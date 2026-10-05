@@ -13,10 +13,10 @@ use crate::auth::{CurrentUser, Role};
 use crate::engine;
 use crate::error::{ApiError, ApiResult};
 use crate::events::EventMsg;
-use crate::recording::{self, base_from_snapshot, parse_base, parse_edit, Base};
+use crate::recording::{self, parse_base, parse_edit, Base};
 use crate::state::AppState;
 use crate::store::{
-    audit_conn, fetch_match_any_conn, load_recording_conn, rec_meta_json, recording_meta_conn, refresh_status_conn,
+    audit_conn, continues_exactly, fetch_match_any_conn, load_recording_conn, rec_meta_json, recording_meta_conn, refresh_status_conn,
     snapshot_json, state_summary, team_role_conn,
 };
 
@@ -166,8 +166,7 @@ pub async fn upload(
     // continuing the result on another device: a copy taken from the result
     // while it had exactly that many edits — nothing came in between — is the
     // result from now on; the coach only picks when two recordings differ.
-    // The claim is checked against the stored data: the copy's base must be
-    // the result's folded state (its roster may add today's players).
+    // The claim is checked against the stored data (`continues_exactly`).
     let mut promoted = false;
     if let Some((oid, on, got)) = &new_copy {
         if selected_before.as_deref() == Some(oid.as_str()) {
@@ -200,21 +199,6 @@ pub async fn upload(
         "status": cur.get::<String, _>("status"),
         "state": state_summary(&st),
     })))
-}
-
-/// Does a base equal the folded state of recording `oid` after exactly its
-/// first `n` edits, with `n` being all the recording has? Serve, lineups and
-/// actions must match; the roster may only have grown.
-async fn continues_exactly(conn: &mut sqlx::SqliteConnection, oid: &str, n: i64, got: &Base) -> ApiResult<bool> {
-    let Some((ob, oe)) = load_recording_conn(conn, oid).await? else { return Ok(false) };
-    if n < 0 || oe.len() != n as usize {
-        return Ok(false);
-    }
-    let want = base_from_snapshot(&recording::fold(&ob, &oe));
-    Ok(want.first_serve_us == got.first_serve_us
-        && want.lineups == got.lineups
-        && want.actions == got.actions
-        && want.roster.iter().all(|p| got.roster.iter().any(|q| q.id == p.id)))
 }
 
 /// GET /matches/{id}/recordings/{rid} — everything: meta, base, edits and

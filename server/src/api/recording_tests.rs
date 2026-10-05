@@ -498,7 +498,15 @@ async fn continuing_the_result_with_nothing_in_between_moves_the_result_and_hide
     let (st, b) = copy_up(&app, &bob, mid, "r0", "r1", 2, &base, vec![], false).await;
     assert_eq!(st, StatusCode::OK, "{b}");
     assert_eq!(b["selected"], false);
-    assert_eq!(get(&app, &c, mid).await["selected"], "r1");
+    let m = get(&app, &c, mid).await;
+    assert_eq!(m["selected"], "r1");
+    // the coach picks that wrong copy anyway: r1 is not "contained" in it, whatever the copy claims
+    let rev = m["selection_rev"].as_i64().unwrap();
+    let (st, m, _) = call(&app, Method::POST, &format!("/matches/{mid}/select"), Some(&c), Some(json!({ "recording_id": "r0", "rev": rev }))).await;
+    assert_eq!(st, StatusCode::OK, "{m}");
+    assert_eq!(rec(&m, "r1")["superseded"], false);
+    let (st, _, _) = call(&app, Method::POST, &format!("/matches/{mid}/select"), Some(&c), Some(json!({ "recording_id": "r1", "rev": rev + 1 }))).await;
+    assert_eq!(st, StatusCode::OK);
     // bob continues the result from its second edit: his copy is the result, r1 only a hidden prefix, the points survive
     let (st, b) = copy_up(&app, &bob, mid, "r2", "r1", 2, &copy_base(&app, "r1", 2).await, vec![opp(1, 3, "#")], false).await;
     assert_eq!(st, StatusCode::OK, "{b}");
@@ -510,15 +518,13 @@ async fn continuing_the_result_with_nothing_in_between_moves_the_result_and_hide
     assert_eq!(m["actions"].as_array().unwrap().len(), 3);
     assert_eq!(rec(&m, "r1")["superseded"], true);
     assert_eq!(rec(&m, "r2")["superseded"], false);
-    assert_eq!(list_count(&app, &c).await, 2, "the overview counts what differs (r0 and r2), not the contained r1");
-    assert_eq!(call(&app, Method::GET, "/matches", Some(&c), None).await.1["matches"][0]["recordings_contained"], 1);
+    assert_eq!(list_count(&app, &c).await, 3, "the overview counts every recording, contained or not");
     // one more edit into r1: it differs from the result again and is listed; the selection stays
     let (st, _) = upload(&app, &c, mid, "r1", None, vec![opp(3, 3, "=")]).await;
     assert_eq!(st, StatusCode::OK);
     let m = get(&app, &c, mid).await;
     assert_eq!(m["selected"], "r2");
     assert_eq!(rec(&m, "r1")["superseded"], false);
-    assert_eq!(list_count(&app, &c).await, 3);
     // not promoted: a copy of a recording that is not the result
     let (st, b) = copy_up(&app, &bob, mid, "r3", "r1", 3, &copy_base(&app, "r1", 3).await, vec![], false).await;
     assert_eq!(st, StatusCode::OK, "{b}");
@@ -532,8 +538,17 @@ async fn continuing_the_result_with_nothing_in_between_moves_the_result_and_hide
     assert_eq!(st, StatusCode::OK, "{b}");
     assert_eq!(b["selected"], false);
     assert_eq!(get(&app, &c, mid).await["selected"], "r2");
-    // promoted: a clean continuation of the result; r2 becomes the hidden prefix, r1 (which differs) stays listed
-    let (st, b) = copy_up(&app, &bob, mid, "r6", "r2", 1, &copy_base(&app, "r2", 1).await, vec![], false).await;
+    // not promoted: the exact state, but a known player changed (name)
+    let mut altered = copy_base(&app, "r2", 1).await;
+    altered["roster"][0]["name"] = json!("Anders");
+    let (st, b) = copy_up(&app, &bob, mid, "r5b", "r2", 1, &altered, vec![], false).await;
+    assert_eq!(st, StatusCode::OK, "{b}");
+    assert_eq!(b["selected"], false);
+    // promoted: a clean continuation of the result, its roster grown by a player of today;
+    // r2 becomes the hidden prefix, r1 (which differs) stays listed
+    let mut grown = copy_base(&app, "r2", 1).await;
+    grown["roster"].as_array_mut().unwrap().push(json!({ "id": 999, "number": 99, "name": "Neu", "position": "A" }));
+    let (st, b) = copy_up(&app, &bob, mid, "r6", "r2", 1, &grown, vec![], false).await;
     assert_eq!(st, StatusCode::OK, "{b}");
     assert_eq!(b["selected"], true);
     let m = get(&app, &c, mid).await;
@@ -541,6 +556,7 @@ async fn continuing_the_result_with_nothing_in_between_moves_the_result_and_hide
     assert_eq!(rec(&m, "r2")["superseded"], true);
     assert_eq!(rec(&m, "r1")["superseded"], false);
     assert_eq!(rec(&m, "r6")["superseded"], false);
+    assert_eq!(rec(&m, "r5b")["superseded"], false);
     // the audit names each continuation
     let n: i64 = sqlx::query("SELECT count(*) AS n FROM audit_log WHERE action = 'recording_continued'").fetch_one(&app.state.db).await.unwrap().get("n");
     assert_eq!(n, 2);

@@ -138,9 +138,9 @@ check('B: the first tap continues the shown result as an own copy (8 → 10), up
 await B.shot('rec-b-own');
 const recB = sv.recs[1].id;
 check('B: no result bar on the live page', !/Als Ergebnis zählt/.test(sB.bar) && !sB.recs, { sB });
-// the Spiele overview counts only what differs: A's recording is fully contained in B's, folded away behind a toggle in the panel
+// the Spiele overview counts both; A's recording is fully contained in B's and folded away behind a toggle in the panel
 await B.go('/spiele', 2500);
-check('B spiele: entry "1 Aufzeichnung" (the contained one is not counted)', (await B.clickText('.matches .lnk', '1 Aufzeichnung')) === 'clicked');
+check('B spiele: entry "2 Aufzeichnungen"', (await B.clickText('.matches .lnk', '2 Aufzeichnungen')) === 'clicked');
 await sleep(1500);
 let panelB = await B.txt('.recpanel');
 check('B spiele panel: only the result listed, the glyph on it, a toggle for the contained state', /Ergebnis/.test(panelB) && /Petra Kuhn📱/.test(panelB) && !/Jonas Steitz/.test(panelB) && /Ein früherer Stand im Ergebnis enthalten · anzeigen/.test(panelB) && !/Als Ergebnis zählt/.test(panelB), { panelB });

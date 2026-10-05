@@ -119,7 +119,7 @@
   .recpanel li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 6px 8px; border-radius: var(--r-m); background: var(--raised); }
   .recpanel li.sel { outline: 1px solid var(--accent); }
   .recpanel li.contained { opacity: 0.7; }
-  .recpanel .lnk { margin-top: 6px; }
+  .recpanel .lnk { margin-top: 6px; font: inherit; font-size: 12px; color: var(--accent-text); background: none; border: 0; padding: 0; cursor: pointer; text-align: left; }
   .recpanel li .muted { flex: 1 1 160px; font-size: 12px; }
   .chip.ok { border-color: var(--ok); color: var(--ok); }
   .here { margin-left: 2px; font-size: 13px; }

@@ -266,11 +266,27 @@ pub async fn recording_meta_conn(conn: &mut SqliteConnection, rid: &str) -> ApiR
     Ok(r.as_ref().map(rec_meta))
 }
 
+/// Is `got` the folded state of recording `oid` after exactly its first `n`
+/// edits, `n` being all it has? Serve, lineups, actions and the known
+/// players must match; the roster may only have grown. What a copy claims
+/// with `origin_id`/`origin_n` is never trusted without this.
+pub async fn continues_exactly(conn: &mut SqliteConnection, oid: &str, n: i64, got: &Base) -> ApiResult<bool> {
+    let Some((ob, oe)) = load_recording_conn(conn, oid).await? else { return Ok(false) };
+    if n < 0 || oe.len() != n as usize {
+        return Ok(false);
+    }
+    let want = recording::base_from_snapshot(&recording::fold(&ob, &oe));
+    Ok(want.first_serve_us == got.first_serve_us
+        && want.lineups == got.lineups
+        && want.actions == got.actions
+        && want.roster.iter().all(|p| got.roster.iter().any(|q| q == p)))
+}
+
 /// Marks what the result makes redundant: walking the result's copies back
-/// (`origin_id`), a recording whose edits all went into the copy (`origin_n`
-/// equals its count) carries nothing of its own and is not listed. One
-/// further tap into it ends that.
-pub fn mark_superseded(recs: &mut [RecMeta], selected: Option<&str>) {
+/// (`origin_id`), a recording whose edits all went into the copy — verified
+/// against the stored data, not the claim — carries nothing of its own and
+/// is folded away. One further tap into it ends that.
+pub async fn mark_superseded_conn(conn: &mut SqliteConnection, recs: &mut [RecMeta], selected: Option<&str>) -> ApiResult<()> {
     let mut cur = selected.map(str::to_string);
     let mut seen = std::collections::HashSet::new();
     while let Some(id) = cur.take() {
@@ -278,13 +294,18 @@ pub fn mark_superseded(recs: &mut [RecMeta], selected: Option<&str>) {
             break;
         }
         let Some((oid, on)) = recs.iter().find(|r| r.id == id).and_then(|c| Some((c.origin_id.clone()?, c.origin_n?))) else { break };
-        let Some(o) = recs.iter_mut().find(|r| r.id == oid) else { break };
-        if o.n != on {
+        let Some(oi) = recs.iter().position(|r| r.id == oid) else { break };
+        if recs[oi].n != on {
             break;
         }
-        o.superseded = true;
+        let Some((copy_base, _)) = load_recording_conn(conn, &id).await? else { break };
+        if !continues_exactly(conn, &oid, on, &copy_base).await? {
+            break;
+        }
+        recs[oi].superseded = true;
         cur = Some(oid);
     }
+    Ok(())
 }
 
 pub async fn recordings_of_conn(conn: &mut SqliteConnection, match_id: i64) -> ApiResult<Vec<RecMeta>> {

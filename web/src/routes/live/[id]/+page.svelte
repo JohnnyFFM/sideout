@@ -732,7 +732,7 @@
   .timeline { padding: 8px 12px 6px; }
   .tl-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
   .tl-head h2 { font-size: 15px; }
-  .tl { display: flex; align-items: center; gap: 4px; overflow-x: auto; padding: 6px 2px 6px; scrollbar-width: thin; }
+  .tl { display: flex; align-items: center; gap: 4px; overflow-x: auto; padding: 6px 2px 6px; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
   .tl-item { flex: 0 0 auto; display: grid; justify-items: center; gap: 2px; width: 50px; padding: 5px 0 4px; border-radius: 7px; background: var(--raised); color: var(--ink-2); }
   .tl-item b { font-family: var(--disp); font-size: 19px; font-weight: 700; line-height: 1; }
   .tl-item small { font-size: 9px; line-height: 1; white-space: nowrap; opacity: 0.85; font-weight: 600; }
