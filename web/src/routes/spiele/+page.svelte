@@ -2,7 +2,7 @@
   import { base } from '$app/paths';
   import { untrack } from 'svelte';
   import { api } from '$lib/api.js';
-  import { me, mutations } from '$lib/stores.js';
+  import { me, mutations, showToast } from '$lib/stores.js';
   import { fmtDate } from '$lib/engine.js';
   import { cacheList, cachedList, cacheMatch, offlineReady } from '$lib/offline.js';
   import { sync } from '$lib/uploader.js';
@@ -13,6 +13,14 @@
   let stale = $state(false);
   let ready = $state({});
   const canScout = $derived(['coach', 'assistant'].includes($me?.user?.role));
+  const isCoach = $derived($me?.user?.role === 'coach');
+  // the server archives: the match leaves every list, recordings that are
+  // still on a device are uploaded nonetheless
+  async function remove(m) {
+    if (!confirm(`Spiel gegen ${m.opponent} (${fmtDate(m.date)}) löschen? Es verschwindet aus Spielen und Auswertung.`)) return;
+    try { await api(`/matches/${m.id}`, { method: 'DELETE' }); showToast('Spiel gelöscht'); await load(); }
+    catch (e) { showToast(e.message, true); }
+  }
   const listKey = () => 'matches_' + ($me?.team?.id ?? 0);
   async function load() {
     try { matches = (await api('/matches')).matches; stale = false; cacheList(listKey(), matches); mark(); prefetch(); }
@@ -62,6 +70,7 @@
                   {#if m.status === 'live' && canScout}<a class="btn primary" href="{base}/live/{m.id}">Scouten</a>
                   {:else if m.status === 'planned' && canScout}<a class="btn" href="{base}/live/{m.id}">Starten</a>
                   {:else}<a class="btn" href="{base}/auswertung/{m.id}">Auswertung</a>{/if}
+                  {#if isCoach}<button class="icon-btn" title="Spiel löschen" aria-label="Spiel löschen" onclick={() => remove(m)}>🗑</button>{/if}
                 </span>
               </li>
               {#if open[m.id]}
@@ -77,6 +86,8 @@
 
 <style>
   .matches { list-style: none; margin: 0; padding: 0; }
+  .acts { display: flex; gap: 6px; align-items: center; justify-content: flex-end; }
+  .acts .icon-btn { width: 32px; height: 32px; font-size: 13px; }
   .who { margin-left: 6px; font-size: 11px; color: var(--accent-text); white-space: nowrap; }
   .offl.warn { color: var(--g-neg); border-color: var(--g-neg); }
   .lnk { margin-left: 6px; font-size: 11px; color: var(--accent-text); background: none; border: 0; padding: 0; cursor: pointer; font: inherit; font-size: 11px; white-space: nowrap; }

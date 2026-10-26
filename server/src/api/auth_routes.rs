@@ -221,7 +221,7 @@ pub async fn join(
     }
     let username = body.username.trim().to_lowercase();
     validate_credentials(&username, &body.password, &body.display_name)?;
-    let team = sqlx::query("SELECT id FROM teams WHERE join_code = ?")
+    let team = sqlx::query("SELECT id FROM teams WHERE join_code = ? AND deleted_at IS NULL")
         .bind(body.code.trim().to_uppercase())
         .fetch_optional(&state.db)
         .await?

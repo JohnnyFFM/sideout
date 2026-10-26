@@ -10,7 +10,7 @@ use sqlx::Row;
 use crate::auth::{self, CurrentUser, Role};
 use crate::error::{ApiError, ApiResult};
 use crate::state::AppState;
-use crate::store::audit;
+use crate::store::{audit, audit_conn};
 
 use super::auth_routes::me_payload;
 
@@ -90,6 +90,51 @@ pub async fn leave_team(State(state): State<AppState>, user: CurrentUser, Path(t
         sqlx::query("UPDATE users SET team_id = ? WHERE id = ? AND team_id = ?").bind(n).bind(user.id).bind(team_id).execute(&state.dbw).await?;
     }
     Ok(Json(json!({ "ok": true, "left": team_id, "active_team": next })))
+}
+
+/// DELETE /teams/{id} — a coach deletes a team. Its matches (with their
+/// recordings and lineups), players and memberships go for real; the team
+/// row stays as a tombstone (see migration 0011) and its join code stops
+/// working. Members whose only team this was are locked out, exactly as if
+/// a coach had removed them; the coach therefore needs another team first.
+pub async fn delete_team(State(state): State<AppState>, user: CurrentUser, Path(team_id): Path<i64>) -> ApiResult<Json<Value>> {
+    let m = sqlx::query("SELECT role FROM memberships WHERE user_id = ? AND team_id = ?")
+        .bind(user.id).bind(team_id).fetch_optional(&state.db).await?
+        .ok_or(ApiError::Forbidden)?;
+    if Role::parse(&m.get::<String, _>("role")) < Role::Coach {
+        return Err(ApiError::Forbidden);
+    }
+    let mine: i64 = sqlx::query("SELECT count(*) AS n FROM memberships WHERE user_id = ?").bind(user.id).fetch_one(&state.db).await?.get("n");
+    if mine <= 1 {
+        return Err(ApiError::BadRequest("Das ist dein einziges Team. Lege erst ein anderes an oder tritt einem bei, dann kannst du dieses löschen.".into()));
+    }
+    let name: String = sqlx::query("SELECT name FROM teams WHERE id = ? AND deleted_at IS NULL")
+        .bind(team_id).fetch_optional(&state.db).await?
+        .ok_or(ApiError::NotFound)?.get("name");
+
+    let mut tx = state.dbw.begin().await?;
+    sqlx::query("DELETE FROM legacy_actions WHERE match_id IN (SELECT id FROM matches WHERE team_id = ?)").bind(team_id).execute(&mut *tx).await?;
+    // lineups, actions, recordings and edits follow the matches (ON DELETE CASCADE)
+    sqlx::query("DELETE FROM matches WHERE team_id = ?").bind(team_id).execute(&mut *tx).await?;
+    sqlx::query("DELETE FROM players WHERE team_id = ?").bind(team_id).execute(&mut *tx).await?;
+    sqlx::query("DELETE FROM memberships WHERE team_id = ?").bind(team_id).execute(&mut *tx).await?;
+    // every device that was on this team moves on (validate_session picks a
+    // remaining membership or refuses the session); the account default
+    // keeps the tombstone when there is nothing else
+    sqlx::query("UPDATE sessions SET team_id = NULL WHERE team_id = ?").bind(team_id).execute(&mut *tx).await?;
+    sqlx::query(
+        "UPDATE users SET team_id = COALESCE((SELECT team_id FROM memberships WHERE user_id = users.id ORDER BY created_at LIMIT 1), team_id)
+         WHERE team_id = ?",
+    )
+    .bind(team_id).execute(&mut *tx).await?;
+    sqlx::query("UPDATE teams SET deleted_at = datetime('now') WHERE id = ?").bind(team_id).execute(&mut *tx).await?;
+    audit_conn(&mut tx, team_id, "team", team_id, "deleted", &name, Some(user.id)).await?;
+    tx.commit().await?;
+    state.events.publish(crate::events::EventMsg { team_id, entity: "team".into(), id: team_id, version: 0, action: "deleted".into(), actor: user.display_name.clone() });
+    let next: Option<i64> = sqlx::query("SELECT team_id FROM memberships WHERE user_id = ? ORDER BY created_at LIMIT 1")
+        .bind(user.id).fetch_optional(&state.db).await?.map(|r| r.get("team_id"));
+    sqlx::query("UPDATE sessions SET team_id = ? WHERE id = ?").bind(next).bind(user.session_id).execute(&state.dbw).await?;
+    Ok(Json(json!({ "ok": true, "deleted": team_id, "active_team": next })))
 }
 
 /// GET /teams/{id} — everything the Teams page shows when a card is

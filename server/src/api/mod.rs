@@ -32,7 +32,7 @@ pub fn router(state: AppState) -> Router {
         .route("/teams/join", post(team::join_team))
         .route("/teams/switch", post(team::switch_team))
         // per-team (any of my teams, not only the active one): the Teams page
-        .route("/teams/{id}", get(account::get_team).patch(team::patch_team_by_id))
+        .route("/teams/{id}", get(account::get_team).patch(team::patch_team_by_id).delete(account::delete_team))
         .route("/teams/{id}/membership", delete(account::leave_team))
         .route("/teams/{id}/rotate-code", post(team::rotate_code_by_id))
         .route("/teams/{id}/members/{uid}", patch(team::patch_member_by_id).delete(team::delete_member_by_id))

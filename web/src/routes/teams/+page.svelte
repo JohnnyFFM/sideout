@@ -25,7 +25,12 @@
   }
   // counts sit in every header, so all details load in the background once
   $effect(() => { const ids = teams.map((t) => t.id); untrack(() => ids.forEach((id) => { if (!detail[id]) loadDetail(id); })); });
-  $effect(() => { const m = $mutations; if (m?.entity === 'team' || m?.entity === 'player' || m?.entity === 'resync') untrack(() => Object.keys(detail).forEach((id) => loadDetail(Number(id)))); });
+  $effect(() => {
+    const m = $mutations;
+    if (m?.entity === 'team' && m?.action === 'deleted') { untrack(() => { dropDetail(m.id); refreshMe().then(reconnectSSE); }); return; }
+    if (m?.entity === 'team' || m?.entity === 'player' || m?.entity === 'resync') untrack(() => Object.keys(detail).forEach((id) => loadDetail(Number(id))));
+  });
+  function dropDetail(id) { const { [id]: _d, ...rest } = detail; detail = rest; const { [id]: _o, ...o } = open; open = o; }
 
   const toggle = (id) => (open = { ...open, [id]: !open[id] });
   function subline(t) {
@@ -70,6 +75,19 @@
       await api(`/teams/${t.id}/membership`, { method: 'DELETE' });
       await refreshMe(); reconnectSSE(); showToast(`${t.name} verlassen`);
     } catch (err) { showToast(err.message, true); }
+  }
+
+  async function removeTeam(t, d) {
+    const what = d ? `${d.player_count + (d.inactive_count || 0)} Spielerinnen, ${d.member_count} ${d.member_count === 1 ? 'Person' : 'Personen'} und alle Spiele samt Aufzeichnungen` : 'alle Spielerinnen, Personen und Spiele samt Aufzeichnungen';
+    if (!confirm(`Team "${t.name}" endgültig löschen? ${what} werden gelöscht. Das kann nicht rückgängig gemacht werden.`)) return;
+    if (!confirm(`Wirklich? "${t.name}" ist danach für alle weg.`)) return;
+    busy = true;
+    try {
+      await api(`/teams/${t.id}`, { method: 'DELETE' });
+      dropDetail(t.id);
+      await refreshMe(); reconnectSSE(); showToast(`${t.name} gelöscht`);
+    } catch (err) { showToast(err.message, true); }
+    finally { busy = false; }
   }
 
   let newTeam = $state('');
@@ -184,6 +202,7 @@
                   <button class="btn" onclick={() => rotate(t)}>Neu erzeugen</button>
                 </div>
                 <p class="small muted" style="margin:10px 0 0">Du bist Trainer:in. {d.members.filter((m) => m.role === 'coach').length > 1 ? '' : 'Ernenne erst jemand anderen zur Trainer:in, dann kannst du das Team verlassen. '}<button class="danger-link" onclick={() => leave(t)}>Team verlassen</button></p>
+                <p class="small muted" style="margin:6px 0 0">{teams.length > 1 ? 'Das Team mit allen Spielen, Aufzeichnungen und Spielerinnen entfernen: ' : 'Das ist dein einziges Team; lege erst ein anderes an, dann kannst du dieses löschen. '}<button class="danger-link" disabled={busy || teams.length <= 1} onclick={() => removeTeam(t, d)}>Team löschen</button></p>
               {:else}
                 <p class="small muted" style="margin:10px 0 0">Du bist {ROLE_SHORT[t.role]}: Rollen und Team-Code verwaltet {coachNames(d) || 'die Trainer:in'}. <button class="danger-link" onclick={() => leave(t)}>Team verlassen</button></p>
               {/if}
@@ -242,4 +261,5 @@
   .invite .small { line-height: 1.35; }
   @media (max-width: 520px) { .invite { grid-template-columns: 1fr auto; grid-auto-flow: dense; } .invite .small { grid-column: 1 / -1; } }
   .danger-link { color: var(--g-err); background: none; border: 0; font-weight: 600; cursor: pointer; font-size: 13px; padding: 0; font-family: inherit; }
+  .danger-link:disabled { opacity: .45; cursor: default; }
 </style>

@@ -561,3 +561,48 @@ async fn continuing_the_result_with_nothing_in_between_moves_the_result_and_hide
     let n: i64 = sqlx::query("SELECT count(*) AS n FROM audit_log WHERE action = 'recording_continued'").fetch_one(&app.state.db).await.unwrap().get("n");
     assert_eq!(n, 2);
 }
+
+#[tokio::test]
+async fn deleting_a_team_takes_its_matches_and_locks_out_single_team_members() {
+    let app = app().await;
+    let (c, mid, code) = fixture(&app).await;
+    let base = base_for(&app, &c, mid).await;
+    let (st, b) = upload(&app, &c, mid, "r1", Some(base), vec![opp(1, 1, "=")]).await;
+    assert_eq!(st, StatusCode::OK, "{b}");
+    let (_, me, _) = call(&app, Method::GET, "/me", Some(&c), None).await;
+    let tid = me["team"]["id"].as_i64().unwrap();
+    // a viewer whose only team this is
+    let (_, _, bob) = call(&app, Method::POST, "/auth/join", None, Some(json!({ "code": code, "display_name": "Bob", "username": "bob", "password": "geheim123" }))).await;
+    let bob = bob.unwrap();
+    let (st, _, _) = call(&app, Method::DELETE, &format!("/teams/{tid}"), Some(&bob), None).await;
+    assert_eq!(st, StatusCode::FORBIDDEN);
+    // the coach's only team: refused, she would be locked out herself
+    let (st, b, _) = call(&app, Method::DELETE, &format!("/teams/{tid}"), Some(&c), None).await;
+    assert_eq!(st, StatusCode::BAD_REQUEST, "{b}");
+    let (st, _, _) = call(&app, Method::POST, "/teams", Some(&c), Some(json!({ "name": "Zweite" }))).await;
+    assert_eq!(st, StatusCode::OK);
+    let (st, b, _) = call(&app, Method::DELETE, &format!("/teams/{tid}"), Some(&c), None).await;
+    assert_eq!(st, StatusCode::OK, "{b}");
+    assert!(b["active_team"].is_number());
+    // the coach lands in her remaining team, the deleted one is gone from her list
+    let (st, me, _) = call(&app, Method::GET, "/me", Some(&c), None).await;
+    assert_eq!(st, StatusCode::OK);
+    assert_eq!(me["team"]["name"], "Zweite");
+    assert_eq!(me["teams"].as_array().unwrap().len(), 1);
+    let (st, _, _) = call(&app, Method::GET, &format!("/teams/{tid}"), Some(&c), None).await;
+    assert_eq!(st, StatusCode::FORBIDDEN);
+    let (st, _, _) = call(&app, Method::DELETE, &format!("/teams/{tid}"), Some(&c), None).await;
+    assert_eq!(st, StatusCode::FORBIDDEN);
+    // the contents are gone for real
+    for (table, col) in [("matches", "team_id"), ("players", "team_id"), ("memberships", "team_id"), ("recordings", "team_id")] {
+        let n: i64 = sqlx::query(&format!("SELECT count(*) AS n FROM {table} WHERE {col} = ?")).bind(tid).fetch_one(&app.state.db).await.unwrap().get("n");
+        assert_eq!(n, 0, "{table}");
+    }
+    let n: i64 = sqlx::query("SELECT count(*) AS n FROM lineups WHERE match_id = ?").bind(mid).fetch_one(&app.state.db).await.unwrap().get("n");
+    assert_eq!(n, 0);
+    // the join code is dead, the viewer's session too (as after a removal)
+    let (st, b, _) = call(&app, Method::POST, "/auth/join", None, Some(json!({ "code": code, "display_name": "Dan", "username": "dan", "password": "geheim123" }))).await;
+    assert_eq!(st, StatusCode::BAD_REQUEST, "{b}");
+    let (st, _, _) = call(&app, Method::GET, "/me", Some(&bob), None).await;
+    assert_eq!(st, StatusCode::UNAUTHORIZED);
+}

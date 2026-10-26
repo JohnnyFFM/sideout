@@ -207,7 +207,7 @@ pub async fn join_team(State(state): State<AppState>, user: CurrentUser, Json(bo
     if !state.config.signup_open {
         return Err(ApiError::BadRequest("Beitreten ist auf dieser Instanz geschlossen".into()));
     }
-    let team = sqlx::query("SELECT id FROM teams WHERE join_code = ?")
+    let team = sqlx::query("SELECT id FROM teams WHERE join_code = ? AND deleted_at IS NULL")
         .bind(body.code.trim().to_uppercase())
         .fetch_optional(&state.db)
         .await?
