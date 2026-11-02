@@ -121,8 +121,14 @@
   const maxPts = $derived(s ? Math.max(1, ...s.players.map((p) => p.pts)) : 1);
   // team row from the first attempt, players from `min` attempts (one attempt is not a distribution)
   const gsum = (g) => Object.values(g).reduce((a, b) => a + b, 0);
+  // ranking: points by total (attack kills break ties); quality stacks by
+  // the grade-weighted mean, best on top, the team row first
+  const ranked = $derived(s ? [...s.players].sort((a, b) => b.pts - a.pts || b.A.k - a.A.k || a.number - b.number) : []);
+  const GRADE_SCORE = { '#': 3, '+': 2, '!': 1, '-': 0, '/': -1, '=': -1 };
+  const quality = (g, n) => GRADES.reduce((a, x) => a + (g[x] || 0) * GRADE_SCORE[x], 0) / n;
   const gradeRows = (key, min) => {
-    const rows = s.players.filter((p) => gsum(p.grades[key]) >= min).map((p) => ({ p, g: p.grades[key], n: gsum(p.grades[key]) }));
+    const rows = s.players.filter((p) => gsum(p.grades[key]) >= min).map((p) => ({ p, g: p.grades[key], n: gsum(p.grades[key]) }))
+      .sort((a, b) => quality(b.g, b.n) - quality(a.g, a.n) || b.n - a.n || a.p.number - b.p.number);
     const tn = gsum(s.team.grades[key]);
     return tn ? [{ p: { id: 'team', number: '', name: 'Team' }, g: s.team.grades[key], n: tn }, ...rows] : [];
   };
@@ -241,7 +247,7 @@
       <section class="panel">
         <div class="panel-head"><h2>Punkte pro Spielerin</h2></div>
         <div class="bars">
-          {#each s.players.filter((p) => p.pts || p.A.n) as p (p.id)}
+          {#each ranked.filter((p) => p.pts || p.A.n) as p (p.id)}
             <div class="bar-row p"><div class="lbl"><b>{p.number}</b> {firstName(p)} <span class="muted small">{p.A.k} Ang · {p.S.ace} Ass · {p.B.pts} Blk</span></div><div class="trk"><div class="fill" style="width:{(p.pts / maxPts) * 100}%"></div></div><div class="val">{p.pts}</div></div>
           {:else}<div class="empty">Keine Daten.</div>{/each}
         </div>
